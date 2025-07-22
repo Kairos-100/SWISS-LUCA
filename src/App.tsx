@@ -1,122 +1,47 @@
 import { BrowserRouter as Router, Routes, Route, Link, Navigate, useNavigate, useParams } from 'react-router-dom';
-import { AppBar, Toolbar, Typography, Button, Container, CssBaseline, TextField, Box, Paper, Alert, Card, CardContent, CardMedia, CardActions, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, InputLabel, MenuItem, Select, FormControl, Switch, FormControlLabel, Divider, Input, List, ListItem, ListItemText } from '@mui/material';
+import { AppBar, Toolbar, Typography, Button, Container, CssBaseline, TextField, Box, Paper, Alert, Card, CardContent, CardMedia, CardActions, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Divider, Input, List, ListItem, ListItemText, Switch, FormControlLabel } from '@mui/material';
 import Grid from '@mui/material/Grid';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { useState, useEffect } from 'react';
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
 import './App.css'
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
+import { auth } from './firebase';
+import { signInWithEmailAndPassword, signOut, updatePassword, onAuthStateChanged } from 'firebase/auth';
 
-const theme = createTheme({
-  palette: {
-    mode: 'light',
-    primary: {
-      main: '#111', // black
-      contrastText: '#fff',
-    },
-    secondary: {
-      main: '#888', // grey
-      contrastText: '#fff',
-    },
-    background: {
-      default: '#f5f5f5', // light grey
-      paper: '#fff',
-    },
-    text: {
-      primary: '#111',
-      secondary: '#555',
-    },
-  },
-  components: {
-    MuiAppBar: {
-      styleOverrides: {
-        root: {
-          backgroundColor: '#111',
-          color: '#fff',
-        },
-      },
-    },
-    MuiButton: {
-      styleOverrides: {
-        root: {
-          color: '#111',
-          backgroundColor: '#fff',
-          border: '1px solid #111',
-          '&:hover': {
-            backgroundColor: '#f5f5f5',
-            border: '1px solid #111',
-          },
-        },
-        containedPrimary: {
-          backgroundColor: '#111',
-          color: '#fff',
-          '&:hover': {
-            backgroundColor: '#333',
-          },
-        },
-      },
-    },
-    MuiCard: {
-      styleOverrides: {
-        root: {
-          backgroundColor: '#fff',
-          color: '#111',
-          border: '1px solid #e0e0e0',
-        },
-      },
-    },
-    MuiDialog: {
-      styleOverrides: {
-        paper: {
-          backgroundColor: '#fff',
-          color: '#111',
-        },
-      },
-    },
-    MuiTypography: {
-      styleOverrides: {
-        root: {
-          color: '#111',
-        },
-      },
-    },
-  },
-});
-
-const ADMIN_USER = { username: 'admin', password: 'admin123' };
-
-function useAuth() {
-  const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    return localStorage.getItem('isAuthenticated') === 'true';
-  });
-  const login = (username: string, password: string) => {
-    if (username === ADMIN_USER.username && password === ADMIN_USER.password) {
-      setIsAuthenticated(true);
-      localStorage.setItem('isAuthenticated', 'true');
+function useFirebaseAuth() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setIsAuthenticated(!!user);
+    });
+    return () => unsubscribe();
+  }, []);
+  const login = async (email: string, password: string) => {
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
       return true;
+    } catch (error) {
+      return false;
     }
-    return false;
   };
-  const logout = () => {
-    setIsAuthenticated(false);
-    localStorage.removeItem('isAuthenticated');
+  const logout = async () => {
+    await signOut(auth);
   };
   return { isAuthenticated, login, logout };
 }
 
-function LoginPage({ onLogin }: { onLogin: (username: string, password: string) => boolean }) {
-  const [username, setUsername] = useState('');
+function LoginPage({ onLogin }: { onLogin: (email: string, password: string) => Promise<boolean> }) {
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (onLogin(username, password)) {
+    if (await onLogin(email, password)) {
       navigate('/');
     } else {
       setError('Invalid credentials');
@@ -130,11 +55,11 @@ function LoginPage({ onLogin }: { onLogin: (username: string, password: string) 
         {error && <Alert severity="error">{error}</Alert>}
         <Box component="form" onSubmit={handleSubmit}>
           <TextField
-            label="Username"
+            label="Email"
             fullWidth
             margin="normal"
-            value={username}
-            onChange={e => setUsername(e.target.value)}
+            value={email}
+            onChange={e => setEmail(e.target.value)}
             autoFocus
           />
           <TextField
@@ -188,14 +113,12 @@ const initialCards: SummaryCard[] = [
 
 function Dashboard() {
   const [cards, setCards] = useState<SummaryCard[]>(initialCards);
-  const [selectedCard, setSelectedCard] = useState<SummaryCard | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editCard, setEditCard] = useState<SummaryCard | null>(null);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const navigate = useNavigate();
 
   const handleCardClick = (card: SummaryCard) => {
-    setSelectedCard(card);
     navigate(`/details/${card.id}`);
   };
 
@@ -233,7 +156,7 @@ function Dashboard() {
       <Button variant="contained" startIcon={<AddIcon />} onClick={handleAdd} sx={{ mb: 2 }}>Add Card</Button>
       <Grid container spacing={2}>
         {cards.map(card => (
-          <Grid key={card.id} item xs={12} md={6} lg={4}>
+          <Grid key={card.id} component="div">
             <Card sx={{ cursor: 'pointer' }}>
               <CardMedia component="img" height="140" image={card.image} alt={card.title} onClick={() => handleCardClick(card)} />
               <CardContent onClick={() => handleCardClick(card)}>
@@ -320,6 +243,24 @@ function Offers() {
   return <Typography variant="h4">Offers</Typography>;
 }
 function Settings({ onToggleDarkMode, darkMode, onExport, onImport }: { onToggleDarkMode: () => void, darkMode: boolean, onExport: () => void, onImport: (file: File) => void }) {
+  const [newPassword, setNewPassword] = useState('');
+  const [passwordMsg, setPasswordMsg] = useState('');
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!auth.currentUser) {
+      setPasswordMsg('Not logged in.');
+      return;
+    }
+    try {
+      await updatePassword(auth.currentUser, newPassword);
+      setPasswordMsg('Password updated successfully!');
+      setNewPassword('');
+    } catch (err) {
+      setPasswordMsg('Failed to update password.');
+    }
+  };
+
   return (
     <Container maxWidth="sm">
       <Typography variant="h4" gutterBottom>Settings</Typography>
@@ -330,7 +271,18 @@ function Settings({ onToggleDarkMode, darkMode, onExport, onImport }: { onToggle
       />
       <Divider sx={{ my: 2 }} />
       <Typography variant="h6">Change Password</Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>Feature coming soon.</Typography>
+      <Box component="form" onSubmit={handleChangePassword} sx={{ mb: 2 }}>
+        <TextField
+          label="New Password"
+          type="password"
+          fullWidth
+          margin="normal"
+          value={newPassword}
+          onChange={e => setNewPassword(e.target.value)}
+        />
+        <Button type="submit" variant="contained" sx={{ mt: 1 }}>Change Password</Button>
+        {passwordMsg && <Alert severity={passwordMsg.includes('success') ? 'success' : 'error'} sx={{ mt: 2 }}>{passwordMsg}</Alert>}
+      </Box>
       <Divider sx={{ my: 2 }} />
       <Typography variant="h6">Export/Import Data</Typography>
       <Button variant="outlined" onClick={onExport} sx={{ mr: 2 }}>Export Cards (JSON)</Button>
@@ -341,7 +293,8 @@ function Settings({ onToggleDarkMode, darkMode, onExport, onImport }: { onToggle
           inputProps={{ accept: '.json' }}
           sx={{ display: 'none' }}
           onChange={e => {
-            if (e.target.files && e.target.files[0]) onImport(e.target.files[0]);
+            const input = e.target as HTMLInputElement;
+            if (input.files && input.files[0]) onImport(input.files[0]);
           }}
         />
         <Button variant="outlined" component="span">Import Cards (JSON)</Button>
@@ -361,7 +314,7 @@ function Settings({ onToggleDarkMode, darkMode, onExport, onImport }: { onToggle
 }
 
 function App() {
-  const { isAuthenticated, login, logout } = useAuth();
+  const { isAuthenticated, login, logout } = useFirebaseAuth();
   const [darkMode, setDarkMode] = useState(false);
   const [cards, setCards] = useState<SummaryCard[]>(initialCards);
 
