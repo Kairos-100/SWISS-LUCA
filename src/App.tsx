@@ -49,7 +49,7 @@ declare global {
 }
 
 // Google Maps API Key - En producción, esto debería estar en variables de entorno
-const GOOGLE_MAPS_API_KEY = 'AIzaSyC2ktQHVwr8TbV64_wFBbE_aob3ha0bNgE';
+const GOOGLE_MAPS_API_KEY = 'AIzaSyBbnCxckdR0XrhYorXJHXPlIx-58MPcva0';
 
 // Offer data type
 interface Offer {
@@ -195,6 +195,7 @@ function MapView({ offers, selectedCategory, onOfferClick }: {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
+  const [mapLoaded, setMapLoaded] = useState(false);
   
   const filteredOffers = selectedCategory === 'all' 
     ? offers 
@@ -211,13 +212,13 @@ function MapView({ offers, selectedCategory, onOfferClick }: {
           libraries: ['places']
         });
 
-                 await loader.load();
-         
-         if (mapRef.current && !mapInstanceRef.current && window.google) {
-           // Centrar el mapa en Suiza (coordenadas aproximadas del centro)
-           const switzerlandCenter = { lat: 46.8182, lng: 8.2275 };
-           
-           const map = new window.google.maps.Map(mapRef.current, {
+        await loader.load();
+        
+        if (mapRef.current && !mapInstanceRef.current && window.google) {
+          // Centrar el mapa en Suiza (coordenadas aproximadas del centro)
+          const switzerlandCenter = { lat: 46.8182, lng: 8.2275 };
+          
+          const map = new window.google.maps.Map(mapRef.current, {
             center: switzerlandCenter,
             zoom: 8,
             styles: [
@@ -237,119 +238,20 @@ function MapView({ offers, selectedCategory, onOfferClick }: {
                 stylers: [{ color: '#4b6878' }]
               },
               {
-                featureType: 'administrative.land_parcel',
-                elementType: 'labels.text.fill',
-                stylers: [{ color: '#64779e' }]
-              },
-              {
-                featureType: 'administrative.province',
-                elementType: 'geometry.stroke',
-                stylers: [{ color: '#4b6878' }]
-              },
-              {
-                featureType: 'landscape.man_made',
-                elementType: 'geometry.stroke',
-                stylers: [{ color: '#334e87' }]
-              },
-              {
                 featureType: 'landscape.natural',
                 elementType: 'geometry',
                 stylers: [{ color: '#023e58' }]
               },
               {
-                featureType: 'poi',
-                elementType: 'geometry',
-                stylers: [{ color: '#283d6a' }]
-              },
-              {
-                featureType: 'poi',
-                elementType: 'labels.text.fill',
-                stylers: [{ color: '#6f9ba5' }]
-              },
-              {
-                featureType: 'poi',
-                elementType: 'labels.text.stroke',
-                stylers: [{ color: '#1d2c4d' }]
-              },
-              {
-                featureType: 'poi.park',
-                elementType: 'geometry.fill',
-                stylers: [{ color: '#023e58' }]
-              },
-              {
-                featureType: 'poi.park',
-                elementType: 'labels.text.fill',
-                stylers: [{ color: '#3C7680' }]
-              },
-              {
-                featureType: 'road',
-                elementType: 'geometry',
-                stylers: [{ color: '#304a7d' }]
-              },
-              {
-                featureType: 'road',
-                elementType: 'labels.text.fill',
-                stylers: [{ color: '#98a5be' }]
-              },
-              {
-                featureType: 'road',
-                elementType: 'labels.text.stroke',
-                stylers: [{ color: '#1d2c4d' }]
-              },
-              {
-                featureType: 'road.highway',
-                elementType: 'geometry',
-                stylers: [{ color: '#2c6675' }]
-              },
-              {
-                featureType: 'road.highway',
-                elementType: 'geometry.stroke',
-                stylers: [{ color: '#7ea580' }]
-              },
-              {
-                featureType: 'road.highway',
-                elementType: 'labels.text.fill',
-                stylers: [{ color: '#b0d5ce' }]
-              },
-              {
-                featureType: 'road.highway',
-                elementType: 'labels.text.stroke',
-                stylers: [{ color: '#023e58' }]
-              },
-              {
-                featureType: 'transit',
-                elementType: 'labels.text.fill',
-                stylers: [{ color: '#98a5be' }]
-              },
-              {
-                featureType: 'transit',
-                elementType: 'labels.text.stroke',
-                stylers: [{ color: '#1d2c4d' }]
-              },
-              {
-                featureType: 'transit.line',
-                elementType: 'geometry.fill',
-                stylers: [{ color: '#283d6a' }]
-              },
-              {
-                featureType: 'transit.station',
-                elementType: 'geometry',
-                stylers: [{ color: '#3a4762' }]
-              },
-              {
                 featureType: 'water',
                 elementType: 'geometry',
                 stylers: [{ color: '#0e1626' }]
-              },
-              {
-                featureType: 'water',
-                elementType: 'labels.text.fill',
-                stylers: [{ color: '#4e6d70' }]
               }
             ]
           });
           
           mapInstanceRef.current = map;
+          setMapLoaded(true);
         }
       } catch (error) {
         console.error('Error loading Google Maps:', error);
@@ -361,36 +263,36 @@ function MapView({ offers, selectedCategory, onOfferClick }: {
 
   // Actualizar marcadores cuando cambian las ofertas filtradas
   useEffect(() => {
-    if (!mapInstanceRef.current) return;
+    if (!mapInstanceRef.current || !mapLoaded) return;
 
     // Limpiar marcadores existentes
     markersRef.current.forEach(marker => marker.setMap(null));
     markersRef.current = [];
 
-         // Agregar nuevos marcadores
-     filteredOffers.forEach((offer) => {
-       if (!window.google) return;
-       
-       const marker = new window.google.maps.Marker({
-         position: { lat: offer.location.lat, lng: offer.location.lng },
-         map: mapInstanceRef.current,
-         title: offer.name,
-         icon: {
-           url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
-             <svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
-               <circle cx="20" cy="20" r="18" fill="${offer.isNew ? '#ff6b6b' : '#4caf50'}" stroke="white" stroke-width="2"/>
-               <text x="20" y="25" text-anchor="middle" fill="white" font-size="16" font-weight="bold">
-                 ${offer.category === 'restaurants' ? '🍽️' : offer.category === 'bars' ? '🍷' : '🥖'}
-               </text>
-             </svg>
-           `)}`,
-           scaledSize: new window.google.maps.Size(40, 40),
-           anchor: new window.google.maps.Point(20, 20)
-         }
-       });
+    // Agregar nuevos marcadores
+    filteredOffers.forEach((offer) => {
+      if (!window.google) return;
+      
+      const marker = new window.google.maps.Marker({
+        position: { lat: offer.location.lat, lng: offer.location.lng },
+        map: mapInstanceRef.current,
+        title: offer.name,
+        icon: {
+          url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
+            <svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="20" cy="20" r="18" fill="${offer.isNew ? '#ff6b6b' : '#4caf50'}" stroke="white" stroke-width="2"/>
+              <text x="20" y="25" text-anchor="middle" fill="white" font-size="16" font-weight="bold">
+                ${offer.category === 'restaurants' ? '🍽️' : offer.category === 'bars' ? '🍷' : '🥖'}
+              </text>
+            </svg>
+          `)}`,
+          scaledSize: new window.google.maps.Size(40, 40),
+          anchor: new window.google.maps.Point(20, 20)
+        }
+      });
 
-       // Info window con información de la oferta
-       const infoWindow = new window.google.maps.InfoWindow({
+      // Info window con información de la oferta
+      const infoWindow = new window.google.maps.InfoWindow({
         content: `
           <div style="padding: 10px; max-width: 200px;">
             <h3 style="margin: 0 0 5px 0; color: #333;">${offer.name}</h3>
@@ -408,7 +310,7 @@ function MapView({ offers, selectedCategory, onOfferClick }: {
 
       markersRef.current.push(marker);
     });
-  }, [filteredOffers, onOfferClick]);
+  }, [filteredOffers, onOfferClick, mapLoaded]);
 
   return (
     <Box sx={{ height: '70vh', position: 'relative', borderRadius: 2, overflow: 'hidden' }}>
