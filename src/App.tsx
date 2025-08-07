@@ -1,219 +1,473 @@
-import { BrowserRouter as Router, Routes, Route, Link, Navigate, useNavigate, useParams } from 'react-router-dom';
-import { AppBar, Toolbar, Typography, Button, Container, CssBaseline, TextField, Card, CardContent, CardMedia, CardActions, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Divider, Input, List, ListItem, ListItemText, Switch, FormControlLabel } from '@mui/material';
-import Grid from '@mui/material/Grid';
+import { useState } from 'react';
+import { 
+  AppBar, 
+  Toolbar, 
+  Typography, 
+  Button, 
+  Container, 
+  CssBaseline, 
+  Card, 
+  CardContent, 
+  CardMedia, 
+  IconButton, 
+  Chip,
+  Box,
+  Tabs,
+  Tab,
+  Divider,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemIcon,
+  Dialog,
+  DialogTitle,
+  DialogContent
+} from '@mui/material';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
-import { useState, useEffect } from 'react';
-import './App.css'
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
-import AddIcon from '@mui/icons-material/Add';
-import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
+import { 
+  LocationOn, 
+  Restaurant, 
+  LocalBar, 
+  BakeryDining, 
+  ShoppingBag, 
+  AttachMoney,
+  Person,
+  Map,
+  List as ListIcon,
+  Star,
+  Phone,
+  Directions,
+  Close
+} from '@mui/icons-material';
+import './App.css';
 
-
-
-
-// Card data type
-interface SummaryCard {
+// Offer data type
+interface Offer {
   id: string;
+  name: string;
   image: string;
-  title: string;
-  price: string;
-  oldPrice?: string;
-  discount?: string;
-  features: string[];
+  category: string;
+  subCategory: string;
+  discount: string;
   description: string;
+  location: {
+    lat: number;
+    lng: number;
+    address: string;
+  };
+  rating: number;
+  isNew: boolean;
+  price?: string;
+  oldPrice?: string;
 }
 
-const initialCards: SummaryCard[] = [
+// Category type
+interface Category {
+  id: string;
+  name: string;
+  icon: React.ReactNode;
+  subCategories: string[];
+}
+
+const categories: Category[] = [
   {
-    id: '1',
-    image: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=400&q=80',
-    title: 'Chalet adosado en calle Joan Fuster, Canet d\'En Berenguer',
-    price: '380.000 €',
-    oldPrice: '400.000 €',
-    discount: '5%',
-    features: ['4 hab.', '192 m²', 'Garaje incluido'],
-    description: '¡Descubre este fantástico chalet adosado en Canet d\'En Berenguer a un paso del mar! Magnifica vivienda de 192m² construidos sobre una parcela de...'
+    id: 'restaurants',
+    name: 'Restaurants',
+    icon: <Restaurant />,
+    subCategories: ['Vegan', 'Grill', 'Salad', 'Pizza', 'Fastfood', 'Italien', 'Chinois']
+  },
+  {
+    id: 'bars',
+    name: 'Bars',
+    icon: <LocalBar />,
+    subCategories: ['Cocktails', 'Bières', 'Vins', 'Café', 'Thé']
+  },
+  {
+    id: 'bakeries',
+    name: 'Boulangeries',
+    icon: <BakeryDining />,
+    subCategories: ['Pain', 'Pâtisseries', 'Sandwiches', 'Viennoiseries']
   }
 ];
 
-function Dashboard() {
-  const [cards, setCards] = useState<SummaryCard[]>(initialCards);
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [editCard, setEditCard] = useState<SummaryCard | null>(null);
-  const [addDialogOpen, setAddDialogOpen] = useState(false);
-  const navigate = useNavigate();
+const initialOffers: Offer[] = [
+  {
+    id: '1',
+    name: 'Pretty Patty Plainpalais',
+    image: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?auto=format&fit=crop&w=400&q=80',
+    category: 'restaurants',
+    subCategory: 'Fastfood',
+    discount: '20% sur toute la carte!',
+    description: 'Délicieux burgers et frites dans un cadre moderne et convivial.',
+    location: { lat: 46.2044, lng: 6.1432, address: 'Plainpalais, Genève' },
+    rating: 4.5,
+    isNew: true,
+    price: 'CHF 15',
+    oldPrice: 'CHF 18'
+  },
+  {
+    id: '2',
+    name: 'Le Petit Bistrot',
+    image: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=400&q=80',
+    category: 'restaurants',
+    subCategory: 'Italien',
+    discount: '15% sur les pizzas',
+    description: 'Authentique cuisine italienne avec des ingrédients frais et locaux.',
+    location: { lat: 46.1984, lng: 6.1423, address: 'Rue du Rhône, Genève' },
+    rating: 4.2,
+    isNew: false,
+    price: 'CHF 25',
+    oldPrice: 'CHF 30'
+  },
+  {
+    id: '3',
+    name: 'Café Cuba',
+    image: 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&w=400&q=80',
+    category: 'bars',
+    subCategory: 'Cocktails',
+    discount: '2 pour 1 sur les cocktails',
+    description: 'Ambiance cubaine avec des cocktails exotiques et de la musique live.',
+    location: { lat: 46.2004, lng: 6.1452, address: 'Rue des Savoises, Genève' },
+    rating: 4.7,
+    isNew: true,
+    price: 'CHF 12',
+    oldPrice: 'CHF 24'
+  },
+  {
+    id: '4',
+    name: 'Boulangerie du Centre',
+    image: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=400&q=80',
+    category: 'bakeries',
+    subCategory: 'Pain',
+    discount: '30% sur les viennoiseries après 18h',
+    description: 'Pain frais et viennoiseries traditionnelles faites maison.',
+    location: { lat: 46.2024, lng: 6.1402, address: 'Rue du Stand, Genève' },
+    rating: 4.3,
+    isNew: false,
+    price: 'CHF 3',
+    oldPrice: 'CHF 4.50'
+  },
+  {
+    id: '5',
+    name: 'Sushi Master',
+    image: 'https://images.unsplash.com/photo-1579584425555-c3ce17fd4351?auto=format&fit=crop&w=400&q=80',
+    category: 'restaurants',
+    subCategory: 'Chinois',
+    discount: 'Menu déjeuner à CHF 18',
+    description: 'Sushi frais et cuisine japonaise authentique dans un cadre élégant.',
+    location: { lat: 46.1964, lng: 6.1482, address: 'Rue de la Corraterie, Genève' },
+    rating: 4.6,
+    isNew: true,
+    price: 'CHF 18',
+    oldPrice: 'CHF 25'
+  },
+  {
+    id: '6',
+    name: 'Le Moulin Rouge',
+    image: 'https://images.unsplash.com/photo-1559339352-11d035aa65de?auto=format&fit=crop&w=400&q=80',
+    category: 'bars',
+    subCategory: 'Vins',
+    discount: 'Dégustation gratuite de vins',
+    description: 'Cave à vin avec une sélection exceptionnelle de vins français et suisses.',
+    location: { lat: 46.2044, lng: 6.1462, address: 'Rue du Diorama, Genève' },
+    rating: 4.4,
+    isNew: false,
+    price: 'CHF 8',
+    oldPrice: 'CHF 12'
+  }
+];
 
-  const handleCardClick = (card: SummaryCard) => {
-    navigate(`/details/${card.id}`);
-  };
-
-  const handleEdit = (card: SummaryCard) => {
-    setEditCard(card);
-    setEditDialogOpen(true);
-  };
-
-  const handleDelete = (id: string) => {
-    setCards(cards.filter(card => card.id !== id));
-  };
-
-  const handleAdd = () => {
-    setEditCard({ id: '', image: '', title: '', price: '', features: [], description: '' });
-    setAddDialogOpen(true);
-  };
-
-  const handleEditSave = () => {
-    if (editCard) {
-      setCards(cards.map(card => card.id === editCard.id ? editCard : card));
-      setEditDialogOpen(false);
-    }
-  };
-
-  const handleAddSave = () => {
-    if (editCard) {
-      setCards([...cards, { ...editCard, id: Date.now().toString() }]);
-      setAddDialogOpen(false);
-    }
-  };
+function MapView({ offers, selectedCategory, onOfferClick }: { 
+  offers: Offer[], 
+  selectedCategory: string, 
+  onOfferClick: (offer: Offer) => void 
+}) {
+  const filteredOffers = selectedCategory === 'all' 
+    ? offers 
+    : offers.filter(offer => offer.category === selectedCategory);
 
   return (
-    <>
-      <Typography variant="h4" gutterBottom>Dashboard</Typography>
-      <Button variant="contained" startIcon={<AddIcon />} onClick={handleAdd} sx={{ mb: 2 }}>Add Card</Button>
-      <Grid container spacing={2}>
-        {cards.map(card => (
-          <Grid key={card.id} component="div">
-            <Card sx={{ cursor: 'pointer' }}>
-              <CardMedia component="img" height="140" image={card.image} alt={card.title} onClick={() => handleCardClick(card)} />
-              <CardContent onClick={() => handleCardClick(card)}>
-                <Typography variant="h6" color="primary">{card.title}</Typography>
-                <Typography variant="h5" fontWeight="bold">{card.price} {card.oldPrice && <><s style={{ color: 'red', fontSize: 16, marginLeft: 8 }}>{card.oldPrice}</s></>} {card.discount && <span style={{ color: 'red', fontWeight: 500, marginLeft: 8 }}>↓ {card.discount}</span>}</Typography>
-                <Typography variant="body2" color="text.secondary">{card.features.join(' • ')}</Typography>
-                <Typography variant="body2" sx={{ mt: 1 }}>{card.description}</Typography>
-              </CardContent>
-              <CardActions>
-                <IconButton onClick={() => handleEdit(card)}><EditIcon /></IconButton>
-                <IconButton onClick={() => handleDelete(card.id)}><DeleteIcon /></IconButton>
-                <IconButton onClick={() => handleCardClick(card)}><ArrowForwardIcon /></IconButton>
-              </CardActions>
-            </Card>
-          </Grid>
+    <Box sx={{ height: '70vh', position: 'relative', bgcolor: '#f5f5f5', borderRadius: 2, overflow: 'hidden' }}>
+      <Box sx={{ 
+        height: '100%', 
+        background: 'linear-gradient(45deg, #e3f2fd 30%, #bbdefb 90%)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        position: 'relative'
+      }}>
+        <Typography variant="h6" color="text.secondary">
+          Carte interactive - Genève
+        </Typography>
+        
+        {filteredOffers.map((offer, index) => (
+          <Box
+            key={offer.id}
+            sx={{
+              position: 'absolute',
+              left: `${20 + (index * 15)}%`,
+              top: `${30 + (index * 10)}%`,
+              cursor: 'pointer',
+              zIndex: 2
+            }}
+            onClick={() => onOfferClick(offer)}
+          >
+            <Box sx={{
+              width: 40,
+              height: 40,
+              borderRadius: '50%',
+              bgcolor: offer.isNew ? '#ff6b6b' : '#4caf50',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'white',
+              fontWeight: 'bold',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+              '&:hover': {
+                transform: 'scale(1.1)',
+                transition: 'transform 0.2s'
+              }
+            }}>
+                             {offer.category === 'restaurants' ? <Restaurant /> : 
+                offer.category === 'bars' ? <LocalBar /> : <BakeryDining />}
+            </Box>
+          </Box>
         ))}
-      </Grid>
-      {/* Edit Dialog */}
-      <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)}>
-        <DialogTitle>Edit Card</DialogTitle>
-        <DialogContent>
-          <TextField label="Image URL" fullWidth margin="normal" value={editCard?.image || ''} onChange={e => setEditCard({ ...editCard!, image: e.target.value })} />
-          <TextField label="Title" fullWidth margin="normal" value={editCard?.title || ''} onChange={e => setEditCard({ ...editCard!, title: e.target.value })} />
-          <TextField label="Price" fullWidth margin="normal" value={editCard?.price || ''} onChange={e => setEditCard({ ...editCard!, price: e.target.value })} />
-          <TextField label="Old Price" fullWidth margin="normal" value={editCard?.oldPrice || ''} onChange={e => setEditCard({ ...editCard!, oldPrice: e.target.value })} />
-          <TextField label="Discount" fullWidth margin="normal" value={editCard?.discount || ''} onChange={e => setEditCard({ ...editCard!, discount: e.target.value })} />
-          <TextField label="Features (comma separated)" fullWidth margin="normal" value={editCard?.features.join(', ') || ''} onChange={e => setEditCard({ ...editCard!, features: e.target.value.split(',').map(f => f.trim()) })} />
-          <TextField label="Description" fullWidth margin="normal" multiline minRows={2} value={editCard?.description || ''} onChange={e => setEditCard({ ...editCard!, description: e.target.value })} />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setEditDialogOpen(false)}>Cancel</Button>
-          <Button onClick={handleEditSave} variant="contained">Save</Button>
-        </DialogActions>
-      </Dialog>
-      {/* Add Dialog */}
-      <Dialog open={addDialogOpen} onClose={() => setAddDialogOpen(false)}>
-        <DialogTitle>Add Card</DialogTitle>
-        <DialogContent>
-          <TextField label="Image URL" fullWidth margin="normal" value={editCard?.image || ''} onChange={e => setEditCard({ ...editCard!, image: e.target.value })} />
-          <TextField label="Title" fullWidth margin="normal" value={editCard?.title || ''} onChange={e => setEditCard({ ...editCard!, title: e.target.value })} />
-          <TextField label="Price" fullWidth margin="normal" value={editCard?.price || ''} onChange={e => setEditCard({ ...editCard!, price: e.target.value })} />
-          <TextField label="Old Price" fullWidth margin="normal" value={editCard?.oldPrice || ''} onChange={e => setEditCard({ ...editCard!, oldPrice: e.target.value })} />
-          <TextField label="Discount" fullWidth margin="normal" value={editCard?.discount || ''} onChange={e => setEditCard({ ...editCard!, discount: e.target.value })} />
-          <TextField label="Features (comma separated)" fullWidth margin="normal" value={editCard?.features.join(', ') || ''} onChange={e => setEditCard({ ...editCard!, features: e.target.value.split(',').map(f => f.trim()) })} />
-          <TextField label="Description" fullWidth margin="normal" multiline minRows={2} value={editCard?.description || ''} onChange={e => setEditCard({ ...editCard!, description: e.target.value })} />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setAddDialogOpen(false)}>Cancel</Button>
-          <Button onClick={handleAddSave} variant="contained">Add</Button>
-        </DialogActions>
-      </Dialog>
-    </>
+      </Box>
+    </Box>
   );
 }
 
-function DetailPage() {
-  const { id } = useParams();
-  const [card, setCard] = useState<SummaryCard | null>(null);
-  useEffect(() => {
-    // For now, use the same mock data as Dashboard
-    const found = initialCards.find(c => c.id === id);
-    setCard(found || null);
-  }, [id]);
-  if (!card) return <Typography>Card not found</Typography>;
+function OffersList({ offers, selectedCategory, selectedSubCategory, onOfferClick }: {
+  offers: Offer[],
+  selectedCategory: string,
+  selectedSubCategory: string,
+  onOfferClick: (offer: Offer) => void
+}) {
+  const filteredOffers = offers.filter(offer => {
+    if (selectedCategory !== 'all' && offer.category !== selectedCategory) return false;
+    if (selectedSubCategory !== 'all' && offer.subCategory !== selectedSubCategory) return false;
+    return true;
+  });
+
   return (
-    <Container maxWidth="md">
-      <Card>
-        <CardMedia component="img" height="300" image={card.image} alt={card.title} />
-        <CardContent>
-          <Typography variant="h4" color="primary">{card.title}</Typography>
-          <Typography variant="h5" fontWeight="bold">{card.price} {card.oldPrice && <><s style={{ color: 'red', fontSize: 16, marginLeft: 8 }}>{card.oldPrice}</s></>} {card.discount && <span style={{ color: 'red', fontWeight: 500, marginLeft: 8 }}>↓ {card.discount}</span>}</Typography>
-          <Typography variant="body1" color="text.secondary" sx={{ mt: 1 }}>{card.features.join(' • ')}</Typography>
-          <Typography variant="body1" sx={{ mt: 2 }}>{card.description}</Typography>
-        </CardContent>
-      </Card>
-    </Container>
+    <Box sx={{ height: '70vh', overflow: 'auto' }}>
+      {filteredOffers.map((offer) => (
+        <Card key={offer.id} sx={{ mb: 2, cursor: 'pointer' }} onClick={() => onOfferClick(offer)}>
+          <Box sx={{ position: 'relative' }}>
+            <CardMedia
+              component="img"
+              height="200"
+              image={offer.image}
+              alt={offer.name}
+            />
+            {offer.isNew && (
+              <Chip
+                label="Nouveau"
+                color="error"
+                size="small"
+                sx={{
+                  position: 'absolute',
+                  top: 8,
+                  right: 8,
+                  fontWeight: 'bold'
+                }}
+              />
+            )}
+            <Box sx={{
+              position: 'absolute',
+              bottom: 8,
+              left: 8,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 0.5,
+              bgcolor: 'rgba(0,0,0,0.7)',
+              color: 'white',
+              px: 1,
+              py: 0.5,
+              borderRadius: 1
+            }}>
+              <Star sx={{ fontSize: 16, color: '#ffd700' }} />
+              <Typography variant="body2">{offer.rating}</Typography>
+            </Box>
+          </Box>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>{offer.name}</Typography>
+            <Typography variant="body2" color="error" fontWeight="bold" gutterBottom>
+              {offer.discount}
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+              {offer.description}
+            </Typography>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Typography variant="body2" color="text.secondary">
+                {offer.location.address}
+              </Typography>
+              <Button variant="outlined" size="small" sx={{ color: '#111', borderColor: '#111' }}>
+                {'>>>'} Glissez pour une offre
+              </Button>
+            </Box>
+          </CardContent>
+        </Card>
+      ))}
+    </Box>
   );
 }
 
-function Users() {
-  return <Typography variant="h4">Users</Typography>;
-}
-function Offers() {
-  return <Typography variant="h4">Offers</Typography>;
-}
-function Settings({ onToggleDarkMode, darkMode, onExport, onImport }: { onToggleDarkMode: () => void, darkMode: boolean, onExport: () => void, onImport: (file: File) => void }) {
+function ProfileView() {
   return (
-    <Container maxWidth="sm">
-      <Typography variant="h4" gutterBottom>Settings</Typography>
+    <Box sx={{ p: 2 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+        <Person sx={{ mr: 1 }} />
+        <Typography variant="h5">Profil</Typography>
+      </Box>
+      
+      <Typography variant="body1" sx={{ mb: 3 }}>
+        Abonnement valable jusqu'au 20.09.2024
+      </Typography>
+      
+      <Box sx={{ display: 'flex', gap: 3, mb: 4 }}>
+        <Box sx={{ textAlign: 'center' }}>
+          <Box sx={{
+            width: 80,
+            height: 80,
+            borderRadius: '50%',
+            bgcolor: '#ff6b6b',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            mx: 'auto',
+            mb: 1
+          }}>
+            <ShoppingBag sx={{ fontSize: 40, color: 'white' }} />
+          </Box>
+          <Typography variant="h4" fontWeight="bold">25</Typography>
+          <Typography variant="body2">Offres utilisées</Typography>
+        </Box>
+        
+        <Box sx={{ textAlign: 'center' }}>
+          <Box sx={{
+            width: 80,
+            height: 80,
+            borderRadius: '50%',
+            bgcolor: '#ffd700',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            mx: 'auto',
+            mb: 1
+          }}>
+            <AttachMoney sx={{ fontSize: 40, color: 'white' }} />
+          </Box>
+          <Typography variant="h4" fontWeight="bold">85.5</Typography>
+          <Typography variant="body2">Francs économisés</Typography>
+        </Box>
+      </Box>
+      
       <Divider sx={{ my: 2 }} />
-      <FormControlLabel
-        control={<Switch checked={darkMode} onChange={onToggleDarkMode} />}
-        label={darkMode ? 'Dark Mode' : 'Light Mode'}
-      />
-      <Divider sx={{ my: 2 }} />
-      <Typography variant="h6">Export/Import Data</Typography>
-      <Button variant="outlined" onClick={onExport} sx={{ mr: 2 }}>Export Cards (JSON)</Button>
-      <label htmlFor="import-file">
-        <Input
-          id="import-file"
-          type="file"
-          inputProps={{ accept: '.json' }}
-          sx={{ display: 'none' }}
-          onChange={e => {
-            const input = e.target as HTMLInputElement;
-            if (input.files && input.files[0]) onImport(input.files[0]);
-          }}
-        />
-        <Button variant="outlined" component="span">Import Cards (JSON)</Button>
-      </label>
-      <Divider sx={{ my: 2 }} />
-      <Typography variant="h6">App Info</Typography>
+      <Typography variant="h6" gutterBottom>Informations personnelles</Typography>
       <List>
         <ListItem>
-          <ListItemText primary="Version" secondary="1.0.0" />
+          <ListItemIcon><Person /></ListItemIcon>
+          <ListItemText primary="Nom" secondary="Utilisateur LUCA" />
         </ListItem>
         <ListItem>
-          <ListItemText primary="Contact" secondary="contact@totemsuisse.com" />
+          <ListItemIcon><LocationOn /></ListItemIcon>
+          <ListItemText primary="Ville" secondary="Genève" />
         </ListItem>
       </List>
-    </Container>
+    </Box>
+  );
+}
+
+function OfferDetail({ offer, open, onClose }: { offer: Offer | null, open: boolean, onClose: () => void }) {
+  if (!offer) return null;
+
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+      <DialogTitle>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Typography variant="h6">{offer.name}</Typography>
+          <IconButton onClick={onClose}>
+            <Close />
+          </IconButton>
+        </Box>
+      </DialogTitle>
+      <DialogContent>
+        <Box sx={{ position: 'relative', mb: 2 }}>
+          <CardMedia
+            component="img"
+            height="250"
+            image={offer.image}
+            alt={offer.name}
+            sx={{ borderRadius: 1 }}
+          />
+          {offer.isNew && (
+            <Chip
+              label="Nouveau"
+              color="error"
+              size="small"
+              sx={{
+                position: 'absolute',
+                top: 8,
+                right: 8,
+                fontWeight: 'bold'
+              }}
+            />
+          )}
+        </Box>
+        
+        <Typography variant="h5" color="error" fontWeight="bold" gutterBottom>
+          {offer.discount}
+        </Typography>
+        
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+          <Star sx={{ color: '#ffd700', mr: 0.5 }} />
+          <Typography variant="body1" sx={{ mr: 1 }}>{offer.rating}</Typography>
+          <Typography variant="body2" color="text.secondary">
+            {offer.location.address}
+          </Typography>
+        </Box>
+        
+        <Typography variant="body1" sx={{ mb: 2 }}>
+          {offer.description}
+        </Typography>
+        
+        {offer.price && (
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+            <Typography variant="h6" sx={{ mr: 1 }}>{offer.price}</Typography>
+            {offer.oldPrice && (
+              <Typography variant="body2" sx={{ textDecoration: 'line-through', color: 'text.secondary' }}>
+                {offer.oldPrice}
+              </Typography>
+            )}
+          </Box>
+        )}
+        
+        <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
+          <Button variant="contained" startIcon={<Phone />} fullWidth>
+            Appeler
+          </Button>
+          <Button variant="outlined" startIcon={<Directions />} fullWidth>
+            Itinéraire
+          </Button>
+        </Box>
+      </DialogContent>
+    </Dialog>
   );
 }
 
 function App() {
-  const [darkMode, setDarkMode] = useState(false);
-  const [cards, setCards] = useState<SummaryCard[]>(initialCards);
+  const [offers] = useState<Offer[]>(initialOffers);
+  const [selectedTab, setSelectedTab] = useState(0);
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [selectedSubCategory, setSelectedSubCategory] = useState('all');
+  const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
 
   const theme = createTheme({
     palette: {
-      mode: darkMode ? 'dark' : 'light',
+      mode: 'dark',
       primary: {
         main: '#111',
         contrastText: '#fff',
@@ -223,19 +477,19 @@ function App() {
         contrastText: '#fff',
       },
       background: {
-        default: darkMode ? '#222' : '#f5f5f5',
-        paper: darkMode ? '#111' : '#fff',
+        default: '#222',
+        paper: '#111',
       },
       text: {
-        primary: darkMode ? '#fff' : '#111',
-        secondary: darkMode ? '#bbb' : '#555',
+        primary: '#fff',
+        secondary: '#bbb',
       },
     },
     components: {
       MuiAppBar: {
         styleOverrides: {
           root: {
-            backgroundColor: darkMode ? '#111' : '#111',
+            backgroundColor: '#111',
             color: '#fff',
           },
         },
@@ -243,12 +497,12 @@ function App() {
       MuiButton: {
         styleOverrides: {
           root: {
-            color: darkMode ? '#fff' : '#111',
-            backgroundColor: darkMode ? '#222' : '#fff',
-            border: '1px solid #111',
+            color: '#fff',
+            backgroundColor: '#333',
+            border: '1px solid #555',
             '&:hover': {
-              backgroundColor: darkMode ? '#333' : '#f5f5f5',
-              border: '1px solid #111',
+              backgroundColor: '#444',
+              border: '1px solid #666',
             },
           },
           containedPrimary: {
@@ -263,84 +517,137 @@ function App() {
       MuiCard: {
         styleOverrides: {
           root: {
-            backgroundColor: darkMode ? '#222' : '#fff',
-            color: darkMode ? '#fff' : '#111',
-            border: '1px solid #e0e0e0',
+            backgroundColor: '#333',
+            color: '#fff',
+            border: '1px solid #555',
           },
         },
       },
       MuiDialog: {
         styleOverrides: {
           paper: {
-            backgroundColor: darkMode ? '#222' : '#fff',
-            color: darkMode ? '#fff' : '#111',
+            backgroundColor: '#333',
+            color: '#fff',
           },
         },
       },
-      MuiTypography: {
+      MuiTabs: {
+        styleOverrides: {
+          indicator: {
+            backgroundColor: '#fff',
+          },
+        },
+      },
+      MuiTab: {
         styleOverrides: {
           root: {
-            color: darkMode ? '#fff' : '#111',
+            color: '#bbb',
+            '&.Mui-selected': {
+              color: '#fff',
+            },
           },
         },
       },
     },
   });
 
-  // Export cards as JSON
-  const handleExport = () => {
-    const dataStr = JSON.stringify(cards, null, 2);
-    const blob = new Blob([dataStr], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'cards.json';
-    a.click();
-    URL.revokeObjectURL(url);
+  const handleOfferClick = (offer: Offer) => {
+    setSelectedOffer(offer);
+    setDetailOpen(true);
   };
 
-  // Import cards from JSON
-  const handleImport = (file: File) => {
-    const reader = new FileReader();
-    reader.onload = e => {
-      try {
-        const imported = JSON.parse(e.target?.result as string);
-        if (Array.isArray(imported)) {
-          setCards(imported);
-        }
-      } catch (err) {
-        alert('Invalid file format');
-      }
-    };
-    reader.readAsText(file);
-  };
+  const currentCategory = categories.find(cat => cat.id === selectedCategory);
 
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Router>
-        <AppBar position="static">
-          <Toolbar>
-            <Typography variant="h6" sx={{ flexGrow: 1, color: '#fff' }}>
-              LUCA Backoffice
+      
+      {/* Header */}
+      <AppBar position="static">
+        <Toolbar>
+          <Box sx={{ display: 'flex', alignItems: 'center', flexGrow: 1 }}>
+            <LocationOn sx={{ mr: 1 }} />
+            <Typography variant="h6">Genève</Typography>
+          </Box>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            {categories.map((category) => (
+              <IconButton
+                key={category.id}
+                color="inherit"
+                onClick={() => setSelectedCategory(selectedCategory === category.id ? 'all' : category.id)}
+                sx={{
+                  bgcolor: selectedCategory === category.id ? 'rgba(255,255,255,0.1)' : 'transparent'
+                }}
+              >
+                {category.icon}
+              </IconButton>
+            ))}
+          </Box>
+        </Toolbar>
+      </AppBar>
+
+      {/* Main Content */}
+      <Container sx={{ mt: 2 }}>
+        {/* Category Filters */}
+        {selectedCategory !== 'all' && currentCategory && (
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+              Sous-catégories
             </Typography>
-            <Button color="inherit" component={Link} to="/">Dashboard</Button>
-            <Button color="inherit" component={Link} to="/users">Users</Button>
-            <Button color="inherit" component={Link} to="/offers">Offers</Button>
-            <Button color="inherit" component={Link} to="/settings">Settings</Button>
-          </Toolbar>
-        </AppBar>
-        <Container sx={{ mt: 4 }}>
-          <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/details/:id" element={<DetailPage />} />
-            <Route path="/users" element={<Users />} />
-            <Route path="/offers" element={<Offers />} />
-            <Route path="/settings" element={<Settings onToggleDarkMode={() => setDarkMode(d => !d)} darkMode={darkMode} onExport={handleExport} onImport={handleImport} />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </Container>
-      </Router>
+            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+              <Chip
+                label="Tous"
+                onClick={() => setSelectedSubCategory('all')}
+                color={selectedSubCategory === 'all' ? 'primary' : 'default'}
+                size="small"
+              />
+              {currentCategory.subCategories.map((subCat) => (
+                <Chip
+                  key={subCat}
+                  label={subCat}
+                  onClick={() => setSelectedSubCategory(subCat)}
+                  color={selectedSubCategory === subCat ? 'primary' : 'default'}
+                  size="small"
+                />
+              ))}
+            </Box>
+          </Box>
+        )}
+
+        {/* Tabs */}
+        <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
+          <Tabs value={selectedTab} onChange={(_, newValue) => setSelectedTab(newValue)}>
+            <Tab icon={<Map />} label="Carte" />
+            <Tab icon={<ListIcon />} label="Liste" />
+            <Tab icon={<Person />} label="Profil" />
+          </Tabs>
+        </Box>
+
+        {/* Tab Content */}
+        {selectedTab === 0 && (
+          <MapView 
+            offers={offers} 
+            selectedCategory={selectedCategory} 
+            onOfferClick={handleOfferClick} 
+          />
+        )}
+        {selectedTab === 1 && (
+          <OffersList 
+            offers={offers} 
+            selectedCategory={selectedCategory} 
+            selectedSubCategory={selectedSubCategory}
+            onOfferClick={handleOfferClick} 
+          />
+        )}
+        {selectedTab === 2 && <ProfileView />}
+      </Container>
+
+      {/* Offer Detail Dialog */}
+      <OfferDetail 
+        offer={selectedOffer} 
+        open={detailOpen} 
+        onClose={() => setDetailOpen(false)} 
+      />
     </ThemeProvider>
   );
 }
