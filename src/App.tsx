@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Link, Navigate, useNavigate, useParams } from 'react-router-dom';
-import { AppBar, Toolbar, Typography, Button, Container, CssBaseline, TextField, Box, Paper, Alert, Card, CardContent, CardMedia, CardActions, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Divider, Input, List, ListItem, ListItemText, Switch, FormControlLabel } from '@mui/material';
+import { AppBar, Toolbar, Typography, Button, Container, CssBaseline, TextField, Card, CardContent, CardMedia, CardActions, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Divider, Input, List, ListItem, ListItemText, Switch, FormControlLabel } from '@mui/material';
 import Grid from '@mui/material/Grid';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { useState, useEffect } from 'react';
@@ -8,83 +8,9 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
-import { auth } from './firebase';
-import { signInWithEmailAndPassword, signOut, updatePassword, onAuthStateChanged } from 'firebase/auth';
 
-function useFirebaseAuth() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setIsAuthenticated(!!user);
-    });
-    return () => unsubscribe();
-  }, []);
-  const login = async (email: string, password: string) => {
-    try {
-      await signInWithEmailAndPassword(auth, email, password);
-      return true;
-    } catch (error) {
-      return false;
-    }
-  };
-  const logout = async () => {
-    await signOut(auth);
-  };
-  return { isAuthenticated, login, logout };
-}
 
-function LoginPage({ onLogin }: { onLogin: (email: string, password: string) => Promise<boolean> }) {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const navigate = useNavigate();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (await onLogin(email, password)) {
-      navigate('/');
-    } else {
-      setError('Invalid credentials');
-    }
-  };
-
-  return (
-    <Container maxWidth="xs" sx={{ mt: 8 }}>
-      <Paper sx={{ p: 4 }}>
-        <Typography variant="h5" align="center" gutterBottom>Admin Login</Typography>
-        {error && <Alert severity="error">{error}</Alert>}
-        <Box component="form" onSubmit={handleSubmit}>
-          <TextField
-            label="Email"
-            fullWidth
-            margin="normal"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            autoFocus
-          />
-          <TextField
-            label="Password"
-            type="password"
-            fullWidth
-            margin="normal"
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-          />
-          <Button type="submit" variant="contained" color="primary" fullWidth sx={{ mt: 2 }}>
-            Login
-          </Button>
-        </Box>
-      </Paper>
-    </Container>
-  );
-}
-
-function ProtectedRoute({ isAuthenticated, children }: { isAuthenticated: boolean, children: React.ReactNode }) {
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
-  return <>{children}</>;
-}
 
 // Card data type
 interface SummaryCard {
@@ -243,24 +169,6 @@ function Offers() {
   return <Typography variant="h4">Offers</Typography>;
 }
 function Settings({ onToggleDarkMode, darkMode, onExport, onImport }: { onToggleDarkMode: () => void, darkMode: boolean, onExport: () => void, onImport: (file: File) => void }) {
-  const [newPassword, setNewPassword] = useState('');
-  const [passwordMsg, setPasswordMsg] = useState('');
-
-  const handleChangePassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!auth.currentUser) {
-      setPasswordMsg('Not logged in.');
-      return;
-    }
-    try {
-      await updatePassword(auth.currentUser, newPassword);
-      setPasswordMsg('Password updated successfully!');
-      setNewPassword('');
-    } catch (err) {
-      setPasswordMsg('Failed to update password.');
-    }
-  };
-
   return (
     <Container maxWidth="sm">
       <Typography variant="h4" gutterBottom>Settings</Typography>
@@ -269,20 +177,6 @@ function Settings({ onToggleDarkMode, darkMode, onExport, onImport }: { onToggle
         control={<Switch checked={darkMode} onChange={onToggleDarkMode} />}
         label={darkMode ? 'Dark Mode' : 'Light Mode'}
       />
-      <Divider sx={{ my: 2 }} />
-      <Typography variant="h6">Change Password</Typography>
-      <Box component="form" onSubmit={handleChangePassword} sx={{ mb: 2 }}>
-        <TextField
-          label="New Password"
-          type="password"
-          fullWidth
-          margin="normal"
-          value={newPassword}
-          onChange={e => setNewPassword(e.target.value)}
-        />
-        <Button type="submit" variant="contained" sx={{ mt: 1 }}>Change Password</Button>
-        {passwordMsg && <Alert severity={passwordMsg.includes('success') ? 'success' : 'error'} sx={{ mt: 2 }}>{passwordMsg}</Alert>}
-      </Box>
       <Divider sx={{ my: 2 }} />
       <Typography variant="h6">Export/Import Data</Typography>
       <Button variant="outlined" onClick={onExport} sx={{ mr: 2 }}>Export Cards (JSON)</Button>
@@ -314,7 +208,6 @@ function Settings({ onToggleDarkMode, darkMode, onExport, onImport }: { onToggle
 }
 
 function App() {
-  const { isAuthenticated, login, logout } = useFirebaseAuth();
   const [darkMode, setDarkMode] = useState(false);
   const [cards, setCards] = useState<SummaryCard[]>(initialCards);
 
@@ -426,29 +319,25 @@ function App() {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <Router>
-        {isAuthenticated && (
-          <AppBar position="static">
-            <Toolbar>
-              <Typography variant="h6" sx={{ flexGrow: 1, color: '#fff' }}>
-                Backoffice
-              </Typography>
-              <Button color="inherit" component={Link} to="/">Dashboard</Button>
-              <Button color="inherit" component={Link} to="/users">Users</Button>
-              <Button color="inherit" component={Link} to="/offers">Offers</Button>
-              <Button color="inherit" component={Link} to="/settings">Settings</Button>
-              <Button color="inherit" onClick={logout}>Logout</Button>
-            </Toolbar>
-          </AppBar>
-        )}
+        <AppBar position="static">
+          <Toolbar>
+            <Typography variant="h6" sx={{ flexGrow: 1, color: '#fff' }}>
+              LUCA Backoffice
+            </Typography>
+            <Button color="inherit" component={Link} to="/">Dashboard</Button>
+            <Button color="inherit" component={Link} to="/users">Users</Button>
+            <Button color="inherit" component={Link} to="/offers">Offers</Button>
+            <Button color="inherit" component={Link} to="/settings">Settings</Button>
+          </Toolbar>
+        </AppBar>
         <Container sx={{ mt: 4 }}>
           <Routes>
-            <Route path="/login" element={<LoginPage onLogin={login} />} />
-            <Route path="/" element={<ProtectedRoute isAuthenticated={isAuthenticated}><Dashboard /></ProtectedRoute>} />
-            <Route path="/details/:id" element={<ProtectedRoute isAuthenticated={isAuthenticated}><DetailPage /></ProtectedRoute>} />
-            <Route path="/users" element={<ProtectedRoute isAuthenticated={isAuthenticated}><Users /></ProtectedRoute>} />
-            <Route path="/offers" element={<ProtectedRoute isAuthenticated={isAuthenticated}><Offers /></ProtectedRoute>} />
-            <Route path="/settings" element={<ProtectedRoute isAuthenticated={isAuthenticated}><Settings onToggleDarkMode={() => setDarkMode(d => !d)} darkMode={darkMode} onExport={handleExport} onImport={handleImport} /></ProtectedRoute>} />
-            <Route path="*" element={<Navigate to={isAuthenticated ? '/' : '/login'} replace />} />
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/details/:id" element={<DetailPage />} />
+            <Route path="/users" element={<Users />} />
+            <Route path="/offers" element={<Offers />} />
+            <Route path="/settings" element={<Settings onToggleDarkMode={() => setDarkMode(d => !d)} darkMode={darkMode} onExport={handleExport} onImport={handleImport} />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Container>
       </Router>
