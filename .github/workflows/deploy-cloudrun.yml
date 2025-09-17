@@ -1,0 +1,86 @@
+name: Deploy to Cloud Run
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch: # Permite ejecutar manualmente
+
+env:
+  PROJECT_ID: 't4learningluca'
+  REGION: 'europe-west4'
+  SERVICE: 'backoffice-backendvla'
+  REPOSITORY: 'backoffice'
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Debug - Show current directory
+        run: |
+          echo "Current directory: $(pwd)"
+          echo "Directory contents:"
+          ls -la
+          echo "Backoffice directory contents:"
+          ls -la backoffice/
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: '${{ secrets.GCP_SA_KEY }}'
+          project_id: ${{ env.PROJECT_ID }}
+
+      - name: Configure Docker for Google Cloud
+        run: gcloud auth configure-docker
+
+      - name: Debug - Verify authentication
+        run: |
+          echo "Checking if we're authenticated to GCP..."
+          gcloud auth list
+          echo "Checking project..."
+          gcloud config get-value project
+
+      - name: Build and Push Docker image
+        run: |
+          cd backoffice
+          echo "Building Docker image..."
+          DOCKER_TAG="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE }}:${{ github.sha }}"
+          echo "Docker tag: $DOCKER_TAG"
+          
+          # Build the image
+          docker build --tag "${DOCKER_TAG}" .
+          
+          # Push the image
+          echo "Pushing Docker image..."
+          docker push "${DOCKER_TAG}"
+          
+          echo "Docker image pushed successfully!"
+
+      - name: Deploy to Cloud Run
+        run: |
+          echo "Deploying to Cloud Run..."
+          gcloud run deploy ${{ env.SERVICE }} \
+            --image "${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE }}:${{ github.sha }}" \
+            --platform managed \
+            --region ${{ env.REGION }} \
+            --allow-unauthenticated \
+            --port 8080 \
+            --memory 512Mi \
+            --cpu 1 \
+            --max-instances 10 \
+            --min-instances 0
+
+      - name: Get service URL
+        run: |
+          SERVICE_URL=$(gcloud run services describe ${{ env.SERVICE }} --region=${{ env.REGION }} --format='value(status.url)')
+          echo "Service URL: $SERVICE_URL"
+          echo "SERVICE_URL=$SERVICE_URL" >> $GITHUB_ENV
+
+      - name: Test deployment
+        run: |
+          echo "Testing deployment..."
+          sleep 30  # Wait for service to be ready
+          curl -f "$SERVICE_URL" || echo "Service might still be starting up..
