@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">LUCA</string>
+    <string name="title_activity_main">LUCA</string>
+    <string name="package_name">com.t4learningluca.luca</string>
+    <string name="custom_url_scheme">com.t4learningluca.luca</string>
+</resources>

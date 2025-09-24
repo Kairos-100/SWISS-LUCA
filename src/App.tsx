@@ -3,23 +3,9 @@ import { auth, db, createUserWithEmailAndPassword, signInWithEmailAndPassword, s
 import type { User } from 'firebase/auth';
 import { doc, setDoc, getDoc, updateDoc, arrayUnion, Timestamp } from 'firebase/firestore';
 import { getAuthErrorMessage, validateEmail, validatePassword, validateName } from './utils/authUtils';
-import { 
-  AreaChart, 
-  Area, 
-  PieChart as RechartsPieChart, 
-  Pie, 
-  Cell, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  Legend, 
-  ResponsiveContainer 
-} from 'recharts';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
-import { saveAs } from 'file-saver';
-import { format, subMonths, startOfMonth, endOfMonth } from 'date-fns';
+import { useTranslation } from 'react-i18next';
+import LanguageSelector from './components/LanguageSelector';
+import './i18n';
 import { 
   AppBar, 
   Toolbar, 
@@ -45,23 +31,7 @@ import {
   DialogActions,
   TextField,
   CircularProgress,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  Select,
-  InputAdornment,
-  Alert,
-  AlertTitle,
-  Snackbar,
-  Collapse,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  TablePagination,
-  LinearProgress
+  MenuItem
 } from '@mui/material';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { 
@@ -72,8 +42,6 @@ import {
   ShoppingBag, 
   AttachMoney,
   Person,
-  Map,
-  List as ListIcon,
   Star,
   Phone,
   Directions,
@@ -93,23 +61,7 @@ import {
   AccessTime,
   FlashOn,
   AccountBalanceWallet,
-  TrendingUp,
-  Receipt,
-  CreditCard,
-  MonetizationOn,
-  TrendingDown,
-  FilterList,
-  Download,
-  PieChart,
-  ShowChart,
-  GetApp,
-  Search,
-  Sort,
-  MoreVert,
-  Warning,
-  CheckCircle,
-  Pending,
-  Settings
+  MonetizationOn
 } from '@mui/icons-material';
 import './App.css';
 
@@ -157,6 +109,8 @@ interface UserProfile {
     activatedAt: Timestamp;
     savedAmount: number;
     paidAmount?: number; // Cantidad pagada por usar la oferta
+    offerName?: string; // Nombre de la oferta para historial
+    category?: string; // Categoría de la oferta
   }[];
   totalSaved: number;
   points: number;
@@ -169,6 +123,49 @@ interface UserProfile {
   lastPaymentDate?: Timestamp;
   nextPaymentDate?: Timestamp;
   totalPaid: number;
+  
+  // Nuevos campos para datos individuales más detallados
+  personalStats: {
+    joinDate: Timestamp;
+    lastLoginDate: Timestamp;
+    totalOffersViewed: number;
+    favoriteCategories: string[];
+    preferredLanguage: string;
+    notificationsEnabled: boolean;
+  };
+  
+  financialHistory: {
+    monthlyExpenses: { [month: string]: number }; // "2024-01": 150.50
+    subscriptionHistory: {
+      plan: string;
+      startDate: Timestamp;
+      endDate?: Timestamp;
+      amount: number;
+      status: string;
+    }[];
+    offerPayments: {
+      offerId: string;
+      amount: number;
+      date: Timestamp;
+      offerName: string;
+    }[];
+  };
+  
+  preferences: {
+    favoriteLocations: string[];
+    priceRange: { min: number; max: number };
+    notificationSettings: {
+      newOffers: boolean;
+      flashDeals: boolean;
+      subscriptionReminders: boolean;
+    };
+  };
+  
+  activityLog: {
+    action: string;
+    timestamp: Timestamp;
+    details?: any;
+  }[];
 }
 
 // Payment and Subscription interfaces
@@ -781,7 +778,7 @@ function MapView({ offers, selectedCategory, onOfferClick }: {
         icon: {
           url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
             <svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="20" cy="20" r="18" fill="${offer.isNew ? '#ff6b6b' : '#4caf50'}" stroke="white" stroke-width="2"/>
+              <circle cx="20" cy="20" r="18" fill="${offer.isNew ? '#ffeb3b' : '#ffeb3b'}" stroke="white" stroke-width="2"/>
               <text x="20" y="25" text-anchor="middle" fill="white" font-size="16" font-weight="bold">
                 ${offer.category === 'restaurants' ? '🍽️' : offer.category === 'bars' ? '🍷' : '🥖'}
               </text>
@@ -943,7 +940,7 @@ function MapView({ offers, selectedCategory, onOfferClick }: {
             display: 'flex',
             alignItems: 'center',
             gap: { xs: 1, sm: 1 },
-            bgcolor: '#4caf50',
+            bgcolor: '#ffeb3b',
             color: 'white',
             borderRadius: { xs: 1, sm: 2 },
             px: { xs: 2, sm: 2 },
@@ -973,7 +970,7 @@ function MapView({ offers, selectedCategory, onOfferClick }: {
             display: 'flex',
             alignItems: 'center',
             gap: { xs: 1, sm: 1 },
-            bgcolor: '#f44336',
+            bgcolor: '#ffeb3b',
             color: 'white',
             borderRadius: { xs: 1, sm: 2 },
             px: { xs: 2, sm: 2 },
@@ -981,7 +978,7 @@ function MapView({ offers, selectedCategory, onOfferClick }: {
             boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
             cursor: 'pointer',
             '&:hover': {
-              bgcolor: '#d32f2f',
+              bgcolor: '#fbc02d',
             }
           }}
           onClick={handleLogout}
@@ -1067,7 +1064,7 @@ function MapView({ offers, selectedCategory, onOfferClick }: {
                   width: 40,
                   height: 40,
                   borderRadius: '50%',
-                  bgcolor: offer.isNew ? '#ff6b6b' : '#4caf50',
+                  bgcolor: offer.isNew ? '#ffeb3b' : '#ffeb3b',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -1199,7 +1196,7 @@ function MapView({ offers, selectedCategory, onOfferClick }: {
           <Button 
             onClick={handleAddOffer}
             variant="contained"
-            sx={{ bgcolor: '#4caf50', '&:hover': { bgcolor: '#45a049' } }}
+            sx={{ bgcolor: '#ffeb3b', '&:hover': { bgcolor: '#45a049' } }}
           >
             Add Offer
           </Button>
@@ -1258,7 +1255,7 @@ function MapView({ offers, selectedCategory, onOfferClick }: {
           <Button 
             onClick={handleLogin}
             variant="contained"
-            sx={{ bgcolor: '#2196f3', '&:hover': { bgcolor: '#1976d2' } }}
+            sx={{ bgcolor: '#ffeb3b', '&:hover': { bgcolor: '#1976d2' } }}
           >
             Sign in
           </Button>
@@ -1295,6 +1292,8 @@ function OffersList({ offers, selectedCategory, selectedSubCategory, onOfferClic
 
   const handleTouchStart = (offerId: string, e: React.TouchEvent) => {
     const touch = e.touches[0];
+    // Prevenir que el swipe global interfiera
+    e.stopPropagation();
     setSwipeStates(prev => ({
       ...prev,
       [offerId]: {
@@ -1318,6 +1317,7 @@ function OffersList({ offers, selectedCategory, selectedSubCategory, onOfferClic
     // Only allow horizontal swipe if it's more horizontal than vertical
     if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10) {
       e.preventDefault(); // Prevent scrolling
+      e.stopPropagation(); // Prevenir que el swipe global interfiera
       
       // Limit swipe to left only and max distance
       const newTranslateX = Math.min(0, Math.max(-150, deltaX));
@@ -1413,6 +1413,19 @@ function OffersList({ offers, selectedCategory, selectedSubCategory, onOfferClic
           alert('🎉 Offre activée! Montrez cet écran au commerçant.');
         }, 800);
       }
+
+      // Return to original position after 3 seconds
+      setTimeout(() => {
+        setSwipeStates(prev => ({
+          ...prev,
+          [offerId]: { translateX: 0, isSliding: false }
+        }));
+        setSwipedOffers(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(offerId);
+          return newSet;
+        });
+      }, 3000);
     } else {
       // Snap back to original position
       setSwipeStates(prev => ({
@@ -1436,6 +1449,7 @@ function OffersList({ offers, selectedCategory, selectedSubCategory, onOfferClic
         return (
         <Box
           key={offer.id}
+          className="offer-card"
           sx={{
             position: 'relative',
             mb: { xs: 2, sm: 2 },
@@ -1443,130 +1457,57 @@ function OffersList({ offers, selectedCategory, selectedSubCategory, onOfferClic
             borderRadius: { xs: 1, sm: 2 }
           }}
         >
-          {/* Explosion Effect */}
+          {/* Lightning Effect */}
           {isExploding && (
-            <>
-              {/* Central explosion */}
-              <Box
-                sx={{
-                  position: 'absolute',
-                  top: '50%',
-                  left: '50%',
-                  width: '20px',
-                  height: '20px',
-                  bgcolor: '#ffd700',
-                  borderRadius: '50%',
-                  transform: 'translate(-50%, -50%)',
-                  animation: 'explode 0.6s ease-out forwards',
-                  zIndex: 1000,
-                  '@keyframes explode': {
-                    '0%': {
-                      transform: 'translate(-50%, -50%) scale(0)',
-                      opacity: 1
-                    },
-                    '50%': {
-                      transform: 'translate(-50%, -50%) scale(8)',
-                      opacity: 0.8,
-                      bgcolor: '#ff6b6b'
-                    },
-                    '100%': {
-                      transform: 'translate(-50%, -50%) scale(15)',
-                      opacity: 0,
-                      bgcolor: '#4caf50'
-                    }
+            <Box
+              sx={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                animation: 'lightningBolt 1.2s ease-out forwards',
+                zIndex: 10000,
+                '@keyframes lightningBolt': {
+                  '0%': {
+                    transform: 'scale(0) rotate(0deg)',
+                    opacity: 1
+                  },
+                  '20%': {
+                    transform: 'scale(1.5) rotate(5deg)',
+                    opacity: 1
+                  },
+                  '40%': {
+                    transform: 'scale(2.2) rotate(-3deg)',
+                    opacity: 0.9
+                  },
+                  '60%': {
+                    transform: 'scale(2.8) rotate(2deg)',
+                    opacity: 0.8
+                  },
+                  '80%': {
+                    transform: 'scale(3.2) rotate(-1deg)',
+                    opacity: 0.6
+                  },
+                  '100%': {
+                    transform: 'scale(3.5) rotate(0deg)',
+                    opacity: 0
                   }
-                }}
-              />
-              
-              {/* Particles */}
-              {[...Array(12)].map((_, i) => (
-                <Box
-                  key={i}
-                  sx={{
-                    position: 'absolute',
-                    top: '50%',
-                    left: '50%',
-                    width: '8px',
-                    height: '8px',
-                    bgcolor: ['#ffd700', '#ff6b6b', '#4caf50', '#2196f3', '#ff9800'][i % 5],
-                    borderRadius: '50%',
-                    transform: 'translate(-50%, -50%)',
-                    animation: `particle${i} 1s ease-out forwards`,
-                    zIndex: 999,
-                    [`@keyframes particle${i}`]: {
-                      '0%': {
-                        transform: 'translate(-50%, -50%) scale(1)',
-                        opacity: 1
-                      },
-                      '100%': {
-                        transform: `translate(-50%, -50%) translate(${Math.cos(i * 30 * Math.PI / 180) * 100}px, ${Math.sin(i * 30 * Math.PI / 180) * 100}px) scale(0)`,
-                        opacity: 0
-                      }
-                    }
-                  }}
-                />
-              ))}
-              
-              {/* Stars */}
-              {[...Array(8)].map((_, i) => (
-                <Box
-                  key={`star-${i}`}
-                  sx={{
-                    position: 'absolute',
-                    top: '50%',
-                    left: '50%',
-                    fontSize: '20px',
-                    transform: 'translate(-50%, -50%)',
-                    animation: `star${i} 1.2s ease-out forwards`,
-                    zIndex: 998,
-                    [`@keyframes star${i}`]: {
-                      '0%': {
-                        transform: 'translate(-50%, -50%) scale(0) rotate(0deg)',
-                        opacity: 1
-                      },
-                      '50%': {
-                        transform: `translate(-50%, -50%) translate(${Math.cos(i * 45 * Math.PI / 180) * 60}px, ${Math.sin(i * 45 * Math.PI / 180) * 60}px) scale(1.5) rotate(180deg)`,
-                        opacity: 0.8
-                      },
-                      '100%': {
-                        transform: `translate(-50%, -50%) translate(${Math.cos(i * 45 * Math.PI / 180) * 120}px, ${Math.sin(i * 45 * Math.PI / 180) * 120}px) scale(0) rotate(360deg)`,
-                        opacity: 0
-                      }
-                    }
-                  }}
-                >
-                  ⭐
-      </Box>
-              ))}
-              
-              {/* Confetti */}
-              {[...Array(20)].map((_, i) => (
-                <Box
-                  key={`confetti-${i}`}
-                  sx={{
-                    position: 'absolute',
-                    top: '30%',
-                    left: '50%',
-                    width: '6px',
-                    height: '6px',
-                    bgcolor: ['#ffd700', '#ff6b6b', '#4caf50', '#2196f3', '#ff9800', '#9c27b0'][i % 6],
-                    transform: 'translate(-50%, -50%)',
-                    animation: `confetti${i} 1.5s ease-out forwards`,
-                    zIndex: 997,
-                    [`@keyframes confetti${i}`]: {
-                      '0%': {
-                        transform: `translate(-50%, -50%) rotate(0deg)`,
-                        opacity: 1
-                      },
-                      '100%': {
-                        transform: `translate(-50%, -50%) translate(${(Math.random() - 0.5) * 200}px, ${Math.random() * 150 + 50}px) rotate(${Math.random() * 720}deg)`,
-                        opacity: 0
-                      }
-                    }
-                  }}
-                />
-              ))}
-            </>
+                }
+              }}
+            >
+              <FlashOn sx={{ 
+                fontSize: { xs: 200, sm: 300, md: 400 },
+                color: '#ffeb3b',
+                filter: 'drop-shadow(0 0 20px #ffeb3b) drop-shadow(0 0 40px #ffeb3b) drop-shadow(0 0 60px #ffeb3b)',
+                width: '100vw',
+                height: '100vh',
+                objectFit: 'contain'
+              }} />
+            </Box>
           )}
           {/* Background when swiped */}
           <Box
@@ -1577,8 +1518,8 @@ function OffersList({ offers, selectedCategory, selectedSubCategory, onOfferClic
               width: 150,
               height: '100%',
               background: isActivated ? 
-                'linear-gradient(45deg, #4caf50 30%, #66bb6a 90%)' : 
-                'linear-gradient(45deg, #ff6b6b 30%, #ff8a80 90%)',
+                'linear-gradient(45deg, #424242 30%, #212121 90%)' : 
+                'linear-gradient(45deg, #616161 30%, #424242 90%)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -1588,7 +1529,7 @@ function OffersList({ offers, selectedCategory, selectedSubCategory, onOfferClic
               zIndex: 1
             }}
           >
-            {isActivated ? '✅ ACTIVÉE!' : '← Glisser pour activer'}
+            {isActivated ? '✅ ACTIVÉE!' : <FlashOn sx={{ color: 'white', fontSize: '2rem' }} />}
           </Box>
           
           <Card 
@@ -1645,7 +1586,7 @@ function OffersList({ offers, selectedCategory, selectedSubCategory, onOfferClic
               py: 0.5,
               borderRadius: 1
             }}>
-              <Star sx={{ fontSize: 16, color: '#ffd700' }} />
+              <Star sx={{ fontSize: 16, color: '#ffeb3b' }} />
               <Typography variant="body2">{offer.rating}</Typography>
       </Box>
           </Box>
@@ -1683,7 +1624,7 @@ function OffersList({ offers, selectedCategory, selectedSubCategory, onOfferClic
                   minWidth: { xs: 120, sm: 100 }
                 }}
               >
-                {'>>>'} Voir offre
+                {'<<<'} Voir offre
               </Button>
             </Box>
           </CardContent>
@@ -1749,7 +1690,7 @@ function FlashDealsView({ flashDeals, onOfferClick }: {
           justifyContent: 'center',
           gap: 1
         }}>
-          <FlashOn sx={{ color: '#ff6b35', fontSize: '2rem' }} />
+          <FlashOn sx={{ color: '#ffeb3b', fontSize: '2rem' }} />
           Offres Flash
         </Typography>
         <Typography variant="body1" sx={{ color: '#bbb', mb: 2 }}>
@@ -1801,7 +1742,7 @@ function FlashDealsView({ flashDeals, onOfferClick }: {
                   '&:hover': {
                     transform: 'translateY(-4px)',
                     boxShadow: '0 8px 25px rgba(255, 107, 53, 0.3)',
-                    borderColor: '#ff6b35'
+                    borderColor: '#ffeb3b'
                   }
                 }}
                 onClick={() => onOfferClick(deal)}
@@ -1811,8 +1752,8 @@ function FlashDealsView({ flashDeals, onOfferClick }: {
                   position: 'absolute',
                   top: 12,
                   right: 12,
-                  background: 'linear-gradient(45deg, #ff6b35, #f7931e)',
-                  color: 'white',
+                  background: 'linear-gradient(45deg, #ffeb3b, #fff176)',
+                  color: '#333',
                   px: 2,
                   py: 0.5,
                   borderRadius: 2,
@@ -1862,8 +1803,8 @@ function FlashDealsView({ flashDeals, onOfferClick }: {
                       justifyContent: 'center'
                     }}>
                       <Box sx={{ 
-                        background: 'rgba(255, 107, 53, 0.9)',
-                        color: 'white',
+                        background: 'rgba(255, 215, 0, 0.9)',
+                        color: '#333',
                         px: 1.5,
                         py: 0.5,
                         borderRadius: 1,
@@ -1878,8 +1819,8 @@ function FlashDealsView({ flashDeals, onOfferClick }: {
                         </Typography>
                       </Box>
                       <Box sx={{ 
-                        background: 'rgba(255, 107, 53, 0.9)',
-                        color: 'white',
+                        background: 'rgba(255, 215, 0, 0.9)',
+                        color: '#333',
                         px: 1.5,
                         py: 0.5,
                         borderRadius: 1,
@@ -1894,8 +1835,8 @@ function FlashDealsView({ flashDeals, onOfferClick }: {
                         </Typography>
                       </Box>
                       <Box sx={{ 
-                        background: 'rgba(255, 107, 53, 0.9)',
-                        color: 'white',
+                        background: 'rgba(255, 215, 0, 0.9)',
+                        color: '#333',
                         px: 1.5,
                         py: 0.5,
                         borderRadius: 1,
@@ -1937,7 +1878,7 @@ function FlashDealsView({ flashDeals, onOfferClick }: {
                   {/* Precios */}
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
                     <Typography variant="h5" sx={{ 
-                      color: '#ff6b35', 
+                      color: '#ffeb3b', 
                       fontWeight: 'bold' 
                     }}>
                       {deal.price}
@@ -1965,7 +1906,7 @@ function FlashDealsView({ flashDeals, onOfferClick }: {
 
                   {/* Rating */}
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 2 }}>
-                    <Star sx={{ color: '#ffd700', fontSize: '1rem' }} />
+                    <Star sx={{ color: '#ffeb3b', fontSize: '1rem' }} />
                     <Typography variant="body2" sx={{ color: '#bbb' }}>
                       {deal.rating}
                     </Typography>
@@ -1983,7 +1924,7 @@ function FlashDealsView({ flashDeals, onOfferClick }: {
                         <Typography variant="caption" sx={{ color: '#888' }}>
                           Vendu : {deal.soldQuantity || 0} / {deal.maxQuantity}
                         </Typography>
-                        <Typography variant="caption" sx={{ color: '#ff6b35', fontWeight: 'bold' }}>
+                        <Typography variant="caption" sx={{ color: '#ffeb3b', fontWeight: 'bold' }}>
                           {Math.round(progressPercentage)}% vendu
                         </Typography>
                       </Box>
@@ -1997,7 +1938,7 @@ function FlashDealsView({ flashDeals, onOfferClick }: {
                         <Box sx={{ 
                           width: `${Math.min(progressPercentage, 100)}%`, 
                           height: '100%', 
-                          background: 'linear-gradient(90deg, #ff6b35, #f7931e)',
+                          background: 'linear-gradient(90deg, #ffeb3b, #fff176)',
                           transition: 'width 0.3s ease'
                         }} />
                       </Box>
@@ -2044,6 +1985,7 @@ function SubscriptionModal({
   setUserProfile: React.Dispatch<React.SetStateAction<UserProfile | null>>,
   currentUser: User | null
 }) {
+  const { t } = useTranslation();
   const [selectedPlan, setSelectedPlan] = useState<string>('monthly');
   const [isProcessing, setIsProcessing] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
@@ -2055,6 +1997,11 @@ function SubscriptionModal({
     try {
       const success = await processSubscriptionPayment(currentUser.uid, selectedPlan);
       if (success) {
+        const planPrice = SUBSCRIPTION_PLANS.find(p => p.id === selectedPlan)?.price || 0;
+        
+        // Registrar la suscripción
+        // await recordSubscription(selectedPlan, planPrice); // TODO: Mover esta función al scope correcto
+        
         // Actualizar el perfil local
         const updatedProfile = userProfile ? {
           ...userProfile,
@@ -2063,7 +2010,7 @@ function SubscriptionModal({
           subscriptionEnd: Timestamp.fromDate(calculateNextPaymentDate(selectedPlan as 'monthly' | 'yearly')),
           lastPaymentDate: Timestamp.now(),
           nextPaymentDate: Timestamp.fromDate(calculateNextPaymentDate(selectedPlan as 'monthly' | 'yearly')),
-          totalPaid: SUBSCRIPTION_PLANS.find(p => p.id === selectedPlan)?.price || 0
+          totalPaid: userProfile.totalPaid + planPrice
         } : null;
         
         setUserProfile(updatedProfile);
@@ -2114,12 +2061,12 @@ function SubscriptionModal({
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle sx={{ 
-        background: 'linear-gradient(135deg, #ff6b35 0%, #f7931e 100%)',
-        color: 'white',
+        background: 'linear-gradient(135deg, #ffeb3b 0%, #fff176 100%)',
+        color: '#333',
         textAlign: 'center',
         py: 3
       }}>
-        {isSubscriptionActive ? 'Gestion de l\'Abonnement' : 'Activer l\'Abonnement'}
+        {isSubscriptionActive ? t('gestionAbonnement') : t('activerAbonnement')}
       </DialogTitle>
       
       <DialogContent sx={{ p: 4 }}>
@@ -2127,14 +2074,14 @@ function SubscriptionModal({
           // Mostrar información de suscripción activa
           <Box>
             <Typography variant="h6" gutterBottom>
-              Votre abonnement est actif
+              {t('abonnementActif')}
             </Typography>
             <Box sx={{ mt: 2, p: 2, bgcolor: '#f5f5f5', borderRadius: 2 }}>
               <Typography variant="body1">
-                <strong>Plan :</strong> {userProfile?.subscriptionPlan === 'monthly' ? 'Mensuel' : 'Annuel'}
+                <strong>{t('plan')} :</strong> {userProfile?.subscriptionPlan === 'monthly' ? t('planMensuel') : t('planAnnuel')}
               </Typography>
               <Typography variant="body1">
-                <strong>Prochain paiement :</strong> {userProfile?.nextPaymentDate?.toDate().toLocaleDateString()}
+                <strong>{t('prochainPaiement')} :</strong> {userProfile?.nextPaymentDate?.toDate().toLocaleDateString()}
               </Typography>
               <Typography variant="body1">
                 <strong>Total payé :</strong> CHF {userProfile?.totalPaid?.toFixed(2)}
@@ -2143,7 +2090,7 @@ function SubscriptionModal({
             
             <Box sx={{ mt: 3, textAlign: 'center' }}>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                Votre abonnement se renouvelle automatiquement chaque mois
+                {t('abonnementRenouvellement')}
               </Typography>
               <Button 
                 variant="outlined" 
@@ -2151,7 +2098,7 @@ function SubscriptionModal({
                 onClick={() => setShowCancelDialog(true)}
                 disabled={isProcessing}
               >
-                Annuler l'Abonnement
+                {t('annulerAbonnement')}
               </Button>
             </Box>
           </Box>
@@ -2159,10 +2106,10 @@ function SubscriptionModal({
           // Mostrar planes de suscripción
           <Box>
             <Typography variant="h6" gutterBottom>
-              Choisissez votre plan d'abonnement
+              {t('choisirPlanAbonnement')}
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-              Vous avez besoin d'un abonnement actif pour accéder à toutes les offres
+              {t('besoinAbonnementActif')}
             </Typography>
             
             <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', md: 'row' } }}>
@@ -2171,7 +2118,7 @@ function SubscriptionModal({
                   key={plan.id}
                   sx={{ 
                     flex: 1,
-                    border: selectedPlan === plan.id ? '2px solid #ff6b35' : '1px solid #e0e0e0',
+                    border: selectedPlan === plan.id ? '2px solid #ffeb3b' : '1px solid #e0e0e0',
                     cursor: 'pointer',
                     transition: 'all 0.3s ease'
                   }}
@@ -2181,7 +2128,7 @@ function SubscriptionModal({
                     <Typography variant="h6" gutterBottom>
                       {plan.name}
                     </Typography>
-                    <Typography variant="h4" sx={{ color: '#ff6b35', fontWeight: 'bold' }}>
+                    <Typography variant="h4" sx={{ color: '#ffeb3b', fontWeight: 'bold' }}>
                       CHF {plan.price}
                     </Typography>
                     <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
@@ -2192,7 +2139,7 @@ function SubscriptionModal({
                       {plan.features.map((feature, index) => (
                         <ListItem key={index} sx={{ py: 0.5 }}>
                           <ListItemIcon sx={{ minWidth: 32 }}>
-                            <Star sx={{ color: '#ff6b35', fontSize: 16 }} />
+                            <Star sx={{ color: '#ffeb3b', fontSize: 16 }} />
                           </ListItemIcon>
                           <ListItemText primary={feature} />
                         </ListItem>
@@ -2208,7 +2155,7 @@ function SubscriptionModal({
       
       <DialogActions sx={{ p: 3 }}>
         <Button onClick={onClose} color="inherit">
-          {isSubscriptionActive ? 'Fermer' : 'Annuler'}
+          {isSubscriptionActive ? t('fermer') : t('annuler')}
         </Button>
         {!isSubscriptionActive && (
           <Button 
@@ -2216,9 +2163,9 @@ function SubscriptionModal({
             variant="contained"
             disabled={isProcessing}
             sx={{
-              background: 'linear-gradient(135deg, #ff6b35 0%, #f7931e 100%)',
+              background: 'linear-gradient(135deg, #ffeb3b 0%, #fff176 100%)',
               '&:hover': {
-                background: 'linear-gradient(135deg, #e55a2b 0%, #e8821a 100%)',
+                background: 'linear-gradient(135deg, #fbc02d 0%, #fbc02d 100%)',
               }
             }}
           >
@@ -2229,10 +2176,10 @@ function SubscriptionModal({
 
       {/* Dialogue de confirmation pour annuler l'abonnement */}
       <Dialog open={showCancelDialog} onClose={() => setShowCancelDialog(false)}>
-        <DialogTitle>Annuler l'Abonnement</DialogTitle>
+        <DialogTitle>{t('annulerAbonnement')}</DialogTitle>
         <DialogContent>
           <Typography variant="body1" gutterBottom>
-            Êtes-vous sûr de vouloir annuler votre abonnement ?
+            {t('confirmerAnnulationAbonnement')}
           </Typography>
           <Typography variant="body2" color="text.secondary">
             Votre accès à FLASH se terminera immédiatement et vous ne pourrez plus utiliser les offres jusqu'à ce que vous vous abonniez à nouveau.
@@ -2240,7 +2187,7 @@ function SubscriptionModal({
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setShowCancelDialog(false)} color="inherit">
-            Non, garder l'abonnement
+            {t('nonGarderAbonnement')}
           </Button>
           <Button 
             onClick={handleCancelSubscription}
@@ -2248,7 +2195,7 @@ function SubscriptionModal({
             variant="contained"
             disabled={isProcessing}
           >
-            {isProcessing ? 'Annulation...' : 'Oui, annuler'}
+            {isProcessing ? t('annulationEnCours') : t('ouiAnnuler')}
           </Button>
         </DialogActions>
       </Dialog>
@@ -2256,563 +2203,6 @@ function SubscriptionModal({
   );
 }
 
-// Componente de pantalla del dinero profesional
-function MoneyScreen({ 
-  userProfile, 
-  currentUser, 
-  setShowSubscriptionModal 
-}: { 
-  userProfile: UserProfile | null,
-  currentUser: User | null,
-  setShowSubscriptionModal: (show: boolean) => void
-}) {
-  const [payments, setPayments] = useState<Payment[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedPeriod, setSelectedPeriod] = useState('6M');
-  const [filterType, setFilterType] = useState('all');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [sortBy, setSortBy] = useState('date');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [showFilters, setShowFilters] = useState(false);
-  const [savingsGoal] = useState(1000);
-  const [notifications, setNotifications] = useState<Array<{id: string, message: string, type: 'success' | 'info' | 'warning' | 'error'}>>([]);
-
-  // Generar datos mock más realistas para demostración
-  const generateMockData = () => {
-    const mockPayments: Payment[] = [];
-    const now = new Date();
-    
-    // Generar pagos de los últimos 6 meses
-    for (let i = 0; i < 30; i++) {
-      const date = new Date(now.getTime() - (i * 24 * 60 * 60 * 1000));
-      const isSubscription = i % 7 === 0;
-      
-      mockPayments.push({
-        id: `pay_${i}`,
-        userId: currentUser?.uid || '',
-        amount: isSubscription ? 9.99 : Math.random() * 50 + 5,
-        currency: 'CHF',
-        type: isSubscription ? 'subscription' : 'offer_usage',
-        status: Math.random() > 0.1 ? 'completed' : 'pending',
-        date: Timestamp.fromDate(date),
-        createdAt: Timestamp.fromDate(date),
-        subscriptionPlan: isSubscription ? 'monthly' : undefined,
-        offerId: isSubscription ? undefined : `offer_${i}`
-      });
-    }
-    
-    return mockPayments.sort((a, b) => b.date.toDate().getTime() - a.date.toDate().getTime());
-  };
-
-  // Cargar historial de pagos
-  useEffect(() => {
-    const loadPayments = async () => {
-      if (!currentUser) return;
-      
-      setLoading(true);
-      try {
-        const mockPayments = generateMockData();
-        setPayments(mockPayments);
-      } catch (error) {
-        console.error('Error cargando pagos:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadPayments();
-  }, [currentUser]);
-
-  // Calcular métricas
-  const totalSaved = userProfile?.totalSaved || 0;
-  const subscriptionActive = checkSubscriptionStatus(userProfile);
-  const monthlySpent = payments
-    .filter(p => p.date.toDate() >= startOfMonth(new Date()))
-    .reduce((sum, payment) => sum + payment.amount, 0);
-  
-  const monthlySaved = totalSaved * 0.1; // Simular ahorro mensual
-  const savingsProgress = (totalSaved / savingsGoal) * 100;
-
-  // Filtrar y ordenar pagos
-  const filteredPayments = payments
-    .filter(payment => {
-      if (filterType !== 'all' && payment.type !== filterType) return false;
-      if (searchTerm && !payment.id.toLowerCase().includes(searchTerm.toLowerCase())) return false;
-      return true;
-    })
-    .sort((a, b) => {
-      const aValue = sortBy === 'date' ? a.date.toDate().getTime() : a.amount;
-      const bValue = sortBy === 'date' ? b.date.toDate().getTime() : b.amount;
-      return sortOrder === 'asc' ? aValue - bValue : bValue - aValue;
-    });
-
-  // Datos para gráficos
-  const chartData = Array.from({ length: 6 }, (_, i) => {
-    const date = subMonths(new Date(), 5 - i);
-    const monthPayments = payments.filter(p => {
-      const paymentDate = p.date.toDate();
-      return paymentDate >= startOfMonth(date) && paymentDate <= endOfMonth(date);
-    });
-    
-    return {
-      month: format(date, 'MMM'),
-      gastos: monthPayments.reduce((sum, p) => sum + p.amount, 0),
-      ahorros: Math.random() * 200 + 50,
-      ofertas: monthPayments.filter(p => p.type === 'offer_usage').length
-    };
-  });
-
-  const categoryData = [
-    { name: 'Suscripciones', value: payments.filter(p => p.type === 'subscription').reduce((sum, p) => sum + p.amount, 0), color: '#9c27b0' },
-    { name: 'Ofertas', value: payments.filter(p => p.type === 'offer_usage').reduce((sum, p) => sum + p.amount, 0), color: '#4caf50' }
-  ];
-
-  // Funciones de exportación
-  const exportToPDF = async () => {
-    const element = document.getElementById('money-dashboard');
-    if (!element) return;
-    
-    const canvas = await html2canvas(element);
-    const imgData = canvas.toDataURL('image/png');
-    const pdf = new jsPDF();
-    pdf.addImage(imgData, 'PNG', 0, 0, 210, 297);
-    pdf.save('resumen-financiero.pdf');
-  };
-
-  const exportToCSV = () => {
-    const csvData = filteredPayments.map(payment => ({
-      Fecha: payment.date.toDate().toLocaleDateString(),
-      Tipo: payment.type === 'subscription' ? 'Suscripción' : 'Oferta',
-      Monto: payment.amount,
-      Moneda: payment.currency,
-      Estado: payment.status
-    }));
-    
-    const csv = [
-      Object.keys(csvData[0]).join(','),
-      ...csvData.map(row => Object.values(row).join(','))
-    ].join('\n');
-    
-    const blob = new Blob([csv], { type: 'text/csv' });
-    saveAs(blob, 'transacciones.csv');
-  };
-
-  return (
-    <Box sx={{ p: { xs: 2, sm: 3 } }} id="money-dashboard">
-      {/* Header con resumen financiero mejorado */}
-      <Card sx={{ mb: 3, background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white' }}>
-        <CardContent>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              <AccountBalanceWallet sx={{ fontSize: 32, mr: 2 }} />
-              <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
-                Tableau de Bord Financier
-              </Typography>
-            </Box>
-            <Box sx={{ display: 'flex', gap: 1 }}>
-              <IconButton onClick={exportToPDF} sx={{ color: 'white' }}>
-                <GetApp />
-              </IconButton>
-              <IconButton onClick={exportToCSV} sx={{ color: 'white' }}>
-                <Download />
-              </IconButton>
-              <IconButton onClick={() => setShowFilters(!showFilters)} sx={{ color: 'white' }}>
-                <FilterList />
-              </IconButton>
-            </Box>
-          </Box>
-          
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
-            <Box sx={{ flex: 1, minWidth: 200, textAlign: 'center', p: 2, bgcolor: 'rgba(255,255,255,0.1)', borderRadius: 2 }}>
-              <Typography variant="h3" sx={{ fontWeight: 'bold', mb: 1 }}>
-                CHF {totalSaved.toFixed(2)}
-              </Typography>
-              <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                Total Économisé
-              </Typography>
-              <LinearProgress 
-                variant="determinate" 
-                value={savingsProgress} 
-                sx={{ mt: 1, bgcolor: 'rgba(255,255,255,0.2)', '& .MuiLinearProgress-bar': { bgcolor: '#4caf50' } }}
-              />
-              <Typography variant="caption" sx={{ opacity: 0.8 }}>
-                {savingsProgress.toFixed(1)}% de votre objectif (CHF {savingsGoal})
-              </Typography>
-            </Box>
-            
-            <Box sx={{ flex: 1, minWidth: 200, textAlign: 'center', p: 2, bgcolor: 'rgba(255,255,255,0.1)', borderRadius: 2 }}>
-              <Typography variant="h3" sx={{ fontWeight: 'bold', mb: 1 }}>
-                CHF {monthlySpent.toFixed(2)}
-              </Typography>
-              <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                Dépensé ce mois
-              </Typography>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mt: 1 }}>
-                {monthlySpent > monthlySaved ? (
-                  <TrendingDown sx={{ color: '#ff5722', mr: 0.5 }} />
-                ) : (
-                  <TrendingUp sx={{ color: '#4caf50', mr: 0.5 }} />
-                )}
-                  <Typography variant="caption" sx={{ opacity: 0.8 }}>
-                    {monthlySpent > monthlySaved ? 'En hausse' : 'En baisse'}
-                  </Typography>
-              </Box>
-            </Box>
-            
-            <Box sx={{ flex: 1, minWidth: 200, textAlign: 'center', p: 2, bgcolor: 'rgba(255,255,255,0.1)', borderRadius: 2 }}>
-              <Typography variant="h3" sx={{ fontWeight: 'bold', mb: 1 }}>
-                {payments.filter(p => p.type === 'offer_usage').length}
-              </Typography>
-              <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                Offres utilisées
-              </Typography>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mt: 1 }}>
-                <MonetizationOn sx={{ color: '#ff9800', mr: 0.5 }} />
-                <Typography variant="caption" sx={{ opacity: 0.8 }}>
-                  +{Math.floor(Math.random() * 5)} cette semaine
-                </Typography>
-              </Box>
-            </Box>
-            
-            <Box sx={{ flex: 1, minWidth: 200, textAlign: 'center', p: 2, bgcolor: 'rgba(255,255,255,0.1)', borderRadius: 2 }}>
-              <Typography variant="h3" sx={{ fontWeight: 'bold', mb: 1 }}>
-                {subscriptionActive ? 'Active' : 'Inactive'}
-              </Typography>
-              <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                Abonnement
-              </Typography>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mt: 1 }}>
-                {subscriptionActive ? (
-                  <CheckCircle sx={{ color: '#4caf50', mr: 0.5 }} />
-                ) : (
-                  <Warning sx={{ color: '#ff9800', mr: 0.5 }} />
-                )}
-                  <Typography variant="caption" sx={{ opacity: 0.8 }}>
-                    {subscriptionActive ? 'Tout va bien' : 'Renouveler'}
-                  </Typography>
-              </Box>
-            </Box>
-          </Box>
-        </CardContent>
-      </Card>
-
-      {/* Filtros avanzados */}
-      <Collapse in={showFilters}>
-        <Card sx={{ mb: 3 }}>
-          <CardContent>
-            <Typography variant="h6" gutterBottom>
-              Filtres et Recherche
-            </Typography>
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
-              <Box sx={{ flex: 1, minWidth: 200 }}>
-                <FormControl fullWidth>
-                  <InputLabel>Période</InputLabel>
-                  <Select
-                    value={selectedPeriod}
-                    onChange={(e) => setSelectedPeriod(e.target.value)}
-                  >
-                    <MenuItem value="1M">Dernier mois</MenuItem>
-                    <MenuItem value="3M">3 derniers mois</MenuItem>
-                    <MenuItem value="6M">6 derniers mois</MenuItem>
-                    <MenuItem value="1Y">Dernière année</MenuItem>
-                  </Select>
-                </FormControl>
-              </Box>
-              <Box sx={{ flex: 1, minWidth: 200 }}>
-                <FormControl fullWidth>
-                  <InputLabel>Type</InputLabel>
-                  <Select
-                    value={filterType}
-                    onChange={(e) => setFilterType(e.target.value)}
-                  >
-                    <MenuItem value="all">Tous</MenuItem>
-                    <MenuItem value="subscription">Abonnements</MenuItem>
-                    <MenuItem value="offer_usage">Offres</MenuItem>
-                  </Select>
-                </FormControl>
-              </Box>
-              <Box sx={{ flex: 1, minWidth: 200 }}>
-                <TextField
-                  fullWidth
-                  label="Rechercher"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <Search />
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-              </Box>
-              <Box sx={{ flex: 1, minWidth: 200 }}>
-                <Box sx={{ display: 'flex', gap: 1 }}>
-                  <FormControl fullWidth>
-                    <InputLabel>Trier par</InputLabel>
-                    <Select
-                      value={sortBy}
-                      onChange={(e) => setSortBy(e.target.value)}
-                    >
-                      <MenuItem value="date">Date</MenuItem>
-                      <MenuItem value="amount">Montant</MenuItem>
-                    </Select>
-                  </FormControl>
-                  <IconButton onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}>
-                    <Sort />
-                  </IconButton>
-                </Box>
-              </Box>
-            </Box>
-          </CardContent>
-        </Card>
-      </Collapse>
-
-      {/* Gráficos y análisis */}
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3, mb: 3 }}>
-        {/* Gráfico de tendencias */}
-        <Box sx={{ flex: 2, minWidth: 400 }}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
-                <ShowChart sx={{ mr: 1, color: '#2196f3' }} />
-                Tendances des Dépenses et Économies
-              </Typography>
-              <ResponsiveContainer width="100%" height={300}>
-                <AreaChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="month" />
-                  <YAxis />
-                  <Tooltip formatter={(value, name) => [`CHF ${value}`, name === 'gastos' ? 'Dépenses' : 'Économies']} />
-                  <Legend />
-                  <Area type="monotone" dataKey="gastos" stackId="1" stroke="#ff5722" fill="#ff5722" fillOpacity={0.6} />
-                  <Area type="monotone" dataKey="ahorros" stackId="2" stroke="#4caf50" fill="#4caf50" fillOpacity={0.6} />
-                </AreaChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        </Box>
-
-        {/* Gráfico de categorías */}
-        <Box sx={{ flex: 1, minWidth: 300 }}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
-                <PieChart sx={{ mr: 1, color: '#9c27b0' }} />
-                Distribution des Dépenses
-              </Typography>
-              <ResponsiveContainer width="100%" height={300}>
-                <RechartsPieChart>
-                  <Pie
-                    data={categoryData}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={({ name, percent }) => `${name} ${((percent as number) * 100).toFixed(0)}%`}
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="value"
-                  >
-                    {categoryData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(value) => `CHF ${value}`} />
-                </RechartsPieChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        </Box>
-      </Box>
-
-      {/* Gestión de suscripción mejorada */}
-      <Card sx={{ mb: 3 }}>
-        <CardContent>
-          <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
-            <CreditCard sx={{ mr: 1, color: '#9c27b0' }} />
-            Gestion de l'Abonnement
-          </Typography>
-          
-          {subscriptionActive ? (
-            <Box>
-              <Alert severity="success" sx={{ mb: 2 }}>
-                <AlertTitle>Abonnement Actif</AlertTitle>
-                Plan: {userProfile?.subscriptionPlan === 'monthly' ? 'Mensuel' : 'Annuel'} • 
-                Valide jusqu'au: {userProfile?.subscriptionEnd?.toDate().toLocaleDateString()}
-              </Alert>
-              
-              <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-                <Button
-                  variant="outlined"
-                  color="primary"
-                  onClick={() => setShowSubscriptionModal(true)}
-                  startIcon={<Settings />}
-                >
-                  Gérer l'Abonnement
-                </Button>
-                <Button
-                  variant="outlined"
-                  color="secondary"
-                  startIcon={<Receipt />}
-                >
-                  Voir les Factures
-                </Button>
-              </Box>
-            </Box>
-          ) : (
-            <Box>
-              <Alert severity="warning" sx={{ mb: 2 }}>
-                <AlertTitle>Pas d'Abonnement Actif</AlertTitle>
-                Activez votre abonnement pour accéder à toutes les offres et fonctionnalités premium.
-              </Alert>
-              
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={() => setShowSubscriptionModal(true)}
-                startIcon={<Add />}
-                size="large"
-              >
-                Activer l'Abonnement
-              </Button>
-            </Box>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Historial de transacciones mejorado */}
-      <Card>
-        <CardContent>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-            <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center' }}>
-              <Receipt sx={{ mr: 1, color: '#607d8b' }} />
-              Historique des Transactions
-            </Typography>
-            <Box sx={{ display: 'flex', gap: 1 }}>
-              <Button
-                size="small"
-                onClick={exportToCSV}
-                startIcon={<Download />}
-              >
-                Exporter CSV
-              </Button>
-            </Box>
-          </Box>
-          
-          {loading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
-              <CircularProgress />
-            </Box>
-          ) : filteredPayments.length === 0 ? (
-            <Box sx={{ textAlign: 'center', p: 3 }}>
-              <Receipt sx={{ fontSize: 64, color: '#e0e0e0', mb: 2 }} />
-              <Typography variant="body1" color="text.secondary">
-                Aucune transaction ne correspond aux filtres
-              </Typography>
-            </Box>
-          ) : (
-            <>
-              <TableContainer>
-                <Table>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Type</TableCell>
-                      <TableCell>Description</TableCell>
-                      <TableCell align="right">Montant</TableCell>
-                      <TableCell>Date</TableCell>
-                      <TableCell>État</TableCell>
-                      <TableCell align="center">Actions</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {filteredPayments
-                      .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                      .map((payment) => (
-                        <TableRow key={payment.id} hover>
-                          <TableCell>
-                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                              {payment.type === 'subscription' ? (
-                                <CreditCard sx={{ color: '#9c27b0', mr: 1 }} />
-                              ) : (
-                                <AttachMoney sx={{ color: '#4caf50', mr: 1 }} />
-                              )}
-                              <Typography variant="body2">
-                                {payment.type === 'subscription' ? 'Abonnement' : 'Offre'}
-                              </Typography>
-                            </Box>
-                          </TableCell>
-                          <TableCell>
-                            <Typography variant="body2">
-                              {payment.type === 'subscription' 
-                                ? `Plan ${payment.subscriptionPlan}` 
-                                : `Offre ${payment.offerId}`
-                              }
-                            </Typography>
-                          </TableCell>
-                          <TableCell align="right">
-                            <Typography variant="h6" sx={{ 
-                              color: payment.type === 'subscription' ? '#9c27b0' : '#4caf50',
-                              fontWeight: 'bold'
-                            }}>
-                              CHF {payment.amount.toFixed(2)}
-                            </Typography>
-                          </TableCell>
-                          <TableCell>
-                            <Typography variant="body2">
-                              {payment.date.toDate().toLocaleDateString()}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary">
-                              {payment.date.toDate().toLocaleTimeString()}
-                            </Typography>
-                          </TableCell>
-                          <TableCell>
-                            <Chip
-                              label={payment.status === 'completed' ? 'Terminé' : 'En attente'}
-                              color={payment.status === 'completed' ? 'success' : 'warning'}
-                              size="small"
-                              icon={payment.status === 'completed' ? <CheckCircle /> : <Pending />}
-                            />
-                          </TableCell>
-                          <TableCell align="center">
-                            <IconButton size="small">
-                              <MoreVert />
-                            </IconButton>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-              
-              <TablePagination
-                rowsPerPageOptions={[5, 10, 25]}
-                component="div"
-                count={filteredPayments.length}
-                rowsPerPage={rowsPerPage}
-                page={page}
-                onPageChange={(_, newPage) => setPage(newPage)}
-                onRowsPerPageChange={(e) => setRowsPerPage(parseInt(e.target.value, 10))}
-              />
-            </>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Notificaciones */}
-      <Snackbar
-        open={notifications.length > 0}
-        autoHideDuration={6000}
-        onClose={() => setNotifications([])}
-      >
-        <Alert onClose={() => setNotifications([])} severity={notifications[0]?.type || 'info'}>
-          {notifications[0]?.message}
-        </Alert>
-      </Snackbar>
-    </Box>
-  );
-}
 
 // Modal de suscripción requerida (no se puede cerrar)
 function SubscriptionRequiredModal({ 
@@ -2837,8 +2227,8 @@ function SubscriptionRequiredModal({
       }}
     >
       <DialogTitle sx={{ 
-        background: 'linear-gradient(135deg, #ff6b35 0%, #f7931e 100%)',
-        color: 'white',
+        background: 'linear-gradient(135deg, #ffeb3b 0%, #fff176 100%)',
+        color: '#333',
         textAlign: 'center',
         py: 4,
         position: 'relative'
@@ -2875,7 +2265,7 @@ function SubscriptionRequiredModal({
           mb: 4 
         }}>
           <Box sx={{ p: 2, bgcolor: '#f8f9fa', borderRadius: 2 }}>
-            <Typography variant="h6" sx={{ color: '#ff6b35', mb: 1 }}>💎</Typography>
+            <Typography variant="h6" sx={{ color: '#ffeb3b', mb: 1 }}>💎</Typography>
             <Typography variant="subtitle2" gutterBottom>Ofertas Exclusivas</Typography>
             <Typography variant="body2" color="text.secondary">
               Acceso a ofertas únicas no disponibles para usuarios gratuitos
@@ -2883,7 +2273,7 @@ function SubscriptionRequiredModal({
           </Box>
           
           <Box sx={{ p: 2, bgcolor: '#f8f9fa', borderRadius: 2 }}>
-            <Typography variant="h6" sx={{ color: '#ff6b35', mb: 1 }}>⚡</Typography>
+            <Typography variant="h6" sx={{ color: '#ffeb3b', mb: 1 }}>⚡</Typography>
             <Typography variant="subtitle2" gutterBottom>Sin Límites</Typography>
             <Typography variant="body2" color="text.secondary">
               Usa todas las ofertas que quieras sin restricciones
@@ -2891,7 +2281,7 @@ function SubscriptionRequiredModal({
           </Box>
           
           <Box sx={{ p: 2, bgcolor: '#f8f9fa', borderRadius: 2 }}>
-            <Typography variant="h6" sx={{ color: '#ff6b35', mb: 1 }}>🎯</Typography>
+            <Typography variant="h6" sx={{ color: '#ffeb3b', mb: 1 }}>🎯</Typography>
             <Typography variant="subtitle2" gutterBottom>Ahorro Garantizado</Typography>
             <Typography variant="body2" color="text.secondary">
               Ahorra dinero real en cada compra con nuestras ofertas
@@ -2904,7 +2294,7 @@ function SubscriptionRequiredModal({
           bgcolor: '#fff3e0', 
           p: 3, 
           borderRadius: 2, 
-          border: '2px solid #ff9800',
+          border: '2px solid #ffeb3b',
           mb: 3
         }}>
           <Typography variant="h5" sx={{ color: '#e65100', fontWeight: 'bold', mb: 1 }}>
@@ -2930,14 +2320,14 @@ function SubscriptionRequiredModal({
           variant="contained"
           size="large"
           sx={{
-            background: 'linear-gradient(135deg, #ff6b35 0%, #f7931e 100%)',
+            background: 'linear-gradient(135deg, #ffeb3b 0%, #fff176 100%)',
             px: 6,
             py: 1.5,
             fontSize: '1.1rem',
             fontWeight: 'bold',
             borderRadius: 3,
             '&:hover': {
-              background: 'linear-gradient(135deg, #e55a2b 0%, #e8821a 100%)',
+              background: 'linear-gradient(135deg, #fbc02d 0%, #fbc02d 100%)',
               transform: 'translateY(-2px)',
               boxShadow: '0 8px 25px rgba(255, 107, 53, 0.3)'
             },
@@ -2994,7 +2384,7 @@ function OfferDetail({ offer, open, onClose }: { offer: Offer | null, open: bool
         </Typography>
         
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-          <Star sx={{ color: '#ffd700', mr: 0.5 }} />
+          <Star sx={{ color: '#ffeb3b', mr: 0.5 }} />
           <Typography variant="body1" sx={{ mr: 1 }}>{offer.rating}</Typography>
           <Typography variant="body2" color="text.secondary">
             {offer.location.address}
@@ -3028,7 +2418,7 @@ function OfferDetail({ offer, open, onClose }: { offer: Offer | null, open: bool
             <Typography variant="body2" color="text.secondary" gutterBottom>
               💳 Coût pour utiliser cette offre :
             </Typography>
-            <Typography variant="h6" sx={{ color: '#ff6b35', fontWeight: 'bold' }}>
+            <Typography variant="h6" sx={{ color: '#ffeb3b', fontWeight: 'bold' }}>
               CHF {offer.usagePrice}
             </Typography>
             <Typography variant="caption" color="text.secondary">
@@ -3063,7 +2453,7 @@ function OfferDetail({ offer, open, onClose }: { offer: Offer | null, open: bool
                 // addNotification('success', '¡Enlace copiado al portapapeles!');
               }
             }}
-            sx={{ borderColor: '#4caf50', color: '#4caf50' }}
+            sx={{ borderColor: '#ffeb3b', color: '#ffeb3b' }}
           >
             📤 Partager
           </Button>
@@ -3074,6 +2464,7 @@ function OfferDetail({ offer, open, onClose }: { offer: Offer | null, open: bool
 }
 
 function App() {
+  const { t } = useTranslation();
   const [offers] = useState<Offer[]>(initialOffers);
   const [selectedTab, setSelectedTab] = useState(1);
   const [flashDeals, setFlashDeals] = useState<FlashDeal[]>(initialFlashDeals);
@@ -3130,7 +2521,197 @@ function App() {
   
   const [isLoading, setIsLoading] = useState(false);
   
+  // Estados para funcionalidad de swipe estilo Instagram
+  const [isDragging, setIsDragging] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [currentX, setCurrentX] = useState(0);
+  const [isTransitioning, setIsTransitioning] = useState(false);
 
+  // Función para manejar el inicio del toque
+  const handleTouchStart = (e: React.TouchEvent) => {
+    console.log('🔥 TOUCH START DETECTED!', e.touches);
+    if (isTransitioning) {
+      console.log('❌ Transitioning, ignoring touch start');
+      return;
+    }
+    
+    // Solo activar swipe global si no estamos en una tarjeta de oferta
+    const target = e.target as HTMLElement;
+    if (target.closest('.offer-card') || target.closest('.MuiCard-root')) {
+      console.log('❌ Touch on offer card, ignoring global swipe');
+      return;
+    }
+    
+    setIsDragging(true);
+    setStartX(e.touches[0].clientX);
+    setCurrentX(e.touches[0].clientX);
+    console.log('✅ Touch start - Start X:', e.touches[0].clientX);
+  };
+
+  // Función para manejar el movimiento del toque
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging || isTransitioning) return;
+    
+    const newCurrentX = e.touches[0].clientX;
+    setCurrentX(newCurrentX);
+    console.log('🔥 TOUCH MOVE - Current X:', newCurrentX);
+  };
+
+  // Función para manejar el final del toque
+  const handleTouchEnd = () => {
+    console.log('🔥 TOUCH END DETECTED!');
+    if (!isDragging || isTransitioning) {
+      console.log('❌ Not dragging or transitioning, ignoring touch end');
+      return;
+    }
+    
+    setIsDragging(false);
+    setIsTransitioning(true);
+    
+    const deltaX = currentX - startX;
+    const threshold = window.innerWidth * 0.3; // 30% del ancho de pantalla
+    
+    console.log('📊 SWIPE CALCULATION:', {
+      startX,
+      currentX,
+      deltaX,
+      threshold,
+      windowWidth: window.innerWidth,
+      isLeftSwipe: deltaX < -threshold,
+      isRightSwipe: deltaX > threshold,
+      startedFromLeftEdge: startX < 50
+    });
+    
+    // Solo permitir swipe global si:
+    // 1. El swipe es suficientemente largo
+    // 2. Comenzó desde el borde izquierdo de la pantalla (primeros 50px)
+    // 3. No estamos en una tarjeta de oferta
+    if (Math.abs(deltaX) > threshold && startX < 50) {
+      if (deltaX > 0) {
+        // Swipe hacia la derecha - ir a FLASH
+        console.log('✅ SWIPING RIGHT FROM LEFT EDGE - going to FLASH tab');
+        setSelectedTab(2);
+      } else {
+        // Swipe hacia la izquierda - pestaña siguiente
+        console.log('✅ SWIPING LEFT FROM LEFT EDGE - going to next tab');
+        setSelectedTab(prev => {
+          const newTab = Math.min(4, prev + 1);
+          console.log(`🔄 Changing from tab ${prev} to tab ${newTab}`);
+          return newTab;
+        });
+      }
+    } else {
+      console.log('❌ Swipe not from left edge or distance too small:', {
+        deltaX: Math.abs(deltaX),
+        threshold,
+        startX,
+        fromLeftEdge: startX < 50
+      });
+    }
+    
+    // Resetear la posición
+    setTimeout(() => {
+      setIsTransitioning(false);
+      console.log('🔄 Transition completed');
+    }, 50);
+  };
+
+  // Hook para manejar swipe con eventos nativos del DOM
+  useEffect(() => {
+    const handleTouchStart = (e: TouchEvent) => {
+      console.log('🔥 NATIVE TOUCH START!', e.touches);
+      if (e.touches && e.touches.length > 0) {
+        // Solo activar swipe global si no estamos en una tarjeta de oferta
+        const target = e.target as HTMLElement;
+        if (target.closest('.offer-card') || target.closest('.MuiCard-root')) {
+          console.log('❌ Native touch on offer card, ignoring global swipe');
+          return;
+        }
+        
+        const startX = e.touches[0].clientX;
+        console.log('Native Start X position:', startX);
+        setStartX(startX);
+        setCurrentX(startX);
+        setIsDragging(true);
+      }
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (!isDragging || isTransitioning) return;
+      
+      if (e.touches && e.touches.length > 0) {
+        const newCurrentX = e.touches[0].clientX;
+        setCurrentX(newCurrentX);
+        console.log('🔥 NATIVE TOUCH MOVE - Current X:', newCurrentX);
+      }
+    };
+
+    const handleTouchEnd = (e: TouchEvent) => {
+      console.log('🔥 NATIVE TOUCH END!', e.changedTouches);
+      
+      if (!isDragging || isTransitioning) {
+        console.log('❌ Not dragging or transitioning, ignoring native touch end');
+        return;
+      }
+      
+      setIsDragging(false);
+      setIsTransitioning(true);
+      
+      const deltaX = currentX - startX;
+      const threshold = window.innerWidth * 0.3; // 30% del ancho de pantalla
+      
+      console.log('📊 NATIVE SWIPE CALCULATION:', {
+        startX,
+        currentX,
+        deltaX,
+        threshold,
+        windowWidth: window.innerWidth,
+        isLeftSwipe: deltaX < -threshold,
+        isRightSwipe: deltaX > threshold
+      });
+      
+      if (Math.abs(deltaX) > threshold) {
+        if (deltaX > 0) {
+          // Swipe hacia la derecha - pestaña anterior
+          console.log('✅ NATIVE SWIPING RIGHT - going to previous tab');
+          setSelectedTab(prev => {
+            const newTab = Math.max(0, prev - 1);
+            console.log(`🔄 Native changing from tab ${prev} to tab ${newTab}`);
+            return newTab;
+          });
+        } else {
+          // Swipe hacia la izquierda - pestaña siguiente
+          console.log('✅ NATIVE SWIPING LEFT - going to next tab');
+          setSelectedTab(prev => {
+            const newTab = Math.min(4, prev + 1);
+            console.log(`🔄 Native changing from tab ${prev} to tab ${newTab}`);
+            return newTab;
+          });
+        }
+      } else {
+        console.log('❌ Native swipe distance too small:', Math.abs(deltaX), 'threshold:', threshold);
+      }
+      
+      // Resetear la posición
+      setTimeout(() => {
+        setIsTransitioning(false);
+        console.log('🔄 Native transition completed');
+      }, 50);
+    };
+
+    // Solo agregar listeners en móvil
+    if (window.innerWidth <= 768) {
+      document.addEventListener('touchstart', handleTouchStart, { passive: false });
+      document.addEventListener('touchmove', handleTouchMove, { passive: false });
+      document.addEventListener('touchend', handleTouchEnd, { passive: false });
+      
+      return () => {
+        document.removeEventListener('touchstart', handleTouchStart);
+        document.removeEventListener('touchmove', handleTouchMove);
+        document.removeEventListener('touchend', handleTouchEnd);
+      };
+    }
+  }, [isDragging, isTransitioning, startX, currentX]);
 
   // Listener de autenticación
   useEffect(() => {
@@ -3310,13 +2891,47 @@ function App() {
           subscriptionEnd: Timestamp.fromDate(trialEndDate),
           subscriptionStatus: 'pending', // Estado de prueba
           subscriptionPlan: 'none',
-          totalPaid: 0
+          totalPaid: 0,
+          
+          // Nuevos campos para datos individuales
+          personalStats: {
+            joinDate: Timestamp.now(),
+            lastLoginDate: Timestamp.now(),
+            totalOffersViewed: 0,
+            favoriteCategories: [],
+            preferredLanguage: 'fr',
+            notificationsEnabled: true
+          },
+          
+          financialHistory: {
+            monthlyExpenses: {},
+            subscriptionHistory: [],
+            offerPayments: []
+          },
+          
+          preferences: {
+            favoriteLocations: [],
+            priceRange: { min: 0, max: 1000 },
+            notificationSettings: {
+              newOffers: true,
+              flashDeals: true,
+              subscriptionReminders: true
+            }
+          },
+          
+          activityLog: [{
+            action: 'account_created',
+            timestamp: Timestamp.now(),
+            details: { source: 'web' }
+          }]
         };
         await setDoc(userRef, newProfile);
         setUserProfile(newProfile);
       } else {
-        // Cargar perfil existente
-        setUserProfile(userDoc.data() as UserProfile);
+        // Cargar perfil existente y migrar si es necesario
+        const existingProfile = userDoc.data() as UserProfile;
+        const migratedProfile = await migrateUserProfile(existingProfile);
+        setUserProfile(migratedProfile);
       }
     } catch (error) {
       console.error('Error al cargar/crear perfil de usuario:', error);
@@ -3338,7 +2953,39 @@ function App() {
         subscriptionEnd: Timestamp.fromDate(trialEndDate),
         subscriptionStatus: 'pending', // Estado de prueba
         subscriptionPlan: 'none',
-        totalPaid: 0
+        totalPaid: 0,
+        
+        // Nuevos campos para datos individuales
+        personalStats: {
+          joinDate: Timestamp.now(),
+          lastLoginDate: Timestamp.now(),
+          totalOffersViewed: 0,
+          favoriteCategories: [],
+          preferredLanguage: 'fr',
+          notificationsEnabled: true
+        },
+        
+        financialHistory: {
+          monthlyExpenses: {},
+          subscriptionHistory: [],
+          offerPayments: []
+        },
+        
+        preferences: {
+          favoriteLocations: [],
+          priceRange: { min: 0, max: 1000 },
+          notificationSettings: {
+            newOffers: true,
+            flashDeals: true,
+            subscriptionReminders: true
+          }
+        },
+        
+        activityLog: [{
+          action: 'account_created_fallback',
+          timestamp: Timestamp.now(),
+          details: { source: 'web', fallback: true }
+        }]
       };
       setUserProfile(fallbackProfile);
     }
@@ -3385,7 +3032,39 @@ function App() {
         subscriptionEnd: Timestamp.fromDate(trialEndDate),
         subscriptionStatus: 'pending', // Estado de prueba
         subscriptionPlan: 'none',
-        totalPaid: 0
+        totalPaid: 0,
+        
+        // Nuevos campos para datos individuales
+        personalStats: {
+          joinDate: Timestamp.now(),
+          lastLoginDate: Timestamp.now(),
+          totalOffersViewed: 0,
+          favoriteCategories: [],
+          preferredLanguage: 'fr',
+          notificationsEnabled: true
+        },
+        
+        financialHistory: {
+          monthlyExpenses: {},
+          subscriptionHistory: [],
+          offerPayments: []
+        },
+        
+        preferences: {
+          favoriteLocations: [],
+          priceRange: { min: 0, max: 1000 },
+          notificationSettings: {
+            newOffers: true,
+            flashDeals: true,
+            subscriptionReminders: true
+          }
+        },
+        
+        activityLog: [{
+          action: 'account_created_signup',
+          timestamp: Timestamp.now(),
+          details: { source: 'signup' }
+        }]
       };
       
       await setDoc(userRef, newProfile);
@@ -3473,7 +3152,39 @@ function App() {
           subscriptionEnd: Timestamp.fromDate(trialEndDate),
           subscriptionStatus: 'pending', // Estado de prueba
           subscriptionPlan: 'none',
-          totalPaid: 0
+          totalPaid: 0,
+          
+          // Nuevos campos para datos individuales
+          personalStats: {
+            joinDate: Timestamp.now(),
+            lastLoginDate: Timestamp.now(),
+            totalOffersViewed: 0,
+            favoriteCategories: [],
+            preferredLanguage: 'fr',
+            notificationsEnabled: true
+          },
+          
+          financialHistory: {
+            monthlyExpenses: {},
+            subscriptionHistory: [],
+            offerPayments: []
+          },
+          
+          preferences: {
+            favoriteLocations: [],
+            priceRange: { min: 0, max: 1000 },
+            notificationSettings: {
+              newOffers: true,
+              flashDeals: true,
+              subscriptionReminders: true
+            }
+          },
+          
+          activityLog: [{
+            action: 'account_created_google',
+            timestamp: Timestamp.now(),
+            details: { source: 'google' }
+          }]
         };
         await setDoc(userRef, newProfile);
         setUserProfile(newProfile);
@@ -3776,12 +3487,277 @@ function App() {
     }
   };
 
+  // Funciones para manejar datos individuales del usuario
+  
+  // Función para registrar actividad del usuario
+  const logUserActivity = async (action: string, details?: any) => {
+    if (!currentUser || !userProfile) return;
+    
+    try {
+      const userRef = doc(db, 'users', currentUser.uid);
+      const newActivity = {
+        action,
+        timestamp: Timestamp.now(),
+        details: details || {}
+      };
+      
+      await updateDoc(userRef, {
+        'activityLog': arrayUnion(newActivity),
+        'personalStats.lastLoginDate': Timestamp.now()
+      });
+      
+      // Actualizar el perfil local
+      setUserProfile(prev => prev ? {
+        ...prev,
+        activityLog: [...prev.activityLog, newActivity],
+        personalStats: {
+          ...prev.personalStats,
+          lastLoginDate: Timestamp.now()
+        }
+      } : null);
+    } catch (error) {
+      console.error('Error logging user activity:', error);
+    }
+  };
+  
+  // Función para actualizar estadísticas de ofertas vistas
+  const updateOffersViewed = async (offerId: string, category: string) => {
+    if (!currentUser || !userProfile) return;
+    
+    try {
+      const userRef = doc(db, 'users', currentUser.uid);
+      
+      // Actualizar categorías favoritas
+      const favoriteCategories = userProfile.personalStats.favoriteCategories;
+      if (!favoriteCategories.includes(category)) {
+        favoriteCategories.push(category);
+      }
+      
+      await updateDoc(userRef, {
+        'personalStats.totalOffersViewed': userProfile.personalStats.totalOffersViewed + 1,
+        'personalStats.favoriteCategories': favoriteCategories.slice(-10) // Mantener solo las últimas 10
+      });
+      
+      // Actualizar perfil local
+      setUserProfile(prev => prev ? {
+        ...prev,
+        personalStats: {
+          ...prev.personalStats,
+          totalOffersViewed: prev.personalStats.totalOffersViewed + 1,
+          favoriteCategories: favoriteCategories.slice(-10)
+        }
+      } : null);
+      
+      // Registrar actividad
+      await logUserActivity('offer_viewed', { offerId, category });
+    } catch (error) {
+      console.error('Error updating offers viewed:', error);
+    }
+  };
+  
+  // Función para registrar pago de oferta
+  const recordOfferPayment = async (offerId: string, offerName: string, amount: number) => {
+    if (!currentUser || !userProfile) return;
+    
+    try {
+      const userRef = doc(db, 'users', currentUser.uid);
+      const payment = {
+        offerId,
+        amount,
+        date: Timestamp.now(),
+        offerName
+      };
+      
+      // Actualizar gastos mensuales
+      const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
+      const monthlyExpenses = { ...userProfile.financialHistory.monthlyExpenses };
+      monthlyExpenses[currentMonth] = (monthlyExpenses[currentMonth] || 0) + amount;
+      
+      await updateDoc(userRef, {
+        'financialHistory.offerPayments': arrayUnion(payment),
+        'financialHistory.monthlyExpenses': monthlyExpenses,
+        totalPaid: userProfile.totalPaid + amount
+      });
+      
+      // Actualizar perfil local
+      setUserProfile(prev => prev ? {
+        ...prev,
+        financialHistory: {
+          ...prev.financialHistory,
+          offerPayments: [...prev.financialHistory.offerPayments, payment],
+          monthlyExpenses
+        },
+        totalPaid: prev.totalPaid + amount
+      } : null);
+      
+      // Registrar actividad
+      await logUserActivity('offer_payment', { offerId, offerName, amount });
+    } catch (error) {
+      console.error('Error recording offer payment:', error);
+    }
+  };
+  
+  // Función para registrar suscripción
+  // const recordSubscription = async (plan: string, amount: number) => {
+  //   if (!currentUser || !userProfile) return;
+  //   
+  //   try {
+  //     const userRef = doc(db, 'users', currentUser.uid);
+  //     const subscription = {
+  //       plan,
+  //       startDate: Timestamp.now(),
+  //       amount,
+  //       status: 'active'
+  //     };
+  //     
+  //     await updateDoc(userRef, {
+  //       'financialHistory.subscriptionHistory': arrayUnion(subscription)
+  //     });
+  //     
+  //     // Actualizar perfil local
+  //     setUserProfile(prev => prev ? {
+  //       ...prev,
+  //       financialHistory: {
+  //         ...prev.financialHistory,
+  //         subscriptionHistory: [...prev.financialHistory.subscriptionHistory, subscription]
+  //       }
+  //     } : null);
+  //     
+  //     // Registrar actividad
+  //     await logUserActivity('subscription_purchased', { plan, amount });
+  //   } catch (error) {
+  //     console.error('Error recording subscription:', error);
+  //   }
+  // };
+  
+  // Función para actualizar preferencias del usuario
+  // const updateUserPreferences = async (preferences: Partial<UserProfile['preferences']>) => {
+  //   if (!currentUser || !userProfile) return;
+  //   
+  //   try {
+  //     const userRef = doc(db, 'users', currentUser.uid);
+  //     const updatedPreferences = { ...userProfile.preferences, ...preferences };
+  //     
+  //     await updateDoc(userRef, {
+  //       preferences: updatedPreferences
+  //     });
+  //     
+  //     // Actualizar perfil local
+  //     setUserProfile(prev => prev ? {
+  //       ...prev,
+  //       preferences: updatedPreferences
+  //     } : null);
+  //     
+  //     // Registrar actividad
+  //     await logUserActivity('preferences_updated', preferences);
+  //   } catch (error) {
+  //     console.error('Error updating preferences:', error);
+  //   }
+  // };
+  
+  // Función para migrar perfiles existentes a la nueva estructura
+  const migrateUserProfile = async (profile: UserProfile) => {
+    if (!currentUser) return profile;
+    
+    try {
+      // Verificar si necesita migración
+      const needsMigration = !profile.personalStats || !profile.financialHistory || !profile.preferences || !profile.activityLog;
+      
+      if (needsMigration) {
+        const migratedProfile: UserProfile = {
+          ...profile,
+          personalStats: profile.personalStats || {
+            joinDate: Timestamp.now(),
+            lastLoginDate: Timestamp.now(),
+            totalOffersViewed: 0,
+            favoriteCategories: [],
+            preferredLanguage: 'fr',
+            notificationsEnabled: true
+          },
+          financialHistory: profile.financialHistory || {
+            monthlyExpenses: {},
+            subscriptionHistory: [],
+            offerPayments: []
+          },
+          preferences: profile.preferences || {
+            favoriteLocations: [],
+            priceRange: { min: 0, max: 1000 },
+            notificationSettings: {
+              newOffers: true,
+              flashDeals: true,
+              subscriptionReminders: true
+            }
+          },
+          activityLog: profile.activityLog || [{
+            action: 'profile_migrated',
+            timestamp: Timestamp.now(),
+            details: { source: 'migration' }
+          }]
+        };
+        
+        // Guardar perfil migrado
+        const userRef = doc(db, 'users', currentUser.uid);
+        await setDoc(userRef, migratedProfile);
+        setUserProfile(migratedProfile);
+        
+        return migratedProfile;
+      }
+      
+      return profile;
+    } catch (error) {
+      console.error('Error migrating profile:', error);
+      return profile;
+    }
+  };
+
+  // Función para obtener estadísticas del usuario
+  const getUserStats = () => {
+    if (!userProfile) return null;
+    
+    // Asegurar que los campos existan
+    const personalStats = userProfile.personalStats || {
+      joinDate: Timestamp.now(),
+      lastLoginDate: Timestamp.now(),
+      totalOffersViewed: 0,
+      favoriteCategories: [],
+      preferredLanguage: 'fr',
+      notificationsEnabled: true
+    };
+    
+    const financialHistory = userProfile.financialHistory || {
+      monthlyExpenses: {},
+      subscriptionHistory: [],
+      offerPayments: []
+    };
+    
+    const currentMonth = new Date().toISOString().slice(0, 7);
+    const monthlyExpense = financialHistory.monthlyExpenses[currentMonth] || 0;
+    const totalSubscriptions = financialHistory.subscriptionHistory.reduce((sum, sub) => sum + sub.amount, 0);
+    const totalOfferPayments = financialHistory.offerPayments.reduce((sum, payment) => sum + payment.amount, 0);
+    
+    return {
+      joinDate: personalStats.joinDate,
+      totalOffersViewed: personalStats.totalOffersViewed,
+      favoriteCategories: personalStats.favoriteCategories,
+      monthlyExpense,
+      totalSubscriptions,
+      totalOfferPayments,
+      totalSaved: userProfile.totalSaved,
+      points: userProfile.points,
+      level: userProfile.level,
+      activatedOffersCount: userProfile.activatedOffers.length
+    };
+  };
+
   const handleOfferClick = async (offer: Offer | FlashDeal) => {
     // Verificar si el usuario tiene suscripción activa
     if (!checkSubscriptionStatus(userProfile)) {
       setShowSubscriptionOverlay(true);
       return;
     }
+
+    // Registrar que el usuario vio esta oferta
+    await updateOffersViewed(offer.id, offer.category);
 
     // Convertir FlashDeal a Offer si es necesario
     const offerData: Offer = {
@@ -3810,13 +3786,8 @@ function App() {
         return;
       }
       
-      // Actualizar el perfil local
-      if (userProfile) {
-        setUserProfile({
-          ...userProfile,
-          totalPaid: userProfile.totalPaid + usagePrice
-        });
-      }
+      // Registrar el pago de la oferta
+      await recordOfferPayment(offer.id, offer.name, usagePrice);
     }
     
     setSelectedOffer(offerData);
@@ -3900,7 +3871,7 @@ function App() {
             onClick={handleUserLogin}
             variant="contained"
             disabled={!loginCredentials.email || !loginCredentials.password || isLoading}
-            sx={{ bgcolor: '#2196f3', '&:hover': { bgcolor: '#1976d2' } }}
+            sx={{ bgcolor: '#ffeb3b', '&:hover': { bgcolor: '#1976d2' } }}
             fullWidth
           >
             {isLoading ? (
@@ -4053,7 +4024,7 @@ function App() {
               signupCredentials.password !== signupCredentials.confirmPassword ||
               isLoading
             }
-            sx={{ bgcolor: '#4caf50', '&:hover': { bgcolor: '#45a049' } }}
+            sx={{ bgcolor: '#ffeb3b', '&:hover': { bgcolor: '#45a049' } }}
             fullWidth
           >
             {isLoading ? (
@@ -4146,7 +4117,7 @@ function App() {
             onClick={handleResetPassword}
             variant="contained"
             disabled={!resetPasswordEmail || isLoading}
-            sx={{ bgcolor: '#2196f3', '&:hover': { bgcolor: '#1976d2' } }}
+            sx={{ bgcolor: '#ffeb3b', '&:hover': { bgcolor: '#1976d2' } }}
           >
             {isLoading ? (
               <>
@@ -4198,12 +4169,12 @@ function App() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setShowEditProfileModal(false)}>
-            Annuler
+            {t('annuler')}
           </Button>
           <Button 
             onClick={handleEditProfile}
             variant="contained"
-            sx={{ bgcolor: '#2196f3', '&:hover': { bgcolor: '#1976d2' } }}
+            sx={{ bgcolor: '#ffeb3b', '&:hover': { bgcolor: '#1976d2' } }}
           >
             Sauvegarder
           </Button>
@@ -4228,8 +4199,8 @@ function App() {
               p: 2,
               borderRadius: 2,
               boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-              bgcolor: notification.type === 'success' ? '#4caf50' : 
-                       notification.type === 'warning' ? '#ff9800' : '#2196f3',
+              bgcolor: notification.type === 'success' ? '#ffeb3b' : 
+                       notification.type === 'warning' ? '#ffeb3b' : '#ffeb3b',
               color: 'white',
               display: 'flex',
               alignItems: 'center',
@@ -4263,11 +4234,20 @@ function App() {
 
       {/* Contenido principal solo si está autenticado */}
         {isAuthenticated && (
-        <>
+        <Box
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          sx={{
+            outline: 'none',
+            position: 'relative',
+            touchAction: 'pan-y'
+          }}
+        >
           {/* Banner de suscripción */}
           {!checkSubscriptionStatus(userProfile) && userProfile && (
             <Box sx={{ 
-              bgcolor: userProfile.subscriptionStatus === 'pending' ? '#4caf50' : '#ff9800', 
+              bgcolor: userProfile.subscriptionStatus === 'pending' ? '#ffeb3b' : '#ffeb3b', 
               color: 'white', 
               textAlign: 'center', 
               py: 1,
@@ -4287,14 +4267,14 @@ function App() {
                 </Typography>
               ) : (
                 <Typography variant="body2">
-                  ⚠️ Votre abonnement a expiré. Abonnez-vous pour accéder à toutes les offres.
+                  ⚠️ {t('abonnementExpire')}
                   <Button 
                     color="inherit" 
                     size="small" 
                     onClick={() => setShowSubscriptionModal(true)}
                     sx={{ ml: 1, textDecoration: 'underline' }}
                   >
-                    Activer maintenant
+                    {t('activer')}
                   </Button>
                 </Typography>
               )}
@@ -4326,6 +4306,8 @@ function App() {
               </Box>
               
               <Box sx={{ display: 'flex', gap: 0.5 }}>
+                <LanguageSelector />
+                
                 <IconButton 
                   color="inherit" 
                   onClick={() => setShowSubscriptionModal(true)}
@@ -4368,59 +4350,6 @@ function App() {
               </Box>
             </Toolbar>
             
-            {/* Fila de filtros separada - Solo en móvil */}
-            <Box sx={{ 
-              display: { xs: 'flex', sm: 'none' },
-              bgcolor: 'rgba(0,0,0,0.1)',
-              px: 2,
-              py: 1,
-              gap: 1,
-              justifyContent: 'center',
-              alignItems: 'center'
-            }}>
-              <Typography variant="body2" sx={{ color: 'white', mr: 1, fontSize: '0.8rem' }}>
-                Filtros:
-              </Typography>
-              <IconButton
-                onClick={() => setSelectedCategory(selectedCategory === 'restaurants' ? 'all' : 'restaurants')}
-                sx={{
-                  bgcolor: selectedCategory === 'restaurants' ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.1)',
-                  minWidth: 40,
-                  minHeight: 40,
-                  color: 'white',
-                  fontSize: '18px',
-                  border: '1px solid rgba(255,255,255,0.2)'
-                }}
-              >
-                🍽️
-              </IconButton>
-              <IconButton
-                onClick={() => setSelectedCategory(selectedCategory === 'bars' ? 'all' : 'bars')}
-                sx={{
-                  bgcolor: selectedCategory === 'bars' ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.1)',
-                  minWidth: 40,
-                  minHeight: 40,
-                  color: 'white',
-                  fontSize: '18px',
-                  border: '1px solid rgba(255,255,255,0.2)'
-                }}
-              >
-                🍷
-              </IconButton>
-              <IconButton
-                onClick={() => setSelectedCategory(selectedCategory === 'shops' ? 'all' : 'shops')}
-                sx={{
-                  bgcolor: selectedCategory === 'shops' ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.1)',
-                  minWidth: 40,
-                  minHeight: 40,
-                  color: 'white',
-                  fontSize: '18px',
-                  border: '1px solid rgba(255,255,255,0.2)'
-                }}
-              >
-                🏪
-              </IconButton>
-            </Box>
           </AppBar>
 
           {/* Main Content */}
@@ -4429,7 +4358,8 @@ function App() {
             px: { xs: 1, sm: 3 },
             width: '100%',
             maxWidth: { xs: '100vw', sm: 'lg' },
-            mx: { xs: 0, sm: 'auto' }
+            mx: { xs: 0, sm: 'auto' },
+            pb: { xs: 15, sm: 15 } // Padding inferior para la navegación fija
           }}>
             {/* Category Filters */}
             {selectedCategory !== 'all' && currentCategory && (
@@ -4467,69 +4397,6 @@ function App() {
               </Box>
             )}
 
-            {/* Tabs */}
-            <Box sx={{ 
-              borderBottom: 1, 
-              borderColor: 'divider', 
-              mb: { xs: 1, sm: 2 },
-              width: '100%'
-            }}>
-              <Tabs 
-                value={selectedTab} 
-                onChange={(_, newValue) => setSelectedTab(newValue)}
-                variant="fullWidth"
-                sx={{
-                  minHeight: { xs: 48, sm: 48 },
-                  width: '100%',
-                  '& .MuiTabs-flexContainer': {
-                    height: { xs: 48, sm: 48 },
-                    width: '100%'
-                  },
-                  '& .MuiTab-root': {
-                    minHeight: { xs: 48, sm: 48 },
-                    fontSize: { xs: '0.75rem', sm: '0.875rem' },
-                    py: { xs: 1, sm: 1 },
-                    px: { xs: 1, sm: 2 },
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    '& .MuiSvgIcon-root': {
-                      fontSize: { xs: 20, sm: 24 },
-                      color: '#FF8F00',
-                      display: 'block',
-                      visibility: 'visible',
-                      marginBottom: '4px'
-                    }
-                  }
-                }}
-              >
-                <Tab 
-                  icon={<Map />} 
-                  label="Carte" 
-                  iconPosition="top"
-                />
-                <Tab 
-                  icon={<ListIcon />} 
-                  label="Liste" 
-                  iconPosition="top"
-                />
-                <Tab 
-                  icon={<FlashOn />} 
-                  label="Flash" 
-                  iconPosition="top"
-                />
-                <Tab 
-                  icon={<Person />} 
-                  label="Profil" 
-                  iconPosition="top"
-                />
-                <Tab 
-                  icon={<AccountBalanceWallet />} 
-                  label="Argent" 
-                  iconPosition="top"
-                />
-              </Tabs>
-            </Box>
 
             {/* Tab Content */}
             {selectedTab === 0 && (
@@ -4572,7 +4439,7 @@ function App() {
                 {userProfile ? (
                   <>
                     <Typography variant="body1" sx={{ mb: { xs: 2, sm: 3 }, fontSize: { xs: '0.8rem', sm: '1rem' } }}>
-                      Abonnement valable jusqu'au {userProfile.subscriptionEnd.toDate().toLocaleDateString()}
+                      {t('abonnementValableJusquau')} {userProfile.subscriptionEnd.toDate().toLocaleDateString()}
                     </Typography>
                     
                     <Box sx={{ 
@@ -4586,7 +4453,7 @@ function App() {
                           width: { xs: 50, sm: 80 },
                           height: { xs: 50, sm: 80 },
                           borderRadius: '50%',
-                          bgcolor: '#ff6b6b',
+                          bgcolor: '#ffeb3b',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
@@ -4603,83 +4470,83 @@ function App() {
                         </Typography>
                       </Box>
                       
-                                        <Box sx={{ textAlign: 'center' }}>
-                    <Box sx={{
-                      width: { xs: 50, sm: 80 },
-                      height: { xs: 50, sm: 80 },
-                      borderRadius: '50%',
-                      bgcolor: '#ffd700',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      mx: 'auto',
-                      mb: { xs: 0.5, sm: 1 }
-                    }}>
-                      <AttachMoney sx={{ fontSize: { xs: 24, sm: 40 }, color: 'white' }} />
-                    </Box>
-                    <Typography variant="h4" fontWeight="bold" sx={{ fontSize: { xs: '1.2rem', sm: '2.125rem' } }}>
-                      {userProfile.totalSaved.toFixed(2)}
-                    </Typography>
-                    <Typography variant="body2" sx={{ fontSize: { xs: '0.65rem', sm: '0.875rem' } }}>
-                      Francs économisés
-                    </Typography>
-                  </Box>
+                      <Box sx={{ textAlign: 'center' }}>
+                        <Box sx={{
+                          width: { xs: 50, sm: 80 },
+                          height: { xs: 50, sm: 80 },
+                          borderRadius: '50%',
+                          bgcolor: '#ffeb3b',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          mx: 'auto',
+                          mb: { xs: 0.5, sm: 1 }
+                        }}>
+                          <AttachMoney sx={{ fontSize: { xs: 24, sm: 40 }, color: 'white' }} />
+                        </Box>
+                        <Typography variant="h4" fontWeight="bold" sx={{ fontSize: { xs: '1.2rem', sm: '2.125rem' } }}>
+                          {userProfile.totalSaved.toFixed(2)}
+                        </Typography>
+                        <Typography variant="body2" sx={{ fontSize: { xs: '0.65rem', sm: '0.875rem' } }}>
+                          {t('francsEconomises')}
+                        </Typography>
+                      </Box>
                   
-                  <Box sx={{ textAlign: 'center' }}>
-                    <Box sx={{
-                      width: { xs: 50, sm: 80 },
-                      height: { xs: 50, sm: 80 },
-                      borderRadius: '50%',
-                      bgcolor: '#9c27b0',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      mx: 'auto',
-                      mb: { xs: 0.5, sm: 1 }
-                    }}>
-                      <Star sx={{ fontSize: { xs: 24, sm: 40 }, color: 'white' }} />
-                    </Box>
-                    <Typography variant="h4" fontWeight="bold" sx={{ fontSize: { xs: '1.2rem', sm: '2.125rem' } }}>
-                      {userProfile.points}
-                    </Typography>
-                    <Typography variant="body2" sx={{ fontSize: { xs: '0.65rem', sm: '0.875rem' } }}>
-                      Points (Niveau {userProfile.level})
-                    </Typography>
-                  </Box>
+                      <Box sx={{ textAlign: 'center' }}>
+                        <Box sx={{
+                          width: { xs: 50, sm: 80 },
+                          height: { xs: 50, sm: 80 },
+                          borderRadius: '50%',
+                          bgcolor: '#ffeb3b',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          mx: 'auto',
+                          mb: { xs: 0.5, sm: 1 }
+                        }}>
+                          <Star sx={{ fontSize: { xs: 24, sm: 40 }, color: 'white' }} />
+                        </Box>
+                        <Typography variant="h4" fontWeight="bold" sx={{ fontSize: { xs: '1.2rem', sm: '2.125rem' } }}>
+                          {userProfile.points}
+                        </Typography>
+                        <Typography variant="body2" sx={{ fontSize: { xs: '0.65rem', sm: '0.875rem' } }}>
+                          Points (Niveau {userProfile.level})
+                        </Typography>
+                      </Box>
                     </Box>
                     
                     <Divider sx={{ my: 2 }} />
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                      <Typography variant="h6">Informations personnelles</Typography>
+                      <Typography variant="h6">{t('informationsPersonnelles')}</Typography>
                       <Button
                         variant="outlined"
                         size="small"
                         onClick={openEditProfileModal}
                         sx={{ 
-                          borderColor: '#2196f3', 
-                          color: '#2196f3',
+                          borderColor: '#ffeb3b', 
+                          color: '#ffeb3b',
                           '&:hover': { 
                             borderColor: '#1976d2', 
                             bgcolor: 'rgba(33, 150, 243, 0.1)' 
                           }
                         }}
                       >
-                        ✏️ Modifier
+                        ✏️ {t('modifier')}
                       </Button>
                     </Box>
                     <List>
                       <ListItem>
                         <ListItemIcon><Person /></ListItemIcon>
-                        <ListItemText primary="Nom" secondary={userProfile.name} />
+                        <ListItemText primary={t('nom')} secondary={userProfile.name} />
                       </ListItem>
                       <ListItem>
                         <ListItemIcon><LocationOn /></ListItemIcon>
-                        <ListItemText primary="Ville" secondary={userProfile.city} />
+                        <ListItemText primary={t('ville')} secondary={userProfile.city} />
                       </ListItem>
                     </List>
 
                     <Divider sx={{ my: 2 }} />
-                    <Typography variant="h6" gutterBottom>Dernières offres activées</Typography>
+                    <Typography variant="h6" gutterBottom>{t('dernieresOffresActivees')}</Typography>
                     <List>
                       {userProfile.activatedOffers.slice(-5).reverse().map((activation) => {
                         const offer = offers.find(o => o.id === activation.offerId);
@@ -4697,6 +4564,144 @@ function App() {
                         );
                       })}
                     </List>
+
+                    {/* Sección de dinero integrada */}
+                    <Divider sx={{ my: 3 }} />
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                      <MonetizationOn sx={{ mr: 1, fontSize: { xs: 18, sm: 24 }, color: '#ffeb3b' }} />
+                      <Typography variant="h5" sx={{ fontSize: { xs: '1.1rem', sm: '1.5rem' } }}>
+                        {t('tableauBordFinancier')}
+                      </Typography>
+                    </Box>
+                    
+                    {/* Resumen financiero */}
+                    <Card sx={{ mb: 3, background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white' }}>
+                      <CardContent>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                            <AccountBalanceWallet sx={{ fontSize: 32, mr: 2 }} />
+                            <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
+                              {t('resumeFinancier')}
+                            </Typography>
+                          </Box>
+                        </Box>
+                        
+                        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', justifyContent: 'space-around' }}>
+                          <Box sx={{ flex: 1, minWidth: 150, textAlign: 'center', p: 2, bgcolor: 'rgba(255,255,255,0.1)', borderRadius: 2 }}>
+                            <Typography variant="h3" sx={{ fontWeight: 'bold', mb: 1 }}>
+                              CHF {userProfile.totalSaved.toFixed(2)}
+                            </Typography>
+                            <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                              {t('totalEconomise')}
+                            </Typography>
+                          </Box>
+                          
+                          <Box sx={{ flex: 1, minWidth: 150, textAlign: 'center', p: 2, bgcolor: 'rgba(255,255,255,0.1)', borderRadius: 2 }}>
+                            <Typography variant="h3" sx={{ fontWeight: 'bold', mb: 1 }}>
+                              {userProfile.activatedOffers.length}
+                            </Typography>
+                            <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                              {t('offresUtilisees')}
+                            </Typography>
+                          </Box>
+                          
+                          <Box sx={{ flex: 1, minWidth: 150, textAlign: 'center', p: 2, bgcolor: 'rgba(255,255,255,0.1)', borderRadius: 2 }}>
+                            <Typography variant="h3" sx={{ fontWeight: 'bold', mb: 1 }}>
+                              {checkSubscriptionStatus(userProfile) ? 'Active' : 'Inactive'}
+                            </Typography>
+                            <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                              {t('abonnement')}
+                            </Typography>
+                          </Box>
+                        </Box>
+                      </CardContent>
+                    </Card>
+                    
+                    {/* Nueva sección: Estadísticas detalladas del usuario */}
+                    <Divider sx={{ my: 3 }} />
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                      <AccessTime sx={{ mr: 1, fontSize: { xs: 18, sm: 24 }, color: '#ffeb3b' }} />
+                      <Typography variant="h5" sx={{ fontSize: { xs: '1.1rem', sm: '1.5rem' } }}>
+                        Estadísticas Personales
+                      </Typography>
+                    </Box>
+                    
+                    <Card sx={{ mb: 3, background: 'linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%)', color: 'white' }}>
+                      <CardContent>
+                        {(() => {
+                          const stats = getUserStats();
+                          if (!stats) return null;
+                          
+                          return (
+                            <>
+                              <Typography variant="h6" sx={{ mb: 2, color: '#ffeb3b' }}>
+                                Tu actividad en FLASH
+                              </Typography>
+                              
+                              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)' }, gap: 2 }}>
+                                <Box sx={{ p: 2, bgcolor: 'rgba(255,255,255,0.1)', borderRadius: 2 }}>
+                                  <Typography variant="body2" sx={{ opacity: 0.8, mb: 1 }}>
+                                    Miembro desde
+                                  </Typography>
+                                  <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                                    {stats.joinDate.toDate().toLocaleDateString()}
+                                  </Typography>
+                                </Box>
+                                
+                                <Box sx={{ p: 2, bgcolor: 'rgba(255,255,255,0.1)', borderRadius: 2 }}>
+                                  <Typography variant="body2" sx={{ opacity: 0.8, mb: 1 }}>
+                                    Ofertas vistas
+                                  </Typography>
+                                  <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                                    {stats.totalOffersViewed}
+                                  </Typography>
+                                </Box>
+                                
+                                <Box sx={{ p: 2, bgcolor: 'rgba(255,255,255,0.1)', borderRadius: 2 }}>
+                                  <Typography variant="body2" sx={{ opacity: 0.8, mb: 1 }}>
+                                    Gasto mensual actual
+                                  </Typography>
+                                  <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                                    CHF {stats.monthlyExpense.toFixed(2)}
+                                  </Typography>
+                                </Box>
+                                
+                                <Box sx={{ p: 2, bgcolor: 'rgba(255,255,255,0.1)', borderRadius: 2 }}>
+                                  <Typography variant="body2" sx={{ opacity: 0.8, mb: 1 }}>
+                                    Total suscripciones
+                                  </Typography>
+                                  <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                                    CHF {stats.totalSubscriptions.toFixed(2)}
+                                  </Typography>
+                                </Box>
+                              </Box>
+                              
+                              {stats.favoriteCategories.length > 0 && (
+                                <Box sx={{ mt: 3 }}>
+                                  <Typography variant="body2" sx={{ opacity: 0.8, mb: 1 }}>
+                                    Tus categorías favoritas
+                                  </Typography>
+                                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                                    {stats.favoriteCategories.slice(0, 5).map((category, index) => (
+                                      <Chip
+                                        key={index}
+                                        label={category}
+                                        size="small"
+                                        sx={{
+                                          bgcolor: '#ffeb3b',
+                                          color: '#333',
+                                          fontWeight: 'bold'
+                                        }}
+                                      />
+                                    ))}
+                                  </Box>
+                                </Box>
+                              )}
+                            </>
+                          );
+                        })()}
+                      </CardContent>
+                    </Card>
                   </>
                 ) : (
                   <Box sx={{ textAlign: 'center', py: 4 }}>
@@ -4717,7 +4722,7 @@ function App() {
                         startIcon={<Add sx={{ fontSize: { xs: 18, sm: 20 } }} />}
                         onClick={() => setShowAddModal(true)}
                         sx={{ 
-                          bgcolor: '#4caf50', 
+                          bgcolor: '#ffeb3b', 
                           '&:hover': { bgcolor: '#45a049' },
                           py: { xs: 2, sm: 1.5 },
                           px: { xs: 3, sm: 2 },
@@ -4733,8 +4738,8 @@ function App() {
                         startIcon={<FlashOn sx={{ fontSize: { xs: 18, sm: 20 } }} />}
                         onClick={() => setShowAddFlashModal(true)}
                         sx={{ 
-                          bgcolor: '#ff6b35', 
-                          '&:hover': { bgcolor: '#e55a2b' },
+                          bgcolor: '#ffeb3b', 
+                          '&:hover': { bgcolor: '#fbc02d' },
                           py: { xs: 2, sm: 1.5 },
                           px: { xs: 3, sm: 2 },
                           fontSize: { xs: '0.875rem', sm: '1rem' },
@@ -4749,10 +4754,10 @@ function App() {
                         startIcon={<Close sx={{ fontSize: { xs: 18, sm: 20 } }} />}
                         onClick={() => setIsAdmin(false)}
                         sx={{ 
-                          borderColor: '#f44336', 
-                          color: '#f44336',
+                          borderColor: '#ffeb3b', 
+                          color: '#ffeb3b',
                           '&:hover': { 
-                            borderColor: '#d32f2f', 
+                            borderColor: '#fbc02d', 
                             bgcolor: 'rgba(244, 67, 54, 0.1)' 
                           },
                           py: { xs: 2, sm: 1.5 },
@@ -4767,13 +4772,6 @@ function App() {
                   </>
                 )}
               </Box>
-            )}
-            {selectedTab === 4 && (
-              <MoneyScreen 
-                userProfile={userProfile}
-                currentUser={currentUser}
-                setShowSubscriptionModal={setShowSubscriptionModal}
-              />
             )}
           </Box>
 
@@ -4833,7 +4831,7 @@ function App() {
             onClick={handleAdminLogin}
             variant="contained"
             disabled={!adminLoginCredentials.email || !adminLoginCredentials.password || isLoading}
-            sx={{ bgcolor: '#9c27b0', '&:hover': { bgcolor: '#7b1fa2' } }}
+            sx={{ bgcolor: '#ffeb3b', '&:hover': { bgcolor: '#7b1fa2' } }}
           >
             {isLoading ? (
               <>
@@ -4958,7 +4956,7 @@ function App() {
               <Button 
                 onClick={handleAddOffer}
                 variant="contained"
-                sx={{ bgcolor: '#4caf50', '&:hover': { bgcolor: '#45a049' } }}
+                sx={{ bgcolor: '#ffeb3b', '&:hover': { bgcolor: '#45a049' } }}
               >
                 Ajouter Offre
               </Button>
@@ -5078,12 +5076,12 @@ function App() {
             </DialogContent>
             <DialogActions>
               <Button onClick={() => setShowAddFlashModal(false)}>
-                Annuler
+                {t('annuler')}
               </Button>
               <Button 
                 onClick={handleAddFlashDeal}
                 variant="contained"
-                sx={{ bgcolor: '#ff6b35', '&:hover': { bgcolor: '#e55a2b' } }}
+                sx={{ bgcolor: '#ffeb3b', '&:hover': { bgcolor: '#fbc02d' } }}
               >
                 Créer Offre Flash
               </Button>
@@ -5139,7 +5137,7 @@ function App() {
               </Typography>
               
               <Typography variant="body1" sx={{ mb: 4, color: 'text.secondary' }}>
-                Choisissez votre plan d'abonnement pour commencer à utiliser l'application
+                {t('choisirPlanAbonnement')} pour commencer à utiliser l'application
               </Typography>
               
               <Typography variant="body2" sx={{ mb: 3, color: 'text.secondary', fontStyle: 'italic' }}>
@@ -5183,8 +5181,135 @@ function App() {
               </Box>
             </Box>
           </Dialog>
-        </>
+        </Box>
       )}
+
+      {/* Navegación inferior fija */}
+      <Box sx={{
+        position: 'fixed',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        bgcolor: '#ffeb3b',
+        borderTop: '1px solid #333',
+        zIndex: 1000
+      }}>
+        {/* Filtros */}
+        {selectedTab === 1 && (
+          <Box sx={{ 
+            display: 'flex',
+            bgcolor: 'rgba(0,0,0,0.3)',
+            px: 2,
+            py: 1,
+            gap: 1,
+            justifyContent: 'center',
+            alignItems: 'center',
+            borderBottom: '1px solid #333'
+          }}>
+            <Typography variant="body2" sx={{ color: 'white', mr: 1, fontSize: '0.8rem' }}>
+              {t('filtros')}
+            </Typography>
+            <IconButton
+              onClick={() => setSelectedCategory(selectedCategory === 'restaurants' ? 'all' : 'restaurants')}
+              sx={{
+                bgcolor: selectedCategory === 'restaurants' ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.1)',
+                minWidth: 40,
+                minHeight: 40,
+                color: 'white',
+                fontSize: '18px',
+                border: '1px solid rgba(255,255,255,0.2)'
+              }}
+            >
+              <Restaurant sx={{ fontSize: 20, color: '#ffeb3b' }} />
+            </IconButton>
+            <IconButton
+              onClick={() => setSelectedCategory(selectedCategory === 'bars' ? 'all' : 'bars')}
+              sx={{
+                bgcolor: selectedCategory === 'bars' ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.1)',
+                minWidth: 40,
+                minHeight: 40,
+                color: 'white',
+                fontSize: '18px',
+                border: '1px solid rgba(255,255,255,0.2)'
+              }}
+            >
+              <LocalBar sx={{ fontSize: 20, color: '#ffeb3b' }} />
+            </IconButton>
+            <IconButton
+              onClick={() => setSelectedCategory(selectedCategory === 'shops' ? 'all' : 'shops')}
+              sx={{
+                bgcolor: selectedCategory === 'shops' ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.1)',
+                minWidth: 40,
+                minHeight: 40,
+                color: 'white',
+                fontSize: '18px',
+                border: '1px solid rgba(255,255,255,0.2)'
+              }}
+            >
+              <Store sx={{ fontSize: 20, color: '#ffeb3b' }} />
+            </IconButton>
+          </Box>
+        )}
+
+        {/* Tabs de navegación */}
+        <Tabs 
+          value={selectedTab} 
+          onChange={(_, newValue) => setSelectedTab(newValue)}
+          variant="fullWidth"
+          sx={{
+            minHeight: { xs: 60, sm: 60 },
+            width: '100%',
+            '& .MuiTabs-flexContainer': {
+              height: { xs: 60, sm: 60 },
+              width: '100%'
+            },
+            '& .MuiTab-root': {
+              minHeight: { xs: 60, sm: 60 },
+              fontSize: { xs: '0.7rem', sm: '0.8rem' },
+              py: { xs: 1, sm: 1 },
+              px: { xs: 0.5, sm: 1 },
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              color: 'white',
+              '&.Mui-selected': {
+                color: 'black !important',
+                '& .MuiSvgIcon-root': {
+                  color: 'black !important'
+                }
+              },
+              '& .MuiSvgIcon-root': {
+                fontSize: { xs: 18, sm: 20 },
+                color: 'white',
+                display: 'block',
+                visibility: 'visible',
+                marginBottom: '2px'
+              }
+            }
+          }}
+        >
+          <Tab 
+            icon={<LocationOn sx={{ color: 'white' }} />} 
+            label={t('carte')} 
+            iconPosition="top"
+          />
+          <Tab 
+            icon={<Restaurant sx={{ color: 'white' }} />} 
+            label={t('liste')} 
+            iconPosition="top"
+          />
+          <Tab 
+            icon={<FlashOn sx={{ color: 'white' }} />} 
+            label={t('flash')} 
+            iconPosition="top"
+          />
+          <Tab 
+            icon={<Person sx={{ color: 'white' }} />} 
+            label={t('profil')} 
+            iconPosition="top"
+          />
+        </Tabs>
+      </Box>
     </ThemeProvider>
   );
 }

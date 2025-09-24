@@ -220,7 +220,7 @@
   }
   
   .MuiTabs-root .MuiTab-root.Mui-selected {
-    color: white !important;
+    color: black !important;
   }
   
   .MuiTabs-root .MuiTab-root.Mui-selected .MuiSvgIcon-root {
