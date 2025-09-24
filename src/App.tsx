@@ -1691,7 +1691,9 @@ function FlashDealsView({ flashDeals, onOfferClick }: {
           gap: 1
         }}>
           <FlashOn sx={{ color: '#ffeb3b', fontSize: '2rem' }} />
-          Offres Flash
+          <Typography variant="h4" sx={{ color: '#ffeb3b', fontWeight: 'bold' }}>
+            Offres Flash
+          </Typography>
         </Typography>
         <Typography variant="body1" sx={{ color: '#bbb', mb: 2 }}>
           Offres limitées avec des réductions incroyables ! Ne les manquez pas !
@@ -5206,7 +5208,7 @@ function App() {
             alignItems: 'center',
             borderBottom: '1px solid #333'
           }}>
-            <Typography variant="body2" sx={{ color: 'white', mr: 1, fontSize: '0.8rem' }}>
+            <Typography variant="body2" sx={{ color: '#ffeb3b', mr: 1, fontSize: '0.8rem' }}>
               {t('filtros')}
             </Typography>
             <IconButton
@@ -5271,7 +5273,7 @@ function App() {
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              color: 'white',
+              color: '#ffeb3b',
               '&.Mui-selected': {
                 color: 'black !important',
                 '& .MuiSvgIcon-root': {
@@ -5280,7 +5282,7 @@ function App() {
               },
               '& .MuiSvgIcon-root': {
                 fontSize: { xs: 18, sm: 20 },
-                color: 'white',
+                color: '#ffeb3b',
                 display: 'block',
                 visibility: 'visible',
                 marginBottom: '2px'
@@ -5289,22 +5291,22 @@ function App() {
           }}
         >
           <Tab 
-            icon={<LocationOn sx={{ color: 'white' }} />} 
+            icon={<LocationOn sx={{ color: '#ffeb3b' }} />} 
             label={t('carte')} 
             iconPosition="top"
           />
           <Tab 
-            icon={<Restaurant sx={{ color: 'white' }} />} 
+            icon={<Restaurant sx={{ color: '#ffeb3b' }} />} 
             label={t('liste')} 
             iconPosition="top"
           />
           <Tab 
-            icon={<FlashOn sx={{ color: 'white' }} />} 
+            icon={<FlashOn sx={{ color: '#ffeb3b' }} />} 
             label={t('flash')} 
             iconPosition="top"
           />
           <Tab 
-            icon={<Person sx={{ color: 'white' }} />} 
+            icon={<Person sx={{ color: '#ffeb3b' }} />} 
             label={t('profil')} 
             iconPosition="top"
           />
