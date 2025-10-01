@@ -20,6 +20,7 @@ import {
   CheckCircle,
   LocalOffer
 } from '@mui/icons-material';
+import { SlideToConfirmButton } from './SlideToConfirmButton';
 
 interface BlockedOfferModalProps {
   open: boolean;
@@ -411,26 +412,16 @@ export const BlockedOfferModal: React.FC<BlockedOfferModalProps> = ({
                   </CardContent>
                 </Card>
 
-                {/* Botón de usar oferta */}
+                {/* Botón de slide para usar oferta */}
                 <Box sx={{ mb: 3 }}>
-                  <Button
-                    variant="contained"
-                    onClick={onUse}
-                    startIcon={<CheckCircle />}
-                    sx={{
-                      background: 'linear-gradient(135deg, #4caf50 0%, #66bb6a 100%)',
-                      color: 'white',
-                      px: 4,
-                      py: 1.5,
-                      fontSize: '1.1rem',
-                      fontWeight: 'bold',
-                      '&:hover': {
-                        background: 'linear-gradient(135deg, #388e3c 0%, #4caf50 100%)',
+                  <SlideToConfirmButton
+                    onConfirm={() => {
+                      if (onUse) {
+                        onUse();
                       }
                     }}
-                  >
-                    Usar Oferta Ahora
-                  </Button>
+                    text="Desliza para usar oferta"
+                  />
                 </Box>
 
                 {/* Temporizador de uso */}

@@ -14,10 +14,10 @@ export interface BlockedOffer {
   blockedUntil: number; // Timestamp de cuándo se desbloquea
   isActivated: boolean;
   isUsed: boolean; // Si la oferta ya fue utilizada
-  isLockedAfterUse: boolean; // Si está en lock de 14 minutos después de usar
+  isLockedAfterUse: boolean; // Si está en lock de 15 minutos después de usar
   activationTime: number; // Tiempo de activación en segundos (por defecto 600 = 10 min)
   usedAt?: number; // Timestamp de cuándo se utilizó
-  lockedAfterUseUntil?: number; // Timestamp de cuándo se desbloquea después de usar (14 min)
+  lockedAfterUseUntil?: number; // Timestamp de cuándo se desbloquea después de usar (15 min)
 }
 
 interface UseBlockedOffersReturn {
@@ -128,7 +128,7 @@ export const useBlockedOffers = (): UseBlockedOffersReturn => {
 
   const useOffer = useCallback((offerId: string) => {
     const now = Date.now();
-    const lockedAfterUseUntil = now + (14 * 60 * 1000); // 14 minutos
+    const lockedAfterUseUntil = now + (15 * 60 * 1000); // 15 minutos
     
     setBlockedOffers(prev => 
       prev.map(offer => 
