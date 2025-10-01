@@ -32,7 +32,9 @@ import {
   DialogActions,
   TextField,
   CircularProgress,
-  MenuItem
+  MenuItem,
+  Snackbar,
+  Alert
 } from '@mui/material';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { 
@@ -1580,7 +1582,7 @@ function OffersList({ offers, selectedCategory, selectedSubCategory, onOfferClic
         }
         // Show activation message
         setTimeout(() => {
-          addNotification('success', `🎉 Offre activée! Vous avez économisé ${savedAmount.toFixed(2)} CHF!`);
+          addNotification('success', `Offre activée • Économie: ${savedAmount.toFixed(2)} CHF`);
         }, 800);
       } catch (error) {
         console.error('Error activating offer:', error);
@@ -2584,12 +2586,15 @@ function App() {
     password: ''
   });
   
-  const [notifications, setNotifications] = useState<Array<{
-    id: string;
-    type: 'success' | 'info' | 'warning';
+  const [snackbar, setSnackbar] = useState<{
+    open: boolean;
+    type: 'success' | 'info' | 'warning' | 'error';
     message: string;
-    timestamp: Date;
-  }>>([]);
+  }>({
+    open: false,
+    type: 'success',
+    message: ''
+  });
   
   const [isLoading, setIsLoading] = useState(false);
   
@@ -3361,24 +3366,16 @@ function App() {
 
   // Función para añadir notificaciones
   const addNotification = (type: 'success' | 'info' | 'warning', message: string) => {
-    const newNotification = {
-      id: Date.now().toString(),
+    setSnackbar({
+      open: true,
       type,
-      message,
-      timestamp: new Date()
-    };
-    
-    setNotifications(prev => [newNotification, ...prev.slice(0, 4)]); // Mantener solo las últimas 5
-    
-    // Auto-remover después de 5 segundos
-    setTimeout(() => {
-      setNotifications(prev => prev.filter(n => n.id !== newNotification.id));
-    }, 5000);
+      message
+    });
   };
 
-  // Función para remover notificación
-  const removeNotification = (id: string) => {
-    setNotifications(prev => prev.filter(n => n.id !== id));
+  // Función para cerrar snackbar
+  const handleCloseSnackbar = () => {
+    setSnackbar(prev => ({ ...prev, open: false }));
   };
 
   // Función para abrir el modal de edición
@@ -4324,56 +4321,35 @@ function App() {
         </DialogActions>
       </Dialog>
 
-      {/* Sistema de Notificaciones */}
-      <Box sx={{
-        position: 'fixed',
-        top: 20,
-        right: 20,
-        zIndex: 9999,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 1,
-        maxWidth: 350
-      }}>
-        {notifications.map((notification) => (
-          <Box
-            key={notification.id}
-            sx={{
-              p: 2,
-              borderRadius: 2,
-              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-              bgcolor: notification.type === 'success' ? '#ffeb3b' : 
-                       notification.type === 'warning' ? '#ffeb3b' : '#ffeb3b',
-              color: 'white',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              animation: 'slideIn 0.3s ease-out',
-              '@keyframes slideIn': {
-                from: {
-                  transform: 'translateX(100%)',
-                  opacity: 0
-                },
-                to: {
-                  transform: 'translateX(0)',
-                  opacity: 1
-                }
-              }
-            }}
-          >
-            <Typography variant="body2" sx={{ flex: 1 }}>
-              {notification.message}
-            </Typography>
-            <IconButton
-              size="small"
-              onClick={() => removeNotification(notification.id)}
-              sx={{ color: 'white', ml: 1 }}
-            >
-              <Close sx={{ fontSize: 16 }} />
-            </IconButton>
-          </Box>
-        ))}
-      </Box>
+      {/* Sistema de Notificaciones - Snackbar Profesional */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+        sx={{ 
+          top: { xs: 70, sm: 80 },
+          '& .MuiAlert-root': {
+            minWidth: { xs: '90vw', sm: '400px' },
+            maxWidth: { xs: '90vw', sm: '500px' }
+          }
+        }}
+      >
+        <Alert
+          onClose={handleCloseSnackbar}
+          severity={snackbar.type}
+          variant="filled"
+          sx={{
+            fontSize: { xs: '0.875rem', sm: '1rem' },
+            alignItems: 'center',
+            '& .MuiAlert-icon': {
+              fontSize: { xs: '1.25rem', sm: '1.5rem' }
+            }
+          }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
 
       {/* Contenido principal solo si está autenticado */}
         {isAuthenticated && (
