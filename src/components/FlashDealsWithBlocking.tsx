@@ -18,6 +18,7 @@ import {
 import { ActivationCountdownModal } from './ActivationCountdownModal';
 import { BlockedOfferModal } from './BlockedOfferModal';
 import { ScrollBlockWrapper } from './ScrollBlockWrapper';
+import { SlideToConfirmButton } from './SlideToConfirmButton';
 import { useBlockedOffers } from '../hooks/useBlockedOffers';
 
 interface FlashDeal {
@@ -277,7 +278,7 @@ export const FlashDealsWithBlocking: React.FC<FlashDealsWithBlockingProps> = ({
                       ✅ USAR
                     </Button>
                   </Box>
-                ) : offerStatus === 'blocked' ? (
+                ) : offerStatus === 'blocked' && (
                   <Box sx={{
                     position: 'absolute',
                     bottom: 12,
@@ -305,35 +306,6 @@ export const FlashDealsWithBlocking: React.FC<FlashDealsWithBlockingProps> = ({
                       }}
                     >
                       🔒 BLOQUEADA
-                    </Button>
-                  </Box>
-                ) : (
-                  <Box sx={{
-                    position: 'absolute',
-                    bottom: 12,
-                    right: 12,
-                    zIndex: 2
-                  }}>
-                    <Button
-                      variant="contained"
-                      sx={{
-                        backgroundColor: '#ff6b35',
-                        color: 'white',
-                        fontSize: '0.75rem',
-                        px: 2,
-                        py: 0.5,
-                        borderRadius: 2,
-                        fontWeight: 'bold',
-                        '&:hover': {
-                          backgroundColor: '#e55a2b'
-                        }
-                      }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleStartCountdown(deal);
-                      }}
-                    >
-                      ⚡ ACTIVAR
                     </Button>
                   </Box>
                 )}
@@ -536,6 +508,16 @@ export const FlashDealsWithBlocking: React.FC<FlashDealsWithBlockingProps> = ({
                           transition: 'width 0.3s ease'
                         }} />
                       </Box>
+                    </Box>
+                  )}
+
+                  {/* Botón de slide para activar oferta (solo si está disponible) */}
+                  {offerStatus === 'available' && (
+                    <Box sx={{ mt: 2 }}>
+                      <SlideToConfirmButton
+                        onConfirm={() => handleStartCountdown(deal)}
+                        text="Desliza para activar ⚡"
+                      />
                     </Box>
                   )}
                 </CardContent>
