@@ -1,31 +1,23 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Box,
   Typography,
   Card,
   CardContent,
-  CardMedia,
-  IconButton,
   Button,
-  LinearProgress,
-  Grid,
-  Chip,
-  Fade,
-  Zoom
+  LinearProgress
 } from '@mui/material';
 import {
   Lock,
-  FlashOn,
   AccessTime,
   Star,
   LocationOn,
-  LocalOffer,
   CheckCircle
 } from '@mui/icons-material';
 import { ActivationCountdownModal } from './ActivationCountdownModal';
 import { BlockedOfferModal } from './BlockedOfferModal';
 import { ScrollBlockWrapper } from './ScrollBlockWrapper';
-import { useBlockedOffers, type BlockedOffer } from '../hooks/useBlockedOffers';
+import { useBlockedOffers } from '../hooks/useBlockedOffers';
 
 interface FlashDeal {
   id: string;
@@ -63,11 +55,8 @@ interface FlashDealsWithBlockingProps {
 export const FlashDealsWithBlocking: React.FC<FlashDealsWithBlockingProps> = ({
   flashDeals,
   onOfferClick,
-  activatedFlashDeals,
-  flashActivationTimes,
   onActivateFlashDeal
 }) => {
-  const [currentTime, setCurrentTime] = useState(new Date());
   const [selectedOffer, setSelectedOffer] = useState<FlashDeal | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [countdownModalOpen, setCountdownModalOpen] = useState(false);
@@ -75,45 +64,12 @@ export const FlashDealsWithBlocking: React.FC<FlashDealsWithBlockingProps> = ({
 
   const { 
     isOfferBlocked, 
-    isOfferUsed,
-    canUseOffer,
     getOfferTimeLeft, 
     canScrollOffer, 
     getOfferStatus,
     activateOffer,
-    blockOffer,
     useOffer
   } = useBlockedOffers();
-
-  // Actualizar el tiempo cada segundo
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, []);
-
-  // Función para calcular tiempo restante de activación
-  const getRemainingTime = (dealId: string) => {
-    if (!activatedFlashDeals.has(dealId) || !flashActivationTimes[dealId]) {
-      return null;
-    }
-    
-    const activationTime = flashActivationTimes[dealId];
-    const expirationTime = new Date(activationTime.getTime() + (15 * 60 * 1000)); // 15 minutos
-    const now = new Date();
-    
-    if (now >= expirationTime) {
-      return null;
-    }
-    
-    const diff = expirationTime.getTime() - now.getTime();
-    const minutes = Math.floor(diff / (1000 * 60));
-    const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-    
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-  };
 
   // Función para calcular tiempo restante de la oferta
   const getTimeRemaining = (endTime: Date) => {
@@ -129,25 +85,6 @@ export const FlashDealsWithBlocking: React.FC<FlashDealsWithBlockingProps> = ({
     const seconds = Math.floor((diff % (1000 * 60)) / 1000);
     
     return { hours, minutes, seconds };
-  };
-
-  const handleBlockOffer = (deal: FlashDeal) => {
-    const blockedOffer: Omit<BlockedOffer, 'blockedUntil' | 'isActivated' | 'activationTime'> = {
-      id: deal.id,
-      name: deal.name,
-      description: deal.description,
-      discount: deal.discount,
-      originalPrice: deal.originalPrice,
-      discountedPrice: deal.discountedPrice,
-      image: deal.image,
-      category: deal.category,
-      location: deal.location.address,
-      rating: deal.rating
-    };
-
-    blockOffer(blockedOffer);
-    setSelectedOffer(deal);
-    setModalOpen(true);
   };
 
   const handleActivateOffer = (dealId: string) => {
@@ -197,12 +134,9 @@ export const FlashDealsWithBlocking: React.FC<FlashDealsWithBlockingProps> = ({
             ? ((deal.soldQuantity || 0) / deal.maxQuantity) * 100 
             : 0;
           const isBlocked = isOfferBlocked(deal.id);
-          const isUsed = isOfferUsed(deal.id);
-          const canUse = canUseOffer(deal.id);
           const timeLeft = getOfferTimeLeft(deal.id);
           const canScroll = canScrollOffer(deal.id);
           const offerStatus = getOfferStatus(deal.id);
-          const isActivated = activatedFlashDeals.has(deal.id);
 
           return (
             <ScrollBlockWrapper key={deal.id} isBlocked={isBlocked && !canScroll} offerId={deal.id}>
@@ -615,8 +549,8 @@ export const FlashDealsWithBlocking: React.FC<FlashDealsWithBlockingProps> = ({
         <BlockedOfferModal
           open={modalOpen}
           onClose={() => setModalOpen(false)}
-          onActivate={handleActivateOffer}
-          onUse={handleUseOffer}
+          onActivate={() => handleActivateOffer(selectedOffer.id)}
+          onUse={() => handleUseOffer(selectedOffer.id)}
           offer={{
             id: selectedOffer.id,
             name: selectedOffer.name,
@@ -626,7 +560,7 @@ export const FlashDealsWithBlocking: React.FC<FlashDealsWithBlockingProps> = ({
             discountedPrice: selectedOffer.discountedPrice,
             image: selectedOffer.image,
             category: selectedOffer.category,
-            location: selectedOffer.location,
+            location: selectedOffer.location.address,
             rating: selectedOffer.rating
           }}
           isActivated={getOfferStatus(selectedOffer.id) === 'activated'}

@@ -9,7 +9,6 @@ import {
   Card,
   CardContent,
   LinearProgress,
-  Chip,
   Fade,
   Zoom
 } from '@mui/material';
@@ -454,15 +453,6 @@ export const BlockedOfferModal: React.FC<BlockedOfferModalProps> = ({
           )}
         </Box>
       </DialogContent>
-
-      {/* Estilos de animación */}
-      <style jsx>{`
-        @keyframes lightning {
-          0% { opacity: 0; }
-          50% { opacity: 0.8; }
-          100% { opacity: 0; }
-        }
-      `}</style>
     </Dialog>
   );
 };

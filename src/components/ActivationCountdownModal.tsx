@@ -234,20 +234,6 @@ export const ActivationCountdownModal: React.FC<ActivationCountdownModalProps> =
         </Box>
       </DialogContent>
 
-      {/* Estilos de animación */}
-      <style jsx>{`
-        @keyframes lightning {
-          0% { opacity: 0; }
-          50% { opacity: 1; }
-          100% { opacity: 0; }
-        }
-        
-        @keyframes pulse {
-          0% { transform: scale(1); }
-          50% { transform: scale(1.1); }
-          100% { transform: scale(1); }
-        }
-      `}</style>
     </Dialog>
   );
 };
