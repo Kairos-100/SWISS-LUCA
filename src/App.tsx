@@ -6,6 +6,7 @@ import { getAuthErrorMessage, validateEmail, validatePassword, validateName } fr
 import { useTranslation } from 'react-i18next';
 import LanguageSelector from './components/LanguageSelector';
 import { FlashDealsWithBlocking } from './components/FlashDealsWithBlocking';
+import { SlideToConfirmButton } from './components/SlideToConfirmButton';
 import './i18n';
 import { 
   AppBar, 
@@ -1430,16 +1431,10 @@ function OffersList({ offers, selectedCategory, selectedSubCategory, onOfferClic
   setUserProfile: React.Dispatch<React.SetStateAction<UserProfile | null>>,
   addNotification: (type: 'success' | 'info' | 'warning', message: string) => void
 }) {
-  const [swipedOffers, setSwipedOffers] = useState<Set<string>>(new Set());
-  const [explosions, setExplosions] = useState<Set<string>>(new Set());
-  const [swipeStates, setSwipeStates] = useState<{[key: string]: { 
-    translateX: number, 
-    isSliding: boolean,
-    startX?: number,
-    startY?: number
-  }}>({});
   const [showActivationModal, setShowActivationModal] = useState(false);
   const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null);
+  const [swipedOffers, setSwipedOffers] = useState<Set<string>>(new Set());
+  const [explosions, setExplosions] = useState<Set<string>>(new Set());
 
   const filteredOffers = offers.filter(offer => {
     if (selectedCategory !== 'all' && offer.category !== selectedCategory) return false;
@@ -1447,79 +1442,15 @@ function OffersList({ offers, selectedCategory, selectedSubCategory, onOfferClic
     return true;
   });
 
-  const handleTouchStart = (offerId: string, e: React.TouchEvent) => {
-    const touch = e.touches[0];
-    // Prevenir que el swipe global interfiera
-    e.stopPropagation();
-    setSwipeStates(prev => ({
-      ...prev,
-      [offerId]: {
-        ...prev[offerId],
-        startX: touch.clientX,
-        startY: touch.clientY,
-        isSliding: false,
-        translateX: prev[offerId]?.translateX || 0
-      }
-    }));
-  };
-
-  const handleTouchMove = (offerId: string, e: React.TouchEvent) => {
-    const touch = e.touches[0];
-    const state = swipeStates[offerId];
-    if (!state || !state.startX || !state.startY) return;
-
-    const deltaX = touch.clientX - state.startX;
-    const deltaY = touch.clientY - state.startY;
-
-    // Only allow horizontal swipe if it's more horizontal than vertical
-    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10) {
-      e.preventDefault(); // Prevent scrolling
-      e.stopPropagation(); // Prevenir que el swipe global interfiera
-      
-      // Limit swipe to left only and max distance
-      const newTranslateX = Math.min(0, Math.max(-150, deltaX));
-      
-      setSwipeStates(prev => ({
-        ...prev,
-        [offerId]: {
-          ...prev[offerId],
-          translateX: newTranslateX,
-          isSliding: true
-        }
-      }));
+  const handleSlideToActivate = (offer: Offer) => {
+    // Vibrate if available
+    if (navigator.vibrate) {
+      navigator.vibrate([100, 50, 100]);
     }
-  };
-
-  const handleTouchEnd = async (offerId: string) => {
-    const state = swipeStates[offerId];
-    if (!state) return;
-
-    // If swiped more than 80px to the left, show activation modal
-    if (state.translateX < -80) {
-      const offer = offers.find(o => o.id === offerId);
-      if (offer) {
-        // Vibrate if available
-        if (navigator.vibrate) {
-          navigator.vibrate([100, 50, 100]);
-        }
-        
-        // Show activation countdown modal
-        setSelectedOffer(offer);
-        setShowActivationModal(true);
-        
-        // Reset swipe state
-        setSwipeStates(prev => ({
-          ...prev,
-          [offerId]: { translateX: 0, isSliding: false }
-        }));
-      }
-    } else {
-      // Snap back to original position
-      setSwipeStates(prev => ({
-        ...prev,
-        [offerId]: { translateX: 0, isSliding: false }
-      }));
-    }
+    
+    // Show activation countdown modal
+    setSelectedOffer(offer);
+    setShowActivationModal(true);
   };
 
   const handleActivationComplete = async () => {
@@ -1608,7 +1539,6 @@ function OffersList({ offers, selectedCategory, selectedSubCategory, onOfferClic
         {filteredOffers.map((offer) => {
           const isActivated = swipedOffers.has(offer.id);
           const isExploding = explosions.has(offer.id);
-          const swipeState = swipeStates[offer.id] || { translateX: 0, isSliding: false };
           
           return (
           <Box
@@ -1684,9 +1614,9 @@ function OffersList({ offers, selectedCategory, selectedSubCategory, onOfferClic
                 filter: isActivated ? 'grayscale(20%)' : 'none',
                 overflow: 'hidden'
               }} 
-              onClick={() => !swipeState.isSliding && onOfferClick(offer)}
+              onClick={() => onOfferClick(offer)}
             >
-              {/* Image container with swipe functionality */}
+              {/* Static Image */}
               <Box 
                 sx={{ 
                   position: 'relative',
@@ -1694,143 +1624,67 @@ function OffersList({ offers, selectedCategory, selectedSubCategory, onOfferClic
                   overflow: 'hidden'
                 }}
               >
-                {/* Slider track background */}
-                <Box
-                  sx={{
-                    position: 'absolute',
-                    top: 0,
-                    right: 0,
-                    width: '100%',
+                <CardMedia
+                  component="img"
+                  height="100%"
+                  image={offer.image || 'https://via.placeholder.com/300x150/333333/FFFFFF?text=Restaurant'}
+                  alt={offer.name}
+                  sx={{ 
                     height: '100%',
-                    background: 'linear-gradient(90deg, rgba(255, 235, 59, 0.3) 0%, rgba(255, 235, 59, 0.6) 100%)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    zIndex: 1
+                    backgroundColor: '#333333',
+                    objectFit: 'cover'
                   }}
-                >
-                  <Box sx={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: 1,
-                    color: 'white',
-                    textShadow: '0 2px 4px rgba(0,0,0,0.5)'
-                  }}>
-                    <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                      {'<<<'}
-                    </Typography>
-                    <FlashOn sx={{ color: 'white', fontSize: '2rem' }} />
-                    <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
-                      Desliza para activar
-                    </Typography>
-                  </Box>
-                </Box>
-                
-                {/* Slidable image */}
-                <Box
-                  onTouchStart={(e) => handleTouchStart(offer.id, e)}
-                  onTouchMove={(e) => handleTouchMove(offer.id, e)}
-                  onTouchEnd={() => handleTouchEnd(offer.id)}
-                  sx={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    transform: `translateX(${swipeState.translateX}px)`,
-                    transition: swipeState.isSliding ? 'none' : 'transform 0.3s ease-out',
-                    zIndex: 2,
-                    cursor: 'grab',
-                    '&:active': {
-                      cursor: 'grabbing'
-                    }
-                  }}
-                >
-                  <CardMedia
-                    component="img"
-                    height="100%"
-                    image={offer.image || 'https://via.placeholder.com/300x150/333333/FFFFFF?text=Restaurant'}
-                    alt={offer.name}
-                    sx={{ 
-                      height: '100%',
-                      backgroundColor: '#333333',
-                      objectFit: 'cover',
-                      pointerEvents: 'none'
+                />
+                {offer.isNew && (
+                  <Chip
+                    label="Nouveau"
+                    color="error"
+                    size="small"
+                    sx={{
+                      position: 'absolute',
+                      top: 8,
+                      right: 8,
+                      fontWeight: 'bold'
                     }}
                   />
-                  {offer.isNew && (
-                    <Chip
-                      label="Nouveau"
-                      color="error"
-                      size="small"
-                      sx={{
-                        position: 'absolute',
-                        top: 8,
-                        right: 8,
-                        fontWeight: 'bold'
-                      }}
-                    />
-                  )}
-                  {isActivated && (
-                    <Box
-                      sx={{
-                        position: 'absolute',
-                        top: 8,
-                        left: 8,
-                        background: 'rgba(76, 175, 80, 0.95)',
-                        color: 'white',
-                        px: 1.5,
-                        py: 0.5,
-                        borderRadius: 2,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 0.5,
-                        fontWeight: 'bold',
-                        fontSize: '0.85rem'
-                      }}
-                    >
-                      <Lock sx={{ fontSize: 16 }} />
-                      ACTIVÉE
-                    </Box>
-                  )}
-                  <Box sx={{
-                    position: 'absolute',
-                    bottom: 8,
-                    left: 8,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 0.5,
-                    bgcolor: 'rgba(0,0,0,0.7)',
-                    color: 'white',
-                    px: 1,
-                    py: 0.5,
-                    borderRadius: 1
-                  }}>
-                    <Star sx={{ fontSize: 16, color: '#ffeb3b' }} />
-                    <Typography variant="body2">{offer.rating}</Typography>
-                  </Box>
-                </Box>
-                
-                {/* Visual slider rail indicator */}
-                <Box
-                  sx={{
-                    position: 'absolute',
-                    bottom: 0,
-                    left: 0,
-                    right: 0,
-                    height: 4,
-                    background: 'rgba(255, 255, 255, 0.3)',
-                    zIndex: 3
-                  }}
-                >
+                )}
+                {isActivated && (
                   <Box
                     sx={{
-                      height: '100%',
-                      width: `${Math.min(100, Math.abs(swipeState.translateX / 1.5))}%`,
-                      background: 'linear-gradient(90deg, #ffeb3b, #4caf50)',
-                      transition: swipeState.isSliding ? 'none' : 'width 0.3s ease-out'
+                      position: 'absolute',
+                      top: 8,
+                      left: 8,
+                      background: 'rgba(76, 175, 80, 0.95)',
+                      color: 'white',
+                      px: 1.5,
+                      py: 0.5,
+                      borderRadius: 2,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 0.5,
+                      fontWeight: 'bold',
+                      fontSize: '0.85rem'
                     }}
-                  />
+                  >
+                    <Lock sx={{ fontSize: 16 }} />
+                    ACTIVÉE
+                  </Box>
+                )}
+                <Box sx={{
+                  position: 'absolute',
+                  bottom: 8,
+                  left: 8,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 0.5,
+                  bgcolor: 'rgba(0,0,0,0.7)',
+                  color: 'white',
+                  px: 1,
+                  py: 0.5,
+                  borderRadius: 1
+                }}>
+                  <Star sx={{ fontSize: 16, color: '#ffeb3b' }} />
+                  <Typography variant="body2">{offer.rating}</Typography>
                 </Box>
               </Box>
               
@@ -1869,6 +1723,16 @@ function OffersList({ offers, selectedCategory, selectedSubCategory, onOfferClic
                     </Box>
                   )}
                 </Box>
+
+                {/* Slide button to activate offer (only if not activated) */}
+                {!isActivated && (
+                  <Box sx={{ mt: 2 }} onClick={(e) => e.stopPropagation()}>
+                    <SlideToConfirmButton
+                      onConfirm={() => handleSlideToActivate(offer)}
+                      text="Desliza para activar ⚡"
+                    />
+                  </Box>
+                )}
               </CardContent>
             </Card>
           </Box>
