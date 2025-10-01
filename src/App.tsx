@@ -1852,9 +1852,12 @@ function OffersList({ offers, selectedCategory, selectedSubCategory, onOfferClic
                   {offer.description}
                 </Typography>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
-                  <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}>
-                    {offer.location.address}
-                  </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    <LocationOn sx={{ fontSize: '1rem', color: '#888' }} />
+                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}>
+                      {offer.location.address}
+                    </Typography>
+                  </Box>
                   {offer.price && offer.oldPrice && (
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       <Typography variant="h6" sx={{ color: '#4caf50', fontWeight: 'bold' }}>

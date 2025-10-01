@@ -12,7 +12,8 @@ import {
   AccessTime,
   Star,
   LocationOn,
-  CheckCircle
+  CheckCircle,
+  FlashOn
 } from '@mui/icons-material';
 import { ActivationCountdownModal } from './ActivationCountdownModal';
 import { BlockedOfferModal } from './BlockedOfferModal';
@@ -61,6 +62,7 @@ export const FlashDealsWithBlocking: React.FC<FlashDealsWithBlockingProps> = ({
   const [modalOpen, setModalOpen] = useState(false);
   const [countdownModalOpen, setCountdownModalOpen] = useState(false);
   const [offerToActivate, setOfferToActivate] = useState<FlashDeal | null>(null);
+  const [swipeStates, setSwipeStates] = useState<{[key: string]: { translateX: number; isSliding: boolean; startX?: number }}>({});
 
   const { 
     isOfferBlocked, 
@@ -115,6 +117,73 @@ export const FlashDealsWithBlocking: React.FC<FlashDealsWithBlockingProps> = ({
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  // Funciones de swipe para activar ofertas
+  const handleTouchStart = (dealId: string, e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    setSwipeStates(prev => ({
+      ...prev,
+      [dealId]: {
+        ...prev[dealId],
+        startX: touch.clientX,
+        translateX: 0,
+        isSliding: false
+      }
+    }));
+  };
+
+  const handleTouchMove = (dealId: string, e: React.TouchEvent) => {
+    const state = swipeStates[dealId];
+    if (!state || state.startX === undefined) return;
+
+    const touch = e.touches[0];
+    const deltaX = touch.clientX - state.startX;
+
+    // Solo permitir deslizar a la izquierda
+    if (deltaX < 0) {
+      const newTranslateX = Math.min(0, Math.max(-150, deltaX));
+      
+      setSwipeStates(prev => ({
+        ...prev,
+        [dealId]: {
+          ...prev[dealId],
+          translateX: newTranslateX,
+          isSliding: true
+        }
+      }));
+    }
+  };
+
+  const handleTouchEnd = async (dealId: string) => {
+    const state = swipeStates[dealId];
+    if (!state) return;
+
+    // Si se deslizó más de 80px a la izquierda, activar
+    if (state.translateX < -80) {
+      const deal = flashDeals.find(d => d.id === dealId);
+      if (deal) {
+        // Vibrar si está disponible
+        if (navigator.vibrate) {
+          navigator.vibrate([100, 50, 100]);
+        }
+        
+        // Mostrar modal de countdown de activación
+        handleStartCountdown(deal);
+        
+        // Resetear estado de swipe
+        setSwipeStates(prev => ({
+          ...prev,
+          [dealId]: { translateX: 0, isSliding: false }
+        }));
+      }
+    } else {
+      // Volver a la posición original
+      setSwipeStates(prev => ({
+        ...prev,
+        [dealId]: { translateX: 0, isSliding: false }
+      }));
+    }
   };
 
   return (
@@ -337,93 +406,169 @@ export const FlashDealsWithBlocking: React.FC<FlashDealsWithBlockingProps> = ({
                   </Box>
                 )}
 
-                {/* Imagen */}
+                {/* Imagen con funcionalidad de swipe */}
                 <Box sx={{ position: 'relative', height: 200, overflow: 'hidden' }}>
-                  <img 
-                    src={deal.image} 
-                    alt={deal.name}
-                    style={{ 
-                      width: '100%', 
-                      height: '100%', 
-                      objectFit: 'cover' 
+                  {/* Slider track background */}
+                  <Box
+                    sx={{
+                      position: 'absolute',
+                      top: 0,
+                      right: 0,
+                      width: '100%',
+                      height: '100%',
+                      background: 'linear-gradient(90deg, rgba(255, 235, 59, 0.3) 0%, rgba(255, 235, 59, 0.6) 100%)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      zIndex: 1
                     }}
-                  />
-                  
-                  {/* Overlay para el temporizador */}
-                  <Box sx={{
-                    position: 'absolute',
-                    bottom: 0,
-                    left: 0,
-                    right: 0,
-                    background: 'linear-gradient(transparent, rgba(0,0,0,0.8))',
-                    p: 2
-                  }}>
+                  >
                     <Box sx={{ 
                       display: 'flex', 
                       alignItems: 'center', 
                       gap: 1,
                       color: 'white',
-                      mb: 1
+                      textShadow: '0 2px 4px rgba(0,0,0,0.5)'
                     }}>
-                      <AccessTime sx={{ fontSize: '1rem' }} />
+                      <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
+                        {'<<<'}
+                      </Typography>
+                      <FlashOn sx={{ color: 'white', fontSize: '1.5rem' }} />
                       <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-                        Temps restant :
+                        Desliza para activar
                       </Typography>
                     </Box>
-                    <Box sx={{ 
-                      display: 'flex', 
-                      gap: 1,
-                      justifyContent: 'center'
+                  </Box>
+
+                  {/* Slidable image */}
+                  <Box
+                    onTouchStart={(e) => handleTouchStart(deal.id, e)}
+                    onTouchMove={(e) => handleTouchMove(deal.id, e)}
+                    onTouchEnd={() => handleTouchEnd(deal.id)}
+                    sx={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      transform: `translateX(${(swipeStates[deal.id]?.translateX || 0)}px)`,
+                      transition: (swipeStates[deal.id]?.isSliding) ? 'none' : 'transform 0.3s ease-out',
+                      zIndex: 2,
+                      cursor: 'grab',
+                      '&:active': {
+                        cursor: 'grabbing'
+                      }
+                    }}
+                  >
+                    <img 
+                      src={deal.image} 
+                      alt={deal.name}
+                      style={{ 
+                        width: '100%', 
+                        height: '100%', 
+                        objectFit: 'cover',
+                        pointerEvents: 'none'
+                      }}
+                    />
+                    
+                    {/* Overlay para el temporizador */}
+                    <Box sx={{
+                      position: 'absolute',
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
+                      background: 'linear-gradient(transparent, rgba(0,0,0,0.8))',
+                      p: 2
                     }}>
                       <Box sx={{ 
-                        background: 'rgba(255, 215, 0, 0.9)',
-                        color: '#333',
-                        px: 1.5,
-                        py: 0.5,
-                        borderRadius: 1,
-                        textAlign: 'center',
-                        minWidth: 40
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: 1,
+                        color: 'white',
+                        mb: 1
                       }}>
-                        <Typography variant="h6" sx={{ fontWeight: 'bold', lineHeight: 1 }}>
-                          {timeRemaining.hours.toString().padStart(2, '0')}
-                        </Typography>
-                        <Typography variant="caption" sx={{ fontSize: '0.7rem' }}>
-                          h
+                        <AccessTime sx={{ fontSize: '1rem' }} />
+                        <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                          Temps restant :
                         </Typography>
                       </Box>
                       <Box sx={{ 
-                        background: 'rgba(255, 215, 0, 0.9)',
-                        color: '#333',
-                        px: 1.5,
-                        py: 0.5,
-                        borderRadius: 1,
-                        textAlign: 'center',
-                        minWidth: 40
+                        display: 'flex', 
+                        gap: 1,
+                        justifyContent: 'center'
                       }}>
-                        <Typography variant="h6" sx={{ fontWeight: 'bold', lineHeight: 1 }}>
-                          {timeRemaining.minutes.toString().padStart(2, '0')}
-                        </Typography>
-                        <Typography variant="caption" sx={{ fontSize: '0.7rem' }}>
-                          m
-                        </Typography>
-                      </Box>
-                      <Box sx={{ 
-                        background: 'rgba(255, 215, 0, 0.9)',
-                        color: '#333',
-                        px: 1.5,
-                        py: 0.5,
-                        borderRadius: 1,
-                        textAlign: 'center',
-                        minWidth: 40
-                      }}>
-                        <Typography variant="h6" sx={{ fontWeight: 'bold', lineHeight: 1 }}>
-                          {timeRemaining.seconds.toString().padStart(2, '0')}
-                        </Typography>
-                        <Typography variant="caption" sx={{ fontSize: '0.7rem' }}>
-                          s
-                        </Typography>
+                        <Box sx={{ 
+                          background: 'rgba(255, 215, 0, 0.9)',
+                          color: '#333',
+                          px: 1.5,
+                          py: 0.5,
+                          borderRadius: 1,
+                          textAlign: 'center',
+                          minWidth: 40
+                        }}>
+                          <Typography variant="h6" sx={{ fontWeight: 'bold', lineHeight: 1 }}>
+                            {timeRemaining.hours.toString().padStart(2, '0')}
+                          </Typography>
+                          <Typography variant="caption" sx={{ fontSize: '0.7rem' }}>
+                            h
+                          </Typography>
+                        </Box>
+                        <Box sx={{ 
+                          background: 'rgba(255, 215, 0, 0.9)',
+                          color: '#333',
+                          px: 1.5,
+                          py: 0.5,
+                          borderRadius: 1,
+                          textAlign: 'center',
+                          minWidth: 40
+                        }}>
+                          <Typography variant="h6" sx={{ fontWeight: 'bold', lineHeight: 1 }}>
+                            {timeRemaining.minutes.toString().padStart(2, '0')}
+                          </Typography>
+                          <Typography variant="caption" sx={{ fontSize: '0.7rem' }}>
+                            m
+                          </Typography>
+                        </Box>
+                        <Box sx={{ 
+                          background: 'rgba(255, 215, 0, 0.9)',
+                          color: '#333',
+                          px: 1.5,
+                          py: 0.5,
+                          borderRadius: 1,
+                          textAlign: 'center',
+                          minWidth: 40
+                        }}>
+                          <Typography variant="h6" sx={{ fontWeight: 'bold', lineHeight: 1 }}>
+                            {timeRemaining.seconds.toString().padStart(2, '0')}
+                          </Typography>
+                          <Typography variant="caption" sx={{ fontSize: '0.7rem' }}>
+                            s
+                          </Typography>
+                        </Box>
                       </Box>
                     </Box>
+                  </Box>
+
+                  {/* Visual slider rail indicator */}
+                  <Box
+                    sx={{
+                      position: 'absolute',
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
+                      height: 4,
+                      background: 'rgba(255, 255, 255, 0.3)',
+                      zIndex: 3
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        height: '100%',
+                        width: `${Math.min(100, Math.abs((swipeStates[deal.id]?.translateX || 0) / 1.5))}%`,
+                        background: 'linear-gradient(90deg, #ffeb3b, #4caf50)',
+                        transition: (swipeStates[deal.id]?.isSliding) ? 'none' : 'width 0.3s ease-out'
+                      }}
+                    />
                   </Box>
                 </Box>
 
