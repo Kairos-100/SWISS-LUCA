@@ -5,6 +5,7 @@ import { doc, setDoc, getDoc, updateDoc, arrayUnion, Timestamp } from 'firebase/
 import { getAuthErrorMessage, validateEmail, validatePassword, validateName } from './utils/authUtils';
 import { useTranslation } from 'react-i18next';
 import LanguageSelector from './components/LanguageSelector';
+import { FlashDealsWithBlocking } from './components/FlashDealsWithBlocking';
 import './i18n';
 import { 
   AppBar, 
@@ -61,7 +62,8 @@ import {
   AccessTime,
   FlashOn,
   AccountBalanceWallet,
-  MonetizationOn
+  MonetizationOn,
+  Lock
 } from '@mui/icons-material';
 import './App.css';
 
@@ -230,7 +232,7 @@ interface FlashDeal {
   price: string;
   oldPrice: string;
   originalPrice: number;
-  flashPrice: number;
+  discountedPrice: number; // Cambiado de flashPrice a discountedPrice
   startTime: Date;
   endTime: Date;
   isActive: boolean;
@@ -513,7 +515,7 @@ const initialFlashDeals: FlashDeal[] = [
     price: 'CHF 8',
     oldPrice: 'CHF 16',
     originalPrice: 16,
-    flashPrice: 8,
+    discountedPrice: 8,
     startTime: new Date(),
     endTime: new Date(Date.now() + 2 * 60 * 60 * 1000), // 2 horas desde ahora
     isActive: true,
@@ -533,7 +535,7 @@ const initialFlashDeals: FlashDeal[] = [
     price: 'CHF 6',
     oldPrice: 'CHF 15',
     originalPrice: 15,
-    flashPrice: 6,
+    discountedPrice: 6,
     startTime: new Date(),
     endTime: new Date(Date.now() + 1.5 * 60 * 60 * 1000), // 1.5 horas desde ahora
     isActive: true,
@@ -553,7 +555,7 @@ const initialFlashDeals: FlashDeal[] = [
     price: 'CHF 1.50',
     oldPrice: 'CHF 2.50',
     originalPrice: 2.5,
-    flashPrice: 1.5,
+    discountedPrice: 1.5,
     startTime: new Date(),
     endTime: new Date(Date.now() + 3 * 60 * 60 * 1000), // 3 horas desde ahora
     isActive: true,
@@ -667,6 +669,42 @@ const processOfferPayment = async (userId: string, offerId: string, offerPrice: 
   }
 };
 
+// Datos de socios (como amigos en Snap)
+const partnersData = [
+  {
+    id: 'mcdonalds',
+    name: 'McDonald\'s',
+    icon: '🍔',
+    location: { lat: 46.2306, lng: 7.3590 },
+    address: 'Rue du Simplon, Sion',
+    discount: '20% OFF'
+  },
+  {
+    id: 'burger_king',
+    name: 'Burger King',
+    icon: '🍟',
+    location: { lat: 46.2310, lng: 7.3600 },
+    address: 'Avenue de la Gare, Sion',
+    discount: '15% OFF'
+  },
+  {
+    id: 'kfc',
+    name: 'KFC',
+    icon: '🐔',
+    location: { lat: 46.2320, lng: 7.3610 },
+    address: 'Rue du Rhône, Sion',
+    discount: '25% OFF'
+  },
+  {
+    id: 'subway',
+    name: 'Subway',
+    icon: '🥪',
+    location: { lat: 46.2330, lng: 7.3620 },
+    address: 'Place de la Planta, Sion',
+    discount: '30% OFF'
+  }
+];
+
 function MapView({ offers, selectedCategory, onOfferClick }: { 
   offers: Offer[], 
   selectedCategory: string, 
@@ -695,6 +733,21 @@ function MapView({ offers, selectedCategory, onOfferClick }: {
     price: '',
     oldPrice: ''
   });
+
+  // Función para abrir en Apple Maps (iOS) o Google Maps
+  const openInNativeMaps = (lat: number, lng: number) => {
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    
+    if (isIOS) {
+      // Apple Maps
+      const url = `http://maps.apple.com/?daddr=${lat},${lng}&dirflg=d`;
+      window.open(url, '_blank');
+    } else {
+      // Google Maps
+      const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`;
+      window.open(url, '_blank');
+    }
+  };
   
   const filteredOffers = selectedCategory === 'all' 
     ? offers 
@@ -1041,10 +1094,10 @@ function MapView({ offers, selectedCategory, onOfferClick }: {
         }}>
           <Box sx={{ textAlign: 'center', color: 'white' }}>
             <Typography variant="h6" sx={{ mb: 2 }}>
-              🗺️ FLASH Map
+              🗺️ <span style={{ color: '#ffeb3b' }}>FLASH</span> Map
             </Typography>
             <Typography variant="body2" sx={{ mb: 3, opacity: 0.8 }}>
-              Vue interactive des offres FLASH
+              Vue interactive des offres <span style={{ color: '#ffeb3b' }}>FLASH</span>
             </Typography>
             
             {/* Marcadores simulados */}
@@ -1261,6 +1314,106 @@ function MapView({ offers, selectedCategory, onOfferClick }: {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Sección de Socios (como amigos en Snap) */}
+      <Box sx={{
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        backgroundColor: 'rgba(26, 26, 26, 0.95)',
+        backdropFilter: 'blur(10px)',
+        borderTop: '1px solid #333',
+        p: 2,
+        maxHeight: '200px',
+        overflowY: 'auto'
+      }}>
+        <Typography variant="h6" sx={{ 
+          color: '#ffeb3b', 
+          mb: 2, 
+          fontWeight: 'bold',
+          textAlign: 'center'
+        }}>
+          🤝 Nuestros Socios
+        </Typography>
+        
+        <Box sx={{ 
+          display: 'flex', 
+          gap: 1, 
+          overflowX: 'auto',
+          pb: 1
+        }}>
+          {partnersData.map((partner) => (
+            <Box
+              key={partner.id}
+              sx={{
+                minWidth: '120px',
+                backgroundColor: '#333',
+                borderRadius: 2,
+                p: 1.5,
+                textAlign: 'center',
+                border: '1px solid #555',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease',
+                '&:hover': {
+                  backgroundColor: '#444',
+                  borderColor: '#ffeb3b',
+                  transform: 'translateY(-2px)'
+                }
+              }}
+              onClick={() => {
+                // Centrar el mapa en el socio
+                if (mapInstanceRef.current) {
+                  mapInstanceRef.current.setCenter(partner.location);
+                  mapInstanceRef.current.setZoom(16);
+                }
+                // Abrir en mapas externos
+                openInNativeMaps(partner.location.lat, partner.location.lng);
+              }}
+            >
+              <Typography sx={{ 
+                fontSize: '1.5rem', 
+                mb: 0.5 
+              }}>
+                {partner.icon}
+              </Typography>
+              <Typography variant="body2" sx={{ 
+                color: 'white', 
+                fontWeight: 'bold',
+                mb: 0.5
+              }}>
+                {partner.name}
+              </Typography>
+              <Typography variant="caption" sx={{ 
+                color: '#ffeb3b',
+                fontWeight: 'bold'
+              }}>
+                {partner.discount}
+              </Typography>
+              <Typography variant="caption" sx={{ 
+                color: '#bbb',
+                display: 'block',
+                mt: 0.5,
+                fontSize: '0.7rem'
+              }}>
+                {partner.address}
+              </Typography>
+            </Box>
+          ))}
+        </Box>
+        
+        <Box sx={{ 
+          textAlign: 'center', 
+          mt: 2 
+        }}>
+          <Typography variant="caption" sx={{ 
+            color: '#888',
+            fontSize: '0.7rem'
+          }}>
+            Toca un socio para ver la ruta
+          </Typography>
+        </Box>
+      </Box>
     </Box>
   );
 }
@@ -1283,6 +1436,8 @@ function OffersList({ offers, selectedCategory, selectedSubCategory, onOfferClic
     startX?: number,
     startY?: number
   }}>({});
+  const [showActivationModal, setShowActivationModal] = useState(false);
+  const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null);
 
   const filteredOffers = offers.filter(offer => {
     if (selectedCategory !== 'all' && offer.category !== selectedCategory) return false;
@@ -1337,95 +1492,25 @@ function OffersList({ offers, selectedCategory, selectedSubCategory, onOfferClic
     const state = swipeStates[offerId];
     if (!state) return;
 
-    // If swiped more than 80px to the left, activate the offer
+    // If swiped more than 80px to the left, show activation modal
     if (state.translateX < -80) {
-      setSwipedOffers(prev => new Set([...prev, offerId]));
-      setSwipeStates(prev => ({
-        ...prev,
-        [offerId]: { translateX: -150, isSliding: false }
-      }));
-      
-      // Trigger explosion effect
-      setExplosions(prev => new Set([...prev, offerId]));
-      
-      // Vibrate if available
-      if (navigator.vibrate) {
-        navigator.vibrate([100, 50, 100, 50, 200]);
-      }
-      
-      // Remove explosion after animation
-      setTimeout(() => {
-        setExplosions(prev => {
-          const newSet = new Set(prev);
-          newSet.delete(offerId);
-          return newSet;
-        });
-      }, 1500);
-
-      // Activar la oferta en el perfil del usuario
       const offer = offers.find(o => o.id === offerId);
-      if (offer && offer.price && offer.oldPrice) {
-        const savedAmount = parseFloat(offer.oldPrice.replace('CHF ', '')) - parseFloat(offer.price.replace('CHF ', ''));
-        try {
-          if (currentUser && userProfile) {
-            const userRef = doc(db, 'users', currentUser.uid);
-            const newActivation = {
-              offerId,
-              activatedAt: Timestamp.now(),
-              savedAmount
-            };
-
-            // Calcular puntos (10 puntos por oferta + 1 punto por cada CHF ahorrado)
-            const pointsEarned = 10 + Math.floor(savedAmount);
-            const newPoints = userProfile.points + pointsEarned;
-            const newLevel = Math.floor(newPoints / 100) + 1; // Nuevo nivel cada 100 puntos
-            
-            await updateDoc(userRef, {
-              activatedOffers: arrayUnion(newActivation),
-              totalSaved: userProfile.totalSaved + savedAmount,
-              points: newPoints,
-              level: newLevel
-            });
-
-            // Actualizar el estado local
-            setUserProfile(prev => {
-              if (!prev) return prev;
-              return {
-                ...prev,
-                activatedOffers: [...prev.activatedOffers, newActivation],
-                totalSaved: prev.totalSaved + savedAmount,
-                points: newPoints,
-                level: newLevel
-              };
-            });
-          }
-          // Show activation message
-          setTimeout(() => {
-            addNotification('success', `🎉 Offre activée! Vous avez économisé ${savedAmount.toFixed(2)} CHF!`);
-          }, 800);
-        } catch (error) {
-          console.error('Error activating offer:', error);
-          alert('Error al activar la oferta. Por favor intente de nuevo.');
+      if (offer) {
+        // Vibrate if available
+        if (navigator.vibrate) {
+          navigator.vibrate([100, 50, 100]);
         }
-      } else {
-        // Show activation message without savings
-        setTimeout(() => {
-          alert('🎉 Offre activée! Montrez cet écran au commerçant.');
-        }, 800);
-      }
-
-      // Return to original position after 3 seconds
-      setTimeout(() => {
+        
+        // Show activation countdown modal
+        setSelectedOffer(offer);
+        setShowActivationModal(true);
+        
+        // Reset swipe state
         setSwipeStates(prev => ({
           ...prev,
           [offerId]: { translateX: 0, isSliding: false }
         }));
-        setSwipedOffers(prev => {
-          const newSet = new Set(prev);
-          newSet.delete(offerId);
-          return newSet;
-        });
-      }, 3000);
+      }
     } else {
       // Snap back to original position
       setSwipeStates(prev => ({
@@ -1435,543 +1520,526 @@ function OffersList({ offers, selectedCategory, selectedSubCategory, onOfferClic
     }
   };
 
-  return (
-    <Box sx={{ 
-      height: { xs: 'calc(100vh - 120px)', sm: '70vh' }, 
-      overflow: 'auto',
-      width: '100%'
-    }}>
-      {filteredOffers.map((offer) => {
-        const isActivated = swipedOffers.has(offer.id);
-        const isExploding = explosions.has(offer.id);
-        const swipeState = swipeStates[offer.id] || { translateX: 0, isSliding: false };
-        
-        return (
-        <Box
-          key={offer.id}
-          className="offer-card"
-          sx={{
-            position: 'relative',
-            mb: { xs: 2, sm: 2 },
-            overflow: 'visible',
-            borderRadius: { xs: 1, sm: 2 }
-          }}
-        >
-          {/* Lightning Effect */}
-          {isExploding && (
-            <Box
-              sx={{
-                position: 'fixed',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                animation: 'lightningBolt 1.2s ease-out forwards',
-                zIndex: 10000,
-                '@keyframes lightningBolt': {
-                  '0%': {
-                    transform: 'scale(0) rotate(0deg)',
-                    opacity: 1
-                  },
-                  '20%': {
-                    transform: 'scale(1.5) rotate(5deg)',
-                    opacity: 1
-                  },
-                  '40%': {
-                    transform: 'scale(2.2) rotate(-3deg)',
-                    opacity: 0.9
-                  },
-                  '60%': {
-                    transform: 'scale(2.8) rotate(2deg)',
-                    opacity: 0.8
-                  },
-                  '80%': {
-                    transform: 'scale(3.2) rotate(-1deg)',
-                    opacity: 0.6
-                  },
-                  '100%': {
-                    transform: 'scale(3.5) rotate(0deg)',
-                    opacity: 0
-                  }
-                }
-              }}
-            >
-              <FlashOn sx={{ 
-                fontSize: { xs: 200, sm: 300, md: 400 },
-                color: '#ffeb3b',
-                filter: 'drop-shadow(0 0 20px #ffeb3b) drop-shadow(0 0 40px #ffeb3b) drop-shadow(0 0 60px #ffeb3b)',
-                width: '100vw',
-                height: '100vh',
-                objectFit: 'contain'
-              }} />
-            </Box>
-          )}
-          {/* Background when swiped */}
-          <Box
-            sx={{
-              position: 'absolute',
-              top: 0,
-              right: 0,
-              width: 150,
-              height: '100%',
-              background: isActivated ? 
-                'linear-gradient(45deg, #424242 30%, #212121 90%)' : 
-                'linear-gradient(45deg, #616161 30%, #424242 90%)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'white',
-              fontSize: { xs: '0.8rem', sm: '1rem' },
-              fontWeight: 'bold',
-              zIndex: 1
-            }}
-          >
-            {isActivated ? '✅ ACTIVÉE!' : <FlashOn sx={{ color: 'white', fontSize: '2rem' }} />}
-          </Box>
-          
-          <Card 
-            sx={{ 
-              cursor: 'pointer',
-              borderRadius: { xs: 1, sm: 2 },
-              transform: `translateX(${swipeState.translateX}px)`,
-              transition: swipeState.isSliding ? 'none' : 'transform 0.3s ease-out',
-              position: 'relative',
-              zIndex: 2,
-              opacity: isActivated ? 0.9 : 1,
-              filter: isActivated ? 'grayscale(20%)' : 'none'
-            }} 
-            onClick={() => !swipeState.isSliding && onOfferClick(offer)}
-            onTouchStart={(e) => handleTouchStart(offer.id, e)}
-            onTouchMove={(e) => handleTouchMove(offer.id, e)}
-            onTouchEnd={() => handleTouchEnd(offer.id)}
-          >
-          <Box sx={{ position: 'relative' }}>
-            <CardMedia
-              component="img"
-              height="150"
-              image={offer.image || 'https://via.placeholder.com/300x150/333333/FFFFFF?text=Restaurant'}
-              alt={offer.name}
-              sx={{ 
-                height: { xs: 150, sm: 200 },
-                backgroundColor: '#333333',
-                objectFit: 'cover'
-              }}
-            />
-            {offer.isNew && (
-              <Chip
-                label="Nouveau"
-                color="error"
-                size="small"
-                sx={{
-                  position: 'absolute',
-                  top: 8,
-                  right: 8,
-                  fontWeight: 'bold'
-                }}
-              />
-            )}
-            <Box sx={{
-              position: 'absolute',
-              bottom: 8,
-              left: 8,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 0.5,
-              bgcolor: 'rgba(0,0,0,0.7)',
-              color: 'white',
-              px: 1,
-              py: 0.5,
-              borderRadius: 1
-            }}>
-              <Star sx={{ fontSize: 16, color: '#ffeb3b' }} />
-              <Typography variant="body2">{offer.rating}</Typography>
-      </Box>
-          </Box>
-          <CardContent sx={{ p: { xs: 2, sm: 2 } }}>
-            <Typography variant="h6" gutterBottom sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>
-              {offer.name}
-            </Typography>
-            <Typography variant="body2" color="error" fontWeight="bold" gutterBottom sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}>
-              {offer.discount}
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ 
-              mb: 1, 
-              fontSize: { xs: '0.75rem', sm: '0.875rem' },
-              display: '-webkit-box',
-              WebkitLineClamp: { xs: 2, sm: 3 },
-              WebkitBoxOrient: 'vertical',
-              overflow: 'hidden'
-            }}>
-              {offer.description}
-            </Typography>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
-              <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}>
-                {offer.location.address}
-              </Typography>
-              <Button 
-                variant="outlined" 
-                size="medium" 
-                sx={{ 
-                  color: '#111', 
-                  borderColor: '#111',
-                  fontSize: { xs: '0.8rem', sm: '0.75rem' },
-                  px: { xs: 3, sm: 2 },
-                  py: { xs: 1.5, sm: 1 },
-                  minHeight: { xs: 44, sm: 36 },
-                  minWidth: { xs: 120, sm: 100 }
-                }}
-              >
-                {'<<<'} Voir offre
-              </Button>
-            </Box>
-          </CardContent>
-          </Card>
-        </Box>
-        );
-      })}
-    </Box>
-  );
-}
-
-// Componente para las ofertas flash con temporizador
-function FlashDealsView({ flashDeals, onOfferClick }: { 
-  flashDeals: FlashDeal[], 
-  onOfferClick: (deal: FlashDeal) => void 
-}) {
-  const [currentTime, setCurrentTime] = useState(new Date());
-
-  // Actualizar el tiempo cada segundo
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, []);
-
-  // Función para calcular el tiempo restante
-  const getTimeRemaining = (endTime: Date) => {
-    const now = currentTime.getTime();
-    const end = endTime.getTime();
-    const difference = end - now;
-
-    if (difference <= 0) {
-      return { hours: 0, minutes: 0, seconds: 0, isExpired: true };
+  const handleActivationComplete = async () => {
+    if (!selectedOffer) return;
+    
+    const offerId = selectedOffer.id;
+    
+    // Trigger explosion effect
+    setExplosions(prev => new Set([...prev, offerId]));
+    
+    // Vibrate if available
+    if (navigator.vibrate) {
+      navigator.vibrate([100, 50, 100, 50, 200]);
     }
+    
+    // Remove explosion after animation
+    setTimeout(() => {
+      setExplosions(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(offerId);
+        return newSet;
+      });
+    }, 1500);
 
-    const hours = Math.floor(difference / (1000 * 60 * 60));
-    const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
-    const seconds = Math.floor((difference % (1000 * 60)) / 1000);
+    // Activar la oferta en el perfil del usuario
+    if (selectedOffer.price && selectedOffer.oldPrice) {
+      const savedAmount = parseFloat(selectedOffer.oldPrice.replace('CHF ', '')) - parseFloat(selectedOffer.price.replace('CHF ', ''));
+      try {
+        if (currentUser && userProfile) {
+          const userRef = doc(db, 'users', currentUser.uid);
+          const newActivation = {
+            offerId,
+            activatedAt: Timestamp.now(),
+            savedAmount
+          };
 
-    return { hours, minutes, seconds, isExpired: false };
+          // Calcular puntos (10 puntos por oferta + 1 punto por cada CHF ahorrado)
+          const pointsEarned = 10 + Math.floor(savedAmount);
+          const newPoints = userProfile.points + pointsEarned;
+          const newLevel = Math.floor(newPoints / 100) + 1; // Nuevo nivel cada 100 puntos
+          
+          await updateDoc(userRef, {
+            activatedOffers: arrayUnion(newActivation),
+            totalSaved: userProfile.totalSaved + savedAmount,
+            points: newPoints,
+            level: newLevel
+          });
+
+          // Actualizar el estado local
+          setUserProfile(prev => {
+            if (!prev) return prev;
+            return {
+              ...prev,
+              activatedOffers: [...prev.activatedOffers, newActivation],
+              totalSaved: prev.totalSaved + savedAmount,
+              points: newPoints,
+              level: newLevel
+            };
+          });
+        }
+        // Show activation message
+        setTimeout(() => {
+          addNotification('success', `🎉 Offre activée! Vous avez économisé ${savedAmount.toFixed(2)} CHF!`);
+        }, 800);
+      } catch (error) {
+        console.error('Error activating offer:', error);
+        addNotification('warning', 'Erreur lors de l\'activation. Veuillez réessayer.');
+      }
+    }
+    
+    // Mark as activated
+    setSwipedOffers(prev => new Set([...prev, offerId]));
+    
+    // Close modal
+    setShowActivationModal(false);
+    setSelectedOffer(null);
   };
 
-  // Filtrar ofertas activas
-  const activeDeals = flashDeals.filter(deal => {
-    const timeRemaining = getTimeRemaining(deal.endTime);
-    return deal.isActive && !timeRemaining.isExpired;
-  });
-
   return (
-    <Box sx={{ 
-      p: { xs: 2, sm: 2 },
-      height: { xs: 'calc(100vh - 120px)', sm: 'auto' },
-      overflow: 'auto'
-    }}>
-      <Box sx={{ mb: 3, textAlign: 'center' }}>
-        <Typography variant="h4" component="h1" gutterBottom sx={{ 
-          color: '#fff', 
-          fontWeight: 'bold',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 1
-        }}>
-          <FlashOn sx={{ color: '#ffeb3b', fontSize: '2rem' }} />
-          <Typography variant="h4" sx={{ color: '#ffeb3b', fontWeight: 'bold' }}>
-            Offres Flash
-          </Typography>
-        </Typography>
-        <Typography variant="body1" sx={{ color: '#bbb', mb: 2 }}>
-          Offres limitées avec des réductions incroyables ! Ne les manquez pas !
-        </Typography>
-      </Box>
-
-      {activeDeals.length === 0 ? (
-        <Box sx={{ 
-          textAlign: 'center', 
-          py: 8,
-          color: '#bbb'
-        }}>
-          <AccessTime sx={{ fontSize: '4rem', mb: 2, opacity: 0.5 }} />
-          <Typography variant="h6" gutterBottom>
-            No hay ofertas flash activas
-          </Typography>
-          <Typography variant="body2">
-            Vuelve más tarde para ver nuevas ofertas
-          </Typography>
-        </Box>
-      ) : (
-        <Box sx={{ 
-          display: 'grid', 
-          gridTemplateColumns: { 
-            xs: '1fr', 
-            sm: 'repeat(2, 1fr)', 
-            md: 'repeat(3, 1fr)' 
-          }, 
-          gap: 3 
-        }}>
-          {activeDeals.map((deal) => {
-            const timeRemaining = getTimeRemaining(deal.endTime);
-            const progressPercentage = deal.maxQuantity 
-              ? ((deal.soldQuantity || 0) / deal.maxQuantity) * 100 
-              : 0;
-
-            return (
-              <Card 
-                key={deal.id} 
-                sx={{ 
-                  background: 'linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%)',
-                  border: '1px solid #333',
-                  borderRadius: 3,
-                  overflow: 'hidden',
-                  position: 'relative',
-                  cursor: 'pointer',
-                  transition: 'all 0.3s ease',
-                  '&:hover': {
-                    transform: 'translateY(-4px)',
-                    boxShadow: '0 8px 25px rgba(255, 107, 53, 0.3)',
-                    borderColor: '#ffeb3b'
+    <>
+      <Box sx={{ 
+        height: { xs: 'calc(100vh - 120px)', sm: '70vh' }, 
+        overflow: 'auto',
+        width: '100%'
+      }}>
+        {filteredOffers.map((offer) => {
+          const isActivated = swipedOffers.has(offer.id);
+          const isExploding = explosions.has(offer.id);
+          const swipeState = swipeStates[offer.id] || { translateX: 0, isSliding: false };
+          
+          return (
+          <Box
+            key={offer.id}
+            className="offer-card"
+            sx={{
+              position: 'relative',
+              mb: { xs: 2, sm: 2 },
+              overflow: 'visible',
+              borderRadius: { xs: 1, sm: 2 }
+            }}
+          >
+            {/* Lightning Effect */}
+            {isExploding && (
+              <Box
+                sx={{
+                  position: 'fixed',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  animation: 'lightningBolt 1.2s ease-out forwards',
+                  zIndex: 10000,
+                  '@keyframes lightningBolt': {
+                    '0%': {
+                      transform: 'scale(0) rotate(0deg)',
+                      opacity: 1
+                    },
+                    '20%': {
+                      transform: 'scale(1.5) rotate(5deg)',
+                      opacity: 1
+                    },
+                    '40%': {
+                      transform: 'scale(2.2) rotate(-3deg)',
+                      opacity: 0.9
+                    },
+                    '60%': {
+                      transform: 'scale(2.8) rotate(2deg)',
+                      opacity: 0.8
+                    },
+                    '80%': {
+                      transform: 'scale(3.2) rotate(-1deg)',
+                      opacity: 0.6
+                    },
+                    '100%': {
+                      transform: 'scale(3.5) rotate(0deg)',
+                      opacity: 0
+                    }
                   }
                 }}
-                onClick={() => onOfferClick(deal)}
               >
-                {/* Badge de descuento */}
-                <Box sx={{
-                  position: 'absolute',
-                  top: 12,
-                  right: 12,
-                  background: 'linear-gradient(45deg, #ffeb3b, #fff176)',
-                  color: '#333',
-                  px: 2,
-                  py: 0.5,
-                  borderRadius: 2,
-                  fontWeight: 'bold',
-                  fontSize: '0.875rem',
-                  zIndex: 2,
-                  boxShadow: '0 2px 8px rgba(255, 107, 53, 0.4)'
-                }}>
-                  {deal.discount}
+                <FlashOn sx={{ 
+                  fontSize: { xs: 200, sm: 300, md: 400 },
+                  color: '#ffeb3b',
+                  filter: 'drop-shadow(0 0 20px #ffeb3b) drop-shadow(0 0 40px #ffeb3b) drop-shadow(0 0 60px #ffeb3b)',
+                  width: '100vw',
+                  height: '100vh',
+                  objectFit: 'contain'
+                }} />
+              </Box>
+            )}
+            
+            <Card 
+              sx={{ 
+                cursor: 'pointer',
+                borderRadius: { xs: 1, sm: 2 },
+                position: 'relative',
+                zIndex: 2,
+                opacity: isActivated ? 0.9 : 1,
+                filter: isActivated ? 'grayscale(20%)' : 'none',
+                overflow: 'hidden'
+              }} 
+              onClick={() => !swipeState.isSliding && onOfferClick(offer)}
+            >
+              {/* Image container with swipe functionality */}
+              <Box 
+                sx={{ 
+                  position: 'relative',
+                  height: { xs: 150, sm: 200 },
+                  overflow: 'hidden'
+                }}
+              >
+                {/* Slider track background */}
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    top: 0,
+                    right: 0,
+                    width: '100%',
+                    height: '100%',
+                    background: 'linear-gradient(90deg, rgba(255, 235, 59, 0.3) 0%, rgba(255, 235, 59, 0.6) 100%)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 1
+                  }}
+                >
+                  <Box sx={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: 1,
+                    color: 'white',
+                    textShadow: '0 2px 4px rgba(0,0,0,0.5)'
+                  }}>
+                    <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                      {'<<<'}
+                    </Typography>
+                    <FlashOn sx={{ color: 'white', fontSize: '2rem' }} />
+                    <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
+                      Desliza para activar
+                    </Typography>
+                  </Box>
                 </Box>
-
-                {/* Imagen */}
-                <Box sx={{ position: 'relative', height: 200, overflow: 'hidden' }}>
-                  <img 
-                    src={deal.image} 
-                    alt={deal.name}
-                    style={{ 
-                      width: '100%', 
-                      height: '100%', 
-                      objectFit: 'cover' 
+                
+                {/* Slidable image */}
+                <Box
+                  onTouchStart={(e) => handleTouchStart(offer.id, e)}
+                  onTouchMove={(e) => handleTouchMove(offer.id, e)}
+                  onTouchEnd={() => handleTouchEnd(offer.id)}
+                  sx={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    transform: `translateX(${swipeState.translateX}px)`,
+                    transition: swipeState.isSliding ? 'none' : 'transform 0.3s ease-out',
+                    zIndex: 2,
+                    cursor: 'grab',
+                    '&:active': {
+                      cursor: 'grabbing'
+                    }
+                  }}
+                >
+                  <CardMedia
+                    component="img"
+                    height="100%"
+                    image={offer.image || 'https://via.placeholder.com/300x150/333333/FFFFFF?text=Restaurant'}
+                    alt={offer.name}
+                    sx={{ 
+                      height: '100%',
+                      backgroundColor: '#333333',
+                      objectFit: 'cover',
+                      pointerEvents: 'none'
                     }}
                   />
-                  {/* Overlay para el temporizador */}
+                  {offer.isNew && (
+                    <Chip
+                      label="Nouveau"
+                      color="error"
+                      size="small"
+                      sx={{
+                        position: 'absolute',
+                        top: 8,
+                        right: 8,
+                        fontWeight: 'bold'
+                      }}
+                    />
+                  )}
+                  {isActivated && (
+                    <Box
+                      sx={{
+                        position: 'absolute',
+                        top: 8,
+                        left: 8,
+                        background: 'rgba(76, 175, 80, 0.95)',
+                        color: 'white',
+                        px: 1.5,
+                        py: 0.5,
+                        borderRadius: 2,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 0.5,
+                        fontWeight: 'bold',
+                        fontSize: '0.85rem'
+                      }}
+                    >
+                      <Lock sx={{ fontSize: 16 }} />
+                      ACTIVÉE
+                    </Box>
+                  )}
                   <Box sx={{
+                    position: 'absolute',
+                    bottom: 8,
+                    left: 8,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 0.5,
+                    bgcolor: 'rgba(0,0,0,0.7)',
+                    color: 'white',
+                    px: 1,
+                    py: 0.5,
+                    borderRadius: 1
+                  }}>
+                    <Star sx={{ fontSize: 16, color: '#ffeb3b' }} />
+                    <Typography variant="body2">{offer.rating}</Typography>
+                  </Box>
+                </Box>
+                
+                {/* Visual slider rail indicator */}
+                <Box
+                  sx={{
                     position: 'absolute',
                     bottom: 0,
                     left: 0,
                     right: 0,
-                    background: 'linear-gradient(transparent, rgba(0,0,0,0.8))',
-                    p: 2
-                  }}>
-                    <Box sx={{ 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      gap: 1,
-                      color: 'white',
-                      mb: 1
-                    }}>
-                      <AccessTime sx={{ fontSize: '1rem' }} />
-                      <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-                        Temps restant :
+                    height: 4,
+                    background: 'rgba(255, 255, 255, 0.3)',
+                    zIndex: 3
+                  }}
+                >
+                  <Box
+                    sx={{
+                      height: '100%',
+                      width: `${Math.min(100, Math.abs(swipeState.translateX / 1.5))}%`,
+                      background: 'linear-gradient(90deg, #ffeb3b, #4caf50)',
+                      transition: swipeState.isSliding ? 'none' : 'width 0.3s ease-out'
+                    }}
+                  />
+                </Box>
+              </Box>
+              
+              <CardContent sx={{ p: { xs: 2, sm: 2 } }}>
+                <Typography variant="h6" gutterBottom sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>
+                  {offer.name}
+                </Typography>
+                <Typography variant="body2" color="error" fontWeight="bold" gutterBottom sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}>
+                  {offer.discount}
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ 
+                  mb: 1, 
+                  fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                  display: '-webkit-box',
+                  WebkitLineClamp: { xs: 2, sm: 3 },
+                  WebkitBoxOrient: 'vertical',
+                  overflow: 'hidden'
+                }}>
+                  {offer.description}
+                </Typography>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
+                  <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}>
+                    {offer.location.address}
+                  </Typography>
+                  {offer.price && offer.oldPrice && (
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Typography variant="h6" sx={{ color: '#4caf50', fontWeight: 'bold' }}>
+                        {offer.price}
+                      </Typography>
+                      <Typography variant="body2" sx={{ textDecoration: 'line-through', color: 'text.secondary' }}>
+                        {offer.oldPrice}
                       </Typography>
                     </Box>
-                    <Box sx={{ 
-                      display: 'flex', 
-                      gap: 1,
-                      justifyContent: 'center'
-                    }}>
-                      <Box sx={{ 
-                        background: 'rgba(255, 215, 0, 0.9)',
-                        color: '#333',
-                        px: 1.5,
-                        py: 0.5,
-                        borderRadius: 1,
-                        textAlign: 'center',
-                        minWidth: 40
-                      }}>
-                        <Typography variant="h6" sx={{ fontWeight: 'bold', lineHeight: 1 }}>
-                          {timeRemaining.hours.toString().padStart(2, '0')}
-                        </Typography>
-                        <Typography variant="caption" sx={{ fontSize: '0.7rem' }}>
-                          h
-                        </Typography>
-                      </Box>
-                      <Box sx={{ 
-                        background: 'rgba(255, 215, 0, 0.9)',
-                        color: '#333',
-                        px: 1.5,
-                        py: 0.5,
-                        borderRadius: 1,
-                        textAlign: 'center',
-                        minWidth: 40
-                      }}>
-                        <Typography variant="h6" sx={{ fontWeight: 'bold', lineHeight: 1 }}>
-                          {timeRemaining.minutes.toString().padStart(2, '0')}
-                        </Typography>
-                        <Typography variant="caption" sx={{ fontSize: '0.7rem' }}>
-                          m
-                        </Typography>
-                      </Box>
-                      <Box sx={{ 
-                        background: 'rgba(255, 215, 0, 0.9)',
-                        color: '#333',
-                        px: 1.5,
-                        py: 0.5,
-                        borderRadius: 1,
-                        textAlign: 'center',
-                        minWidth: 40
-                      }}>
-                        <Typography variant="h6" sx={{ fontWeight: 'bold', lineHeight: 1 }}>
-                          {timeRemaining.seconds.toString().padStart(2, '0')}
-                        </Typography>
-                        <Typography variant="caption" sx={{ fontSize: '0.7rem' }}>
-                          s
-                        </Typography>
-                      </Box>
-                    </Box>
-                  </Box>
-                </Box>
-
-                <CardContent sx={{ p: 2 }}>
-                  {/* Nombre y categoría */}
-                  <Typography variant="h6" sx={{ 
-                    color: '#fff', 
-                    fontWeight: 'bold', 
-                    mb: 1,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap'
-                  }}>
-                    {deal.name}
-                  </Typography>
-                  
-                  <Typography variant="body2" sx={{ 
-                    color: '#888', 
-                    mb: 2,
-                    textTransform: 'capitalize'
-                  }}>
-                    {deal.subCategory}
-                  </Typography>
-
-                  {/* Precios */}
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                    <Typography variant="h5" sx={{ 
-                      color: '#ffeb3b', 
-                      fontWeight: 'bold' 
-                    }}>
-                      {deal.price}
-                    </Typography>
-                    <Typography variant="body2" sx={{ 
-                      color: '#888', 
-                      textDecoration: 'line-through' 
-                    }}>
-                      {deal.oldPrice}
-                    </Typography>
-                  </Box>
-
-                  {/* Descripción */}
-                  <Typography variant="body2" sx={{ 
-                    color: '#bbb', 
-                    mb: 2,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    display: '-webkit-box',
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: 'vertical'
-                  }}>
-                    {deal.description}
-                  </Typography>
-
-                  {/* Rating */}
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 2 }}>
-                    <Star sx={{ color: '#ffeb3b', fontSize: '1rem' }} />
-                    <Typography variant="body2" sx={{ color: '#bbb' }}>
-                      {deal.rating}
-                    </Typography>
-                  </Box>
-
-                  {/* Barra de progreso de ventas */}
-                  {deal.maxQuantity && (
-                    <Box sx={{ mb: 2 }}>
-                      <Box sx={{ 
-                        display: 'flex', 
-                        justifyContent: 'space-between', 
-                        alignItems: 'center',
-                        mb: 1
-                      }}>
-                        <Typography variant="caption" sx={{ color: '#888' }}>
-                          Vendu : {deal.soldQuantity || 0} / {deal.maxQuantity}
-                        </Typography>
-                        <Typography variant="caption" sx={{ color: '#ffeb3b', fontWeight: 'bold' }}>
-                          {Math.round(progressPercentage)}% vendu
-                        </Typography>
-                      </Box>
-                      <Box sx={{ 
-                        width: '100%', 
-                        height: 6, 
-                        backgroundColor: '#333', 
-                        borderRadius: 3,
-                        overflow: 'hidden'
-                      }}>
-                        <Box sx={{ 
-                          width: `${Math.min(progressPercentage, 100)}%`, 
-                          height: '100%', 
-                          background: 'linear-gradient(90deg, #ffeb3b, #fff176)',
-                          transition: 'width 0.3s ease'
-                        }} />
-                      </Box>
-                    </Box>
                   )}
+                </Box>
+              </CardContent>
+            </Card>
+          </Box>
+          );
+        })}
+      </Box>
+      
+      {/* Activation Countdown Modal */}
+      {selectedOffer && (
+        <Dialog
+          open={showActivationModal}
+          onClose={() => {}}
+          maxWidth="sm"
+          fullWidth
+          PaperProps={{
+            sx: {
+              background: 'linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%)',
+              borderRadius: 3,
+              overflow: 'hidden'
+            }
+          }}
+          BackdropProps={{
+            sx: {
+              backgroundColor: 'rgba(0, 0, 0, 0.9)',
+              backdropFilter: 'blur(4px)'
+            }
+          }}
+        >
+          <DialogContent sx={{ p: 4, textAlign: 'center' }}>
+            {/* Lightning icon */}
+            <Box sx={{ mb: 3 }}>
+              <FlashOn sx={{ 
+                fontSize: 80, 
+                color: '#ffeb3b',
+                filter: 'drop-shadow(0 0 20px #ffeb3b)',
+                animation: 'pulse 1s ease-in-out infinite',
+                '@keyframes pulse': {
+                  '0%': { transform: 'scale(1)' },
+                  '50%': { transform: 'scale(1.1)' },
+                  '100%': { transform: 'scale(1)' }
+                }
+              }} />
+            </Box>
 
-                  {/* Ubicación */}
-                  <Box sx={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: 0.5,
-                    color: '#888'
-                  }}>
-                    <LocationOn sx={{ fontSize: '1rem' }} />
-                    <Typography variant="caption" sx={{ 
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap'
-                    }}>
-                      {deal.location.address}
-                    </Typography>
-                  </Box>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </Box>
+            {/* Offer name */}
+            <Typography variant="h4" sx={{ 
+              color: '#ffeb3b', 
+              fontWeight: 'bold', 
+              mb: 2
+            }}>
+              {selectedOffer.name}
+            </Typography>
+
+            {/* Countdown timer - starts at 60 seconds */}
+            <ActivationCountdownTimer 
+              onComplete={handleActivationComplete}
+              duration={60}
+            />
+            
+            <Typography variant="body1" sx={{ 
+              color: '#bbb', 
+              mt: 3
+            }}>
+              Tu oferta se activará automáticamente
+            </Typography>
+          </DialogContent>
+        </Dialog>
       )}
+    </>
+  );
+}
+
+// Simple countdown timer component
+function ActivationCountdownTimer({ onComplete, duration }: { onComplete: () => void, duration: number }) {
+  const [timeLeft, setTimeLeft] = useState(duration);
+  
+  useEffect(() => {
+    if (timeLeft <= 0) {
+      onComplete();
+      return;
+    }
+    
+    const timer = setInterval(() => {
+      setTimeLeft(prev => {
+        if (prev <= 1) {
+          onComplete();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    
+    return () => clearInterval(timer);
+  }, [timeLeft, onComplete]);
+  
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+  
+  const progressPercentage = ((duration - timeLeft) / duration) * 100;
+  
+  return (
+    <Box>
+      <Typography variant="h2" sx={{ 
+        color: '#ffeb3b', 
+        fontWeight: 'bold',
+        fontFamily: 'monospace',
+        mb: 2,
+        textShadow: '0 0 10px #ffeb3b'
+      }}>
+        {formatTime(timeLeft)}
+      </Typography>
+      
+      <Box sx={{ 
+        width: '100%', 
+        height: 8, 
+        backgroundColor: '#333', 
+        borderRadius: 4,
+        overflow: 'hidden',
+        mb: 2
+      }}>
+        <Box sx={{ 
+          width: `${progressPercentage}%`, 
+          height: '100%', 
+          background: 'linear-gradient(90deg, #ffeb3b, #fff176)',
+          transition: 'width 0.3s ease',
+          borderRadius: 4
+        }} />
+      </Box>
+      
+      <Box sx={{ 
+        position: 'relative', 
+        display: 'inline-flex',
+        mb: 2
+      }}>
+        <CircularProgress
+          variant="determinate"
+          value={progressPercentage}
+          size={120}
+          thickness={4}
+          sx={{
+            color: '#ffeb3b',
+            '& .MuiCircularProgress-circle': {
+              strokeLinecap: 'round',
+            }
+          }}
+        />
+        <Box
+          sx={{
+            top: 0,
+            left: 0,
+            bottom: 0,
+            right: 0,
+            position: 'absolute',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Typography variant="h6" sx={{ 
+            color: '#ffeb3b', 
+            fontWeight: 'bold'
+          }}>
+            {Math.round(progressPercentage)}%
+          </Typography>
+        </Box>
+      </Box>
     </Box>
   );
 }
+
+// Componente para las ofertas flash con temporizador - ELIMINADO, ahora se usa FlashDealsWithBlocking
+
+
 
 // Componente para gestión de suscripciones
 function SubscriptionModal({ 
@@ -2470,6 +2538,8 @@ function App() {
   const [offers] = useState<Offer[]>(initialOffers);
   const [selectedTab, setSelectedTab] = useState(1);
   const [flashDeals, setFlashDeals] = useState<FlashDeal[]>(initialFlashDeals);
+  const [activatedFlashDeals, setActivatedFlashDeals] = useState<Set<string>>(new Set());
+  const [flashActivationTimes, setFlashActivationTimes] = useState<{[key: string]: Date}>({});
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -2777,7 +2847,7 @@ function App() {
     price: '',
     oldPrice: '',
     originalPrice: 0,
-    flashPrice: 0,
+    discountedPrice: 0,
     duration: 2, // horas
     maxQuantity: 20,
     image: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?auto=format&fit=crop&w=400&q=80'
@@ -3427,6 +3497,45 @@ function App() {
     }
   };
 
+  // Función para activar oferta Flash independientemente (como McDonald's)
+  const handleActivateFlashDeal = async (dealId: string) => {
+    const deal = flashDeals.find(d => d.id === dealId);
+    if (!deal) return;
+
+    // Simular el proceso de bloqueo con lightning
+    addNotification('info', '⚡ Bloqueando oferta... Espera 10 minutos para la activación.');
+    
+    // Después de 2 segundos, mostrar el modal de oferta bloqueada
+    setTimeout(() => {
+      // Aquí se mostraría el modal de oferta bloqueada
+      // Por ahora, activamos directamente después del lightning
+      const activationTime = new Date();
+      
+      setActivatedFlashDeals(prev => new Set([...prev, dealId]));
+      setFlashActivationTimes(prev => ({
+        ...prev,
+        [dealId]: activationTime
+      }));
+      
+      addNotification('success', '¡Oferta Flash activada! Tienes 15 minutos para usarla.');
+    }, 2000);
+    
+    // Auto-expirar después de 15 minutos
+    setTimeout(() => {
+      setActivatedFlashDeals(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(dealId);
+        return newSet;
+      });
+      setFlashActivationTimes(prev => {
+        const newTimes = { ...prev };
+        delete newTimes[dealId];
+        return newTimes;
+      });
+      addNotification('warning', 'Tu oferta Flash ha expirado.');
+    }, 15 * 60 * 1000);
+  };
+
   // Función para agregar nueva oferta flash
   const handleAddFlashDeal = async () => {
     if (!newFlashDeal.name || !newFlashDeal.address) {
@@ -3439,13 +3548,13 @@ function App() {
       const endTime = new Date(now.getTime() + newFlashDeal.duration * 60 * 60 * 1000);
       
       // Calcular el descuento automáticamente
-      const discountPercentage = Math.round(((newFlashDeal.originalPrice - newFlashDeal.flashPrice) / newFlashDeal.originalPrice) * 100);
+      const discountPercentage = Math.round(((newFlashDeal.originalPrice - newFlashDeal.discountedPrice) / newFlashDeal.originalPrice) * 100);
       
       const flashDealData: FlashDeal = {
         ...newFlashDeal,
         id: `flash_${Date.now()}`,
         discount: `${discountPercentage}% OFF`,
-        price: `CHF ${newFlashDeal.flashPrice}`,
+        price: `CHF ${newFlashDeal.discountedPrice}`,
         oldPrice: `CHF ${newFlashDeal.originalPrice}`,
         location: {
           lat: 46.2306,
@@ -3475,7 +3584,7 @@ function App() {
         price: '',
         oldPrice: '',
         originalPrice: 0,
-        flashPrice: 0,
+        discountedPrice: 0,
         duration: 2,
         maxQuantity: 20,
         image: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?auto=format&fit=crop&w=400&q=80'
@@ -3749,6 +3858,38 @@ function App() {
       level: userProfile.level,
       activatedOffersCount: userProfile.activatedOffers.length
     };
+  };
+
+  const handleFlashDealClick = async (deal: FlashDeal) => {
+    // Verificar si el usuario tiene suscripción activa
+    if (!checkSubscriptionStatus(userProfile)) {
+      setShowSubscriptionOverlay(true);
+      return;
+    }
+
+    // Registrar que el usuario vio esta oferta
+    await updateOffersViewed(deal.id, deal.category);
+
+    // Las ofertas flash se procesan directamente
+    
+    // Procesar pago por uso de oferta
+    if (currentUser && deal.price) {
+      const offerPrice = parseFloat(deal.price);
+      const usageCost = offerPrice * OFFER_USAGE_PERCENTAGE;
+      
+      try {
+        // Actualizar el perfil del usuario con el costo
+        await updateDoc(doc(db, 'users', currentUser.uid), {
+          totalSpent: arrayUnion(usageCost),
+          lastOfferUsed: Timestamp.now()
+        });
+        
+        addNotification('success', `Oferta flash utilizada! Costo: CHF ${usageCost.toFixed(2)}`);
+      } catch (error) {
+        console.error('Error updating user profile:', error);
+        addNotification('warning', 'Error al procesar el uso de la oferta');
+      }
+    }
   };
 
   const handleOfferClick = async (offer: Offer | FlashDeal) => {
@@ -4304,7 +4445,7 @@ function App() {
                 <Typography variant="h6" sx={{ 
                   fontSize: { xs: '0.9rem', sm: '1.25rem' },
                   whiteSpace: 'nowrap'
-                }}>FLASH</Typography>
+                }}><span style={{ color: '#ffeb3b !important' }}>FLASH</span></Typography>
               </Box>
               
               <Box sx={{ display: 'flex', gap: 0.5 }}>
@@ -4421,9 +4562,12 @@ function App() {
               />
             )}
             {selectedTab === 2 && (
-              <FlashDealsView 
+              <FlashDealsWithBlocking 
                 flashDeals={flashDeals} 
-                onOfferClick={handleOfferClick} 
+                onOfferClick={handleFlashDealClick}
+                activatedFlashDeals={activatedFlashDeals}
+                flashActivationTimes={flashActivationTimes}
+                onActivateFlashDeal={handleActivateFlashDeal}
               />
             )}
             {selectedTab === 3 && (
@@ -4433,9 +4577,36 @@ function App() {
                 overflow: 'auto',
                 width: '100%'
               }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: { xs: 2, sm: 3 } }}>
-                  <Person sx={{ mr: 1, fontSize: { xs: 18, sm: 24 } }} />
-                  <Typography variant="h5" sx={{ fontSize: { xs: '1.1rem', sm: '1.5rem' } }}>Profil</Typography>
+                {/* Header del perfil */}
+                <Box sx={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  mb: { xs: 3, sm: 4 },
+                  justifyContent: 'space-between'
+                }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Person sx={{ mr: 1, fontSize: { xs: 18, sm: 24 }, color: '#ffeb3b' }} />
+                    <Typography variant="h5" sx={{ 
+                      fontSize: { xs: '1.1rem', sm: '1.5rem' },
+                      color: '#ffeb3b',
+                      fontWeight: 'bold'
+                    }}>
+                      Mon Profil
+                    </Typography>
+                  </Box>
+                  
+                  {/* Estado de suscripción */}
+                  <Box sx={{
+                    px: 2,
+                    py: 1,
+                    borderRadius: 2,
+                    backgroundColor: checkSubscriptionStatus(userProfile) ? '#4caf50' : '#ff9800',
+                    color: 'white',
+                    fontSize: '0.75rem',
+                    fontWeight: 'bold'
+                  }}>
+                    {checkSubscriptionStatus(userProfile) ? '✅ Actif' : '⚠️ Expiré'}
+                  </Box>
                 </Box>
                 
                 {userProfile ? (
@@ -4444,75 +4615,80 @@ function App() {
                       {t('abonnementValableJusquau')} {userProfile.subscriptionEnd.toDate().toLocaleDateString()}
                     </Typography>
                     
+                    {/* Estadísticas simplificadas */}
                     <Box sx={{ 
-                      display: 'flex', 
+                      display: 'grid', 
+                      gridTemplateColumns: '1fr 1fr',
                       gap: { xs: 2, sm: 3 }, 
-                      mb: { xs: 3, sm: 4 },
-                      justifyContent: { xs: 'space-around', sm: 'flex-start' }
+                      mb: { xs: 3, sm: 4 }
                     }}>
-                      <Box sx={{ textAlign: 'center' }}>
+                      {/* Ofertas utilizadas */}
+                      <Box sx={{ 
+                        textAlign: 'center',
+                        p: 2,
+                        backgroundColor: '#333',
+                        borderRadius: 2,
+                        border: '1px solid #555'
+                      }}>
                         <Box sx={{
-                          width: { xs: 50, sm: 80 },
-                          height: { xs: 50, sm: 80 },
+                          width: { xs: 40, sm: 60 },
+                          height: { xs: 40, sm: 60 },
                           borderRadius: '50%',
                           bgcolor: '#ffeb3b',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
                           mx: 'auto',
-                          mb: { xs: 1, sm: 1 }
+                          mb: 1
                         }}>
-                          <ShoppingBag sx={{ fontSize: { xs: 24, sm: 40 }, color: 'white' }} />
+                          <ShoppingBag sx={{ fontSize: { xs: 20, sm: 30 }, color: 'white' }} />
                         </Box>
-                        <Typography variant="h4" fontWeight="bold" sx={{ fontSize: { xs: '1.2rem', sm: '2.125rem' } }}>
+                        <Typography variant="h5" fontWeight="bold" sx={{ 
+                          fontSize: { xs: '1.5rem', sm: '2rem' },
+                          color: '#ffeb3b'
+                        }}>
                           {userProfile.activatedOffers.length}
                         </Typography>
-                        <Typography variant="body2" sx={{ fontSize: { xs: '0.65rem', sm: '0.875rem' } }}>
-                          Offres utilisées
+                        <Typography variant="body2" sx={{ 
+                          fontSize: { xs: '0.7rem', sm: '0.875rem' },
+                          color: 'white'
+                        }}>
+                          Ofertas Usadas
                         </Typography>
                       </Box>
                       
-                      <Box sx={{ textAlign: 'center' }}>
+                      {/* Dinero ahorrado */}
+                      <Box sx={{ 
+                        textAlign: 'center',
+                        p: 2,
+                        backgroundColor: '#333',
+                        borderRadius: 2,
+                        border: '1px solid #555'
+                      }}>
                         <Box sx={{
-                          width: { xs: 50, sm: 80 },
-                          height: { xs: 50, sm: 80 },
+                          width: { xs: 40, sm: 60 },
+                          height: { xs: 40, sm: 60 },
                           borderRadius: '50%',
-                          bgcolor: '#ffeb3b',
+                          bgcolor: '#4caf50',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
                           mx: 'auto',
-                          mb: { xs: 0.5, sm: 1 }
+                          mb: 1
                         }}>
-                          <AttachMoney sx={{ fontSize: { xs: 24, sm: 40 }, color: 'white' }} />
+                          <AttachMoney sx={{ fontSize: { xs: 20, sm: 30 }, color: 'white' }} />
                         </Box>
-                        <Typography variant="h4" fontWeight="bold" sx={{ fontSize: { xs: '1.2rem', sm: '2.125rem' } }}>
-                          {userProfile.totalSaved.toFixed(2)}
-                        </Typography>
-                        <Typography variant="body2" sx={{ fontSize: { xs: '0.65rem', sm: '0.875rem' } }}>
-                          {t('francsEconomises')}
-                        </Typography>
-                      </Box>
-                  
-                      <Box sx={{ textAlign: 'center' }}>
-                        <Box sx={{
-                          width: { xs: 50, sm: 80 },
-                          height: { xs: 50, sm: 80 },
-                          borderRadius: '50%',
-                          bgcolor: '#ffeb3b',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          mx: 'auto',
-                          mb: { xs: 0.5, sm: 1 }
+                        <Typography variant="h5" fontWeight="bold" sx={{ 
+                          fontSize: { xs: '1.5rem', sm: '2rem' },
+                          color: '#4caf50'
                         }}>
-                          <Star sx={{ fontSize: { xs: 24, sm: 40 }, color: 'white' }} />
-                        </Box>
-                        <Typography variant="h4" fontWeight="bold" sx={{ fontSize: { xs: '1.2rem', sm: '2.125rem' } }}>
-                          {userProfile.points}
+                          CHF {userProfile.totalSaved.toFixed(2)}
                         </Typography>
-                        <Typography variant="body2" sx={{ fontSize: { xs: '0.65rem', sm: '0.875rem' } }}>
-                          Points (Niveau {userProfile.level})
+                        <Typography variant="body2" sx={{ 
+                          fontSize: { xs: '0.7rem', sm: '0.875rem' },
+                          color: 'white'
+                        }}>
+                          Dinero Ahorrado
                         </Typography>
                       </Box>
                     </Box>
@@ -5025,8 +5201,8 @@ function App() {
                   <TextField
                     label="Prix flash (CHF)"
                     type="number"
-                    value={newFlashDeal.flashPrice}
-                    onChange={(e) => setNewFlashDeal({...newFlashDeal, flashPrice: parseFloat(e.target.value) || 0})}
+                    value={newFlashDeal.discountedPrice}
+                    onChange={(e) => setNewFlashDeal({...newFlashDeal, discountedPrice: parseFloat(e.target.value) || 0})}
                     sx={{ flex: 1 }}
                   />
                 </Box>
@@ -5192,7 +5368,7 @@ function App() {
         bottom: 0,
         left: 0,
         right: 0,
-        bgcolor: '#ffeb3b',
+        bgcolor: '#1a1a1a',
         borderTop: '1px solid #333',
         zIndex: 1000
       }}>
@@ -5200,7 +5376,7 @@ function App() {
         {selectedTab === 1 && (
           <Box sx={{ 
             display: 'flex',
-            bgcolor: 'rgba(0,0,0,0.3)',
+            bgcolor: '#1a1a1a',
             px: 2,
             py: 1,
             gap: 1,
@@ -5208,7 +5384,7 @@ function App() {
             alignItems: 'center',
             borderBottom: '1px solid #333'
           }}>
-            <Typography variant="body2" sx={{ color: '#ffeb3b', mr: 1, fontSize: '0.8rem' }}>
+            <Typography variant="body2" sx={{ color: '#ffeb3b !important', mr: 1, fontSize: '0.8rem' }}>
               {t('filtros')}
             </Typography>
             <IconButton
@@ -5273,16 +5449,22 @@ function App() {
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              color: '#ffeb3b',
+              color: '#ffeb3b !important',
+              border: '2px solid #ffeb3b',
+              borderRadius: '8px',
+              margin: '4px',
+              backgroundColor: 'black',
               '&.Mui-selected': {
                 color: 'black !important',
+                backgroundColor: '#ffeb3b !important',
+                border: '2px solid #ffeb3b',
                 '& .MuiSvgIcon-root': {
                   color: 'black !important'
                 }
               },
               '& .MuiSvgIcon-root': {
                 fontSize: { xs: 18, sm: 20 },
-                color: '#ffeb3b',
+                color: '#ffeb3b !important',
                 display: 'block',
                 visibility: 'visible',
                 marginBottom: '2px'
@@ -5291,22 +5473,22 @@ function App() {
           }}
         >
           <Tab 
-            icon={<LocationOn sx={{ color: '#ffeb3b' }} />} 
+            icon={<LocationOn sx={{ color: '#ffeb3b !important' }} />} 
             label={t('carte')} 
             iconPosition="top"
           />
           <Tab 
-            icon={<Restaurant sx={{ color: '#ffeb3b' }} />} 
+            icon={<Restaurant sx={{ color: '#ffeb3b !important' }} />} 
             label={t('liste')} 
             iconPosition="top"
           />
           <Tab 
-            icon={<FlashOn sx={{ color: '#ffeb3b' }} />} 
+            icon={<FlashOn sx={{ color: '#ffeb3b !important' }} />} 
             label={t('flash')} 
             iconPosition="top"
           />
           <Tab 
-            icon={<Person sx={{ color: '#ffeb3b' }} />} 
+            icon={<Person sx={{ color: '#ffeb3b !important' }} />} 
             label={t('profil')} 
             iconPosition="top"
           />
