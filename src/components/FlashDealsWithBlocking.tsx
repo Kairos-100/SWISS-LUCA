@@ -12,8 +12,7 @@ import {
   AccessTime,
   Star,
   LocationOn,
-  CheckCircle,
-  FlashOn
+  CheckCircle
 } from '@mui/icons-material';
 import { ActivationCountdownModal } from './ActivationCountdownModal';
 import { BlockedOfferModal } from './BlockedOfferModal';
