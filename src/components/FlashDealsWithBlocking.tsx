@@ -511,7 +511,7 @@ export const FlashDealsWithBlocking: React.FC<FlashDealsWithBlockingProps> = ({
                   )}
 
                   {/* Botón de slide para activar oferta (solo si está disponible) */}
-                  {offerStatus === 'available' && (
+                  {(offerStatus === 'available' || (!isBlocked && offerStatus !== 'activated' && offerStatus !== 'used')) && (
                     <Box sx={{ mt: 2 }}>
                       <SlideToConfirmButton
                         onConfirm={() => handleStartCountdown(deal)}
