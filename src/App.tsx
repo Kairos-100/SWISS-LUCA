@@ -124,7 +124,7 @@ interface UserProfile {
   level: number;
   achievements: string[];
   subscriptionEnd: Timestamp;
-  subscriptionStatus: 'active' | 'expired' | 'cancelled' | 'pending';
+  subscriptionStatus: 'active' | 'expired' | 'cancelled' | 'pending' | 'trial';
   subscriptionPlan: 'monthly' | 'yearly' | 'none';
   paymentMethod?: string;
   lastPaymentDate?: Timestamp;
@@ -576,7 +576,29 @@ const checkSubscriptionStatus = (userProfile: UserProfile | null): boolean => {
   const now = new Date();
   const subscriptionEnd = userProfile.subscriptionEnd.toDate();
   
-  return userProfile.subscriptionStatus === 'active' && subscriptionEnd > now;
+  // Permitir acceso si está en período de prueba activo O si tiene suscripción activa
+  return (userProfile.subscriptionStatus === 'trial' && subscriptionEnd > now) || 
+         (userProfile.subscriptionStatus === 'active' && subscriptionEnd > now);
+};
+
+const checkTrialStatus = (userProfile: UserProfile | null): boolean => {
+  if (!userProfile) return false;
+  
+  const now = new Date();
+  const subscriptionEnd = userProfile.subscriptionEnd.toDate();
+  
+  return userProfile.subscriptionStatus === 'trial' && subscriptionEnd > now;
+};
+
+const getTrialDaysRemaining = (userProfile: UserProfile | null): number => {
+  if (!userProfile || userProfile.subscriptionStatus !== 'trial') return 0;
+  
+  const now = new Date();
+  const subscriptionEnd = userProfile.subscriptionEnd.toDate();
+  const diffTime = subscriptionEnd.getTime() - now.getTime();
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  
+  return Math.max(0, diffDays);
 };
 
 const calculateNextPaymentDate = (planType: 'monthly' | 'yearly'): Date => {
@@ -2141,6 +2163,187 @@ function ActivationCountdownTimer({ onComplete, duration }: { onComplete: () => 
 
 
 
+// Componente para gestión de prueba gratuita
+function TrialModal({ 
+  open, 
+  onClose, 
+  userProfile, 
+  setUserProfile, 
+  currentUser,
+  addNotification
+}: { 
+  open: boolean, 
+  onClose: () => void, 
+  userProfile: UserProfile | null, 
+  setUserProfile: React.Dispatch<React.SetStateAction<UserProfile | null>>, 
+  currentUser: User | null,
+  addNotification: (type: 'success' | 'info' | 'warning', message: string) => void
+}) {
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [cardDetails, setCardDetails] = useState({
+    cardNumber: '',
+    expiryDate: '',
+    cvv: '',
+    cardholderName: ''
+  });
+
+  const handleStartTrial = async () => {
+    if (!currentUser || !userProfile) return;
+    
+    setIsProcessing(true);
+    try {
+      const userRef = doc(db, 'users', currentUser.uid);
+      const trialEndDate = new Date();
+      trialEndDate.setDate(trialEndDate.getDate() + 7); // 7 días de prueba
+      
+      await updateDoc(userRef, {
+        subscriptionStatus: 'trial',
+        subscriptionEnd: Timestamp.fromDate(trialEndDate),
+        subscriptionPlan: 'none',
+        paymentMethod: 'card_on_file' // Indicar que tienen tarjeta registrada
+      });
+      
+      // Actualizar el perfil local
+      setUserProfile({
+        ...userProfile,
+        subscriptionStatus: 'trial',
+        subscriptionEnd: Timestamp.fromDate(trialEndDate),
+        subscriptionPlan: 'none'
+      });
+      
+      setShowTrialModal(false);
+      addNotification('success', '🎉 Essai gratuit de 7 jours activé!');
+    } catch (error) {
+      console.error('Error starting trial:', error);
+      addNotification('error', 'Erreur lors de l\'activation de l\'essai gratuit');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+      <DialogTitle sx={{ 
+        background: 'linear-gradient(135deg, #4caf50 0%, #66bb6a 100%)',
+        color: 'white',
+        textAlign: 'center',
+        py: 3
+      }}>
+        <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 1 }}>
+          🎉 Essai Gratuit
+        </Typography>
+        <Typography variant="h6">
+          7 jours d'accès complet à FLASH
+        </Typography>
+      </DialogTitle>
+      
+      <DialogContent sx={{ p: 4 }}>
+        <Box sx={{ textAlign: 'center', mb: 4 }}>
+          <Typography variant="h6" sx={{ mb: 2, color: '#4caf50' }}>
+            Commencez votre essai gratuit maintenant!
+          </Typography>
+          <Typography variant="body1" sx={{ mb: 3 }}>
+            Accédez à toutes les fonctionnalités de FLASH pendant 7 jours, 
+            puis choisissez votre plan d'abonnement.
+          </Typography>
+        </Box>
+
+        <Box sx={{ mb: 4 }}>
+          <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>
+            💳 Informations de carte requises
+          </Typography>
+          <Typography variant="body2" sx={{ mb: 3, color: 'text.secondary' }}>
+            Nous avons besoin de votre carte pour commencer l'essai gratuit. 
+            Vous ne serez pas facturé pendant la période d'essai.
+          </Typography>
+          
+          <Box sx={{ display: 'grid', gap: 2 }}>
+            <TextField
+              label="Numéro de carte"
+              value={cardDetails.cardNumber}
+              onChange={(e) => setCardDetails({...cardDetails, cardNumber: e.target.value})}
+              placeholder="1234 5678 9012 3456"
+              fullWidth
+            />
+            <Box sx={{ display: 'flex', gap: 2 }}>
+              <TextField
+                label="Date d'expiration"
+                value={cardDetails.expiryDate}
+                onChange={(e) => setCardDetails({...cardDetails, expiryDate: e.target.value})}
+                placeholder="MM/AA"
+                sx={{ flex: 1 }}
+              />
+              <TextField
+                label="CVV"
+                value={cardDetails.cvv}
+                onChange={(e) => setCardDetails({...cardDetails, cvv: e.target.value})}
+                placeholder="123"
+                sx={{ flex: 1 }}
+              />
+            </Box>
+            <TextField
+              label="Nom du titulaire"
+              value={cardDetails.cardholderName}
+              onChange={(e) => setCardDetails({...cardDetails, cardholderName: e.target.value})}
+              placeholder="Jean Dupont"
+              fullWidth
+            />
+          </Box>
+        </Box>
+
+        <Box sx={{ 
+          bgcolor: '#f5f5f5', 
+          p: 3, 
+          borderRadius: 2,
+          border: '1px solid #e0e0e0'
+        }}>
+          <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>
+            ✅ Ce qui est inclus dans votre essai:
+          </Typography>
+          <Box component="ul" sx={{ pl: 2, m: 0 }}>
+            <Typography component="li" sx={{ mb: 1 }}>
+              Accès complet à toutes les offres FLASH
+            </Typography>
+            <Typography component="li" sx={{ mb: 1 }}>
+              Activation illimitée d'offres
+            </Typography>
+            <Typography component="li" sx={{ mb: 1 }}>
+              Accès aux offres flash exclusives
+            </Typography>
+            <Typography component="li" sx={{ mb: 1 }}>
+              Support client prioritaire
+            </Typography>
+          </Box>
+        </Box>
+      </DialogContent>
+      
+      <DialogActions sx={{ p: 3, gap: 2 }}>
+        <Button 
+          onClick={onClose}
+          variant="outlined"
+          size="large"
+          sx={{ flex: 1 }}
+        >
+          Annuler
+        </Button>
+        <Button 
+          onClick={handleStartTrial}
+          variant="contained"
+          size="large"
+          disabled={isProcessing || !cardDetails.cardNumber || !cardDetails.expiryDate || !cardDetails.cvv || !cardDetails.cardholderName}
+          sx={{ 
+            flex: 1,
+            bgcolor: '#4caf50',
+            '&:hover': { bgcolor: '#45a049' }
+          }}
+        >
+          {isProcessing ? 'Activation...' : 'Commencer l\'essai gratuit'}
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+}
+
 // Componente para gestión de suscripciones
 function SubscriptionModal({ 
   open, 
@@ -2664,6 +2867,7 @@ function App() {
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const [showSubscriptionRequiredModal, setShowSubscriptionRequiredModal] = useState(false);
   const [showSubscriptionOverlay, setShowSubscriptionOverlay] = useState(false);
+  const [showTrialModal, setShowTrialModal] = useState(false);
   const [signupCredentials, setSignupCredentials] = useState({
     email: '',
     password: '',
@@ -3112,7 +3316,7 @@ function App() {
           level: 1,
           achievements: [],
           subscriptionEnd: Timestamp.fromDate(trialEndDate),
-          subscriptionStatus: 'pending', // Estado de prueba
+          subscriptionStatus: 'expired', // Sin acceso hasta que activen prueba o suscripción
           subscriptionPlan: 'none',
           totalPaid: 0,
           
@@ -3373,7 +3577,7 @@ function App() {
           level: 1,
           achievements: [],
           subscriptionEnd: Timestamp.fromDate(trialEndDate),
-          subscriptionStatus: 'pending', // Estado de prueba
+          subscriptionStatus: 'expired', // Sin acceso hasta que activen prueba o suscripción
           subscriptionPlan: 'none',
           totalPaid: 0,
           
@@ -4509,40 +4713,49 @@ function App() {
             touchAction: 'pan-y'
           }}
         >
-          {/* Banner de suscripción */}
-          {!checkSubscriptionStatus(userProfile) && userProfile && (
+          {/* Banner de suscripción - Solo mostrar si NO está en período de prueba */}
+          {!checkTrialStatus(userProfile) && !checkSubscriptionStatus(userProfile) && userProfile && (
             <Box sx={{ 
-              bgcolor: userProfile.subscriptionStatus === 'pending' ? '#ffeb3b' : '#ffeb3b', 
+              bgcolor: '#ffeb3b', 
               color: 'white', 
               textAlign: 'center', 
               py: 1,
               px: 2
             }}>
-              {userProfile.subscriptionStatus === 'pending' ? (
-                <Typography variant="body2">
-                  🎉 Période d'essai active - {Math.ceil((userProfile.subscriptionEnd.toDate().getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))} jours restants
-                  <Button 
-                    color="inherit" 
-                    size="small" 
-                    onClick={() => setShowSubscriptionModal(true)}
-                    sx={{ ml: 1, textDecoration: 'underline' }}
-                  >
-                    S'abonner maintenant
-                  </Button>
-                </Typography>
-              ) : (
-                <Typography variant="body2">
-                  ⚠️ {t('abonnementExpire')}
-                  <Button 
-                    color="inherit" 
-                    size="small" 
-                    onClick={() => setShowSubscriptionModal(true)}
-                    sx={{ ml: 1, textDecoration: 'underline' }}
-                  >
-                    {t('activer')}
-                  </Button>
-                </Typography>
-              )}
+              <Typography variant="body2">
+                🔒 Accès limité - Commencez votre essai gratuit de 7 jours
+                <Button 
+                  color="inherit" 
+                  size="small" 
+                  onClick={() => setShowTrialModal(true)}
+                  sx={{ ml: 1, textDecoration: 'underline' }}
+                >
+                  Essai gratuit
+                </Button>
+              </Typography>
+            </Box>
+          )}
+
+          {/* Banner de período de prueba activo */}
+          {checkTrialStatus(userProfile) && userProfile && (
+            <Box sx={{ 
+              bgcolor: '#4caf50', 
+              color: 'white', 
+              textAlign: 'center', 
+              py: 1,
+              px: 2
+            }}>
+              <Typography variant="body2">
+                🎉 Essai gratuit actif - {getTrialDaysRemaining(userProfile)} jours restants
+                <Button 
+                  color="inherit" 
+                  size="small" 
+                  onClick={() => setShowSubscriptionModal(true)}
+                  sx={{ ml: 1, textDecoration: 'underline' }}
+                >
+                  S'abonner maintenant
+                </Button>
+              </Typography>
             </Box>
           )}
 
@@ -4580,9 +4793,9 @@ function App() {
                   sx={{ 
                     minWidth: 40,
                     minHeight: 40,
-                    bgcolor: checkSubscriptionStatus(userProfile) ? 'rgba(76,175,80,0.2)' : 'rgba(255,193,7,0.2)'
+                    bgcolor: checkTrialStatus(userProfile) ? 'rgba(76,175,80,0.2)' : checkSubscriptionStatus(userProfile) ? 'rgba(76,175,80,0.2)' : 'rgba(255,193,7,0.2)'
                   }}
-                  title={checkSubscriptionStatus(userProfile) ? 'Abonnement Actif' : 'Activer l\'Abonnement'}
+                  title={checkTrialStatus(userProfile) ? 'Essai Gratuit Actif' : checkSubscriptionStatus(userProfile) ? 'Abonnement Actif' : 'Activer l\'Abonnement'}
                 >
                   <AttachMoney sx={{ fontSize: 18 }} />
                 </IconButton>
@@ -4726,12 +4939,12 @@ function App() {
                     px: 2,
                     py: 1,
                     borderRadius: 2,
-                    backgroundColor: checkSubscriptionStatus(userProfile) ? '#4caf50' : '#ff9800',
+                    backgroundColor: checkTrialStatus(userProfile) ? '#4caf50' : checkSubscriptionStatus(userProfile) ? '#4caf50' : '#ff9800',
                     color: 'white',
                     fontSize: '0.75rem',
                     fontWeight: 'bold'
                   }}>
-                    {checkSubscriptionStatus(userProfile) ? '✅ Actif' : '⚠️ Expiré'}
+                    {checkTrialStatus(userProfile) ? '🎉 Essai' : checkSubscriptionStatus(userProfile) ? '✅ Actif' : '⚠️ Expiré'}
                   </Box>
                 </Box>
                 
@@ -4911,7 +5124,7 @@ function App() {
                           
                           <Box sx={{ flex: 1, minWidth: 150, textAlign: 'center', p: 2, bgcolor: 'rgba(255,255,255,0.1)', borderRadius: 2 }}>
                             <Typography variant="h3" sx={{ fontWeight: 'bold', mb: 1 }}>
-                              {checkSubscriptionStatus(userProfile) ? 'Active' : 'Inactive'}
+                              {checkTrialStatus(userProfile) ? 'Essai' : checkSubscriptionStatus(userProfile) ? 'Active' : 'Inactive'}
                             </Typography>
                             <Typography variant="body2" sx={{ opacity: 0.9 }}>
                               {t('abonnement')}
@@ -5389,6 +5602,16 @@ function App() {
             userProfile={userProfile}
             setUserProfile={setUserProfile}
             currentUser={currentUser}
+          />
+
+          {/* Modal de Prueba Gratuita */}
+          <TrialModal 
+            open={showTrialModal} 
+            onClose={() => setShowTrialModal(false)}
+            userProfile={userProfile}
+            setUserProfile={setUserProfile}
+            currentUser={currentUser}
+            addNotification={addNotification}
           />
 
           {/* Modal de Suscripción Requerida */}
