@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next';
 import LanguageSelector from './components/LanguageSelector';
 import { FlashDealsWithBlocking } from './components/FlashDealsWithBlocking';
 import { SlideToConfirmButton } from './components/SlideToConfirmButton';
+import { BlockedOfferTimer } from './components/BlockedOfferTimer';
 import './i18n';
 import { 
   AppBar, 
@@ -116,6 +117,7 @@ interface UserProfile {
     paidAmount?: number; // Cantidad pagada por usar la oferta
     offerName?: string; // Nombre de la oferta para historial
     category?: string; // Categoría de la oferta
+    blockedUntil?: Timestamp; // Tiempo hasta que la oferta se desbloquee
   }[];
   totalSaved: number;
   points: number;
@@ -1177,7 +1179,7 @@ function MapView({ offers, selectedCategory, onOfferClick }: {
             />
             
             <TextField
-              label="Address"
+              label="Adresse"
               value={newOffer.address}
               onChange={(e) => setNewOffer({...newOffer, address: e.target.value})}
               fullWidth
@@ -1209,7 +1211,7 @@ function MapView({ offers, selectedCategory, onOfferClick }: {
 
             <Box sx={{ display: 'flex', gap: 2 }}>
               <TextField
-                label="Discount/Offer"
+                label="Réduction/Offre"
                 value={newOffer.discount}
                 onChange={(e) => setNewOffer({...newOffer, discount: e.target.value})}
                 fullWidth
@@ -1217,7 +1219,7 @@ function MapView({ offers, selectedCategory, onOfferClick }: {
               />
 
               <TextField
-                label="Price"
+                label="Prix"
                 value={newOffer.price}
                 onChange={(e) => setNewOffer({...newOffer, price: e.target.value})}
                 fullWidth
@@ -1247,14 +1249,14 @@ function MapView({ offers, selectedCategory, onOfferClick }: {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setShowAddModal(false)}>
-            Cancel
+            Annuler
           </Button>
           <Button 
             onClick={handleAddOffer}
             variant="contained"
             sx={{ bgcolor: '#ffeb3b', '&:hover': { bgcolor: '#45a049' } }}
           >
-            Add Offer
+            Ajouter Offre
           </Button>
         </DialogActions>
       </Dialog>
@@ -1306,7 +1308,7 @@ function MapView({ offers, selectedCategory, onOfferClick }: {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setShowLoginModal(false)}>
-            Cancel
+            Annuler
           </Button>
           <Button 
             onClick={handleLogin}
@@ -1436,6 +1438,30 @@ function OffersList({ offers, selectedCategory, selectedSubCategory, onOfferClic
   const [swipedOffers, setSwipedOffers] = useState<Set<string>>(new Set());
   const [explosions, setExplosions] = useState<Set<string>>(new Set());
 
+  // Función para limpiar ofertas expiradas del estado local
+  const cleanupExpiredOffers = () => {
+    if (!userProfile) return;
+    
+    const now = new Date();
+    const expiredOfferIds = userProfile.activatedOffers
+      .filter(ao => ao.blockedUntil && ao.blockedUntil.toDate() <= now)
+      .map(ao => ao.offerId);
+    
+    if (expiredOfferIds.length > 0) {
+      setSwipedOffers(prev => {
+        const newSet = new Set(prev);
+        expiredOfferIds.forEach(id => newSet.delete(id));
+        return newSet;
+      });
+    }
+  };
+
+  // Ejecutar limpieza cada minuto
+  useEffect(() => {
+    const interval = setInterval(cleanupExpiredOffers, 60000); // 60 segundos
+    return () => clearInterval(interval);
+  }, [userProfile]);
+
   const filteredOffers = offers.filter(offer => {
     if (selectedCategory !== 'all' && offer.category !== selectedCategory) return false;
     if (selectedSubCategory !== 'all' && offer.subCategory !== selectedSubCategory) return false;
@@ -1481,10 +1507,15 @@ function OffersList({ offers, selectedCategory, selectedSubCategory, onOfferClic
       try {
         if (currentUser && userProfile) {
           const userRef = doc(db, 'users', currentUser.uid);
+          // Calcular tiempo de bloqueo (15 minutos)
+          const blockedUntil = new Date();
+          blockedUntil.setMinutes(blockedUntil.getMinutes() + 15);
+          
           const newActivation = {
             offerId,
             activatedAt: Timestamp.now(),
-            savedAmount
+            savedAmount,
+            blockedUntil: Timestamp.fromDate(blockedUntil)
           };
 
           // Calcular puntos (10 puntos por oferta + 1 punto por cada CHF ahorrado)
@@ -1537,7 +1568,14 @@ function OffersList({ offers, selectedCategory, selectedSubCategory, onOfferClic
         width: '100%'
       }}>
         {filteredOffers.map((offer) => {
-          const isActivated = swipedOffers.has(offer.id);
+          // Verificar si la oferta está activada localmente (swiped)
+          const isSwiped = swipedOffers.has(offer.id);
+          
+          // Verificar si la oferta está bloqueada según el perfil del usuario
+          const activatedOffer = userProfile?.activatedOffers.find(ao => ao.offerId === offer.id);
+          const isBlocked = activatedOffer?.blockedUntil && activatedOffer.blockedUntil.toDate() > new Date();
+          
+          const isActivated = isSwiped || isBlocked;
           const isExploding = explosions.has(offer.id);
           
           return (
@@ -1649,26 +1687,64 @@ function OffersList({ offers, selectedCategory, selectedSubCategory, onOfferClic
                   />
                 )}
                 {isActivated && (
-                  <Box
-                    sx={{
-                      position: 'absolute',
-                      top: 8,
-                      left: 8,
-                      background: 'rgba(76, 175, 80, 0.95)',
-                      color: 'white',
-                      px: 1.5,
-                      py: 0.5,
-                      borderRadius: 2,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 0.5,
-                      fontWeight: 'bold',
-                      fontSize: '0.85rem'
-                    }}
-                  >
-                    <Lock sx={{ fontSize: 16 }} />
-                    ACTIVÉE
-                  </Box>
+                  <>
+                    {isBlocked && activatedOffer?.blockedUntil ? (
+                      <BlockedOfferTimer 
+                        blockedUntil={activatedOffer.blockedUntil}
+                        onExpire={() => {
+                          // Cuando expire el tiempo, remover de swipedOffers si está ahí
+                          setSwipedOffers(prev => {
+                            const newSet = new Set(prev);
+                            newSet.delete(offer.id);
+                            return newSet;
+                          });
+                        }}
+                      />
+                    ) : (
+                      <>
+                        <Box
+                          sx={{
+                            position: 'absolute',
+                            top: 8,
+                            left: 8,
+                            background: 'rgba(76, 175, 80, 0.95)',
+                            color: 'white',
+                            px: 1.5,
+                            py: 0.5,
+                            borderRadius: 2,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 0.5,
+                            fontWeight: 'bold',
+                            fontSize: '0.85rem'
+                          }}
+                        >
+                          <Lock sx={{ fontSize: 16 }} />
+                          ACTIVÉE
+                        </Box>
+                        {userProfile?.activatedOffers?.find(activation => 
+                          activation.offerId === offer.id && 
+                          activation.blockedUntil && 
+                          activation.blockedUntil.toDate() > new Date()
+                        )?.blockedUntil && (
+                          <BlockedOfferTimer
+                            blockedUntil={userProfile.activatedOffers.find(activation => 
+                              activation.offerId === offer.id && 
+                              activation.blockedUntil && 
+                              activation.blockedUntil.toDate() > new Date()
+                            )!.blockedUntil!}
+                            onExpire={() => {
+                              // Refresh user profile to update UI
+                              if (currentUser) {
+                                // Force re-render by updating state
+                                setUserProfile(prev => prev ? { ...prev } : null);
+                              }
+                            }}
+                          />
+                        )}
+                      </>
+                    )}
+                  </>
                 )}
                 <Box sx={{
                   position: 'absolute',
@@ -1729,7 +1805,7 @@ function OffersList({ offers, selectedCategory, selectedSubCategory, onOfferClic
                   <Box sx={{ mt: 2 }} onClick={(e) => e.stopPropagation()}>
                     <SlideToConfirmButton
                       onConfirm={() => handleSlideToActivate(offer)}
-                      text="Desliza para activar ⚡"
+                      text="Glisse pour activer ⚡"
                     />
                   </Box>
                 )}
@@ -1796,7 +1872,7 @@ function OffersList({ offers, selectedCategory, selectedSubCategory, onOfferClic
               color: '#bbb', 
               mt: 3
             }}>
-              Tu oferta se activará automáticamente
+              Votre offre s'activera automatiquement
             </Typography>
           </DialogContent>
         </Dialog>
@@ -4118,7 +4194,7 @@ function App() {
             setShowResetPasswordModal(false);
             setShowLoginModal(true);
           }}>
-            Cancel
+            Annuler
           </Button>
           <Button 
             onClick={handleResetPassword}
@@ -4846,7 +4922,7 @@ function App() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setShowAdminLoginModal(false)}>
-            Cancel
+            Annuler
           </Button>
           <Button 
             onClick={handleAdminLogin}
@@ -4892,7 +4968,7 @@ function App() {
                 />
                 
                 <TextField
-                  label="Address"
+                  label="Adresse"
                   value={newOffer.address}
                   onChange={(e) => setNewOffer({...newOffer, address: e.target.value})}
                   fullWidth
@@ -4934,7 +5010,7 @@ function App() {
 
                 <Box sx={{ display: 'flex', gap: 2 }}>
                   <TextField
-                    label="Discount/Offer"
+                    label="Réduction/Offre"
                     value={newOffer.discount}
                     onChange={(e) => setNewOffer({...newOffer, discount: e.target.value})}
                     fullWidth
@@ -4942,7 +5018,7 @@ function App() {
                   />
 
                   <TextField
-                    label="Price"
+                    label="Prix"
                     value={newOffer.price}
                     onChange={(e) => setNewOffer({...newOffer, price: e.target.value})}
                     fullWidth
@@ -4961,7 +5037,7 @@ function App() {
                 />
 
                 <TextField
-                  label="Rating"
+                  label="Note"
                   type="number"
                   value={newOffer.rating}
                   onChange={(e) => setNewOffer({...newOffer, rating: parseFloat(e.target.value)})}
@@ -4972,7 +5048,7 @@ function App() {
             </DialogContent>
             <DialogActions>
               <Button onClick={() => setShowAddModal(false)}>
-                Cancel
+                Annuler
               </Button>
               <Button 
                 onClick={handleAddOffer}
@@ -5293,14 +5369,14 @@ function App() {
               flexDirection: 'column',
               alignItems: 'center',
               color: '#ffeb3b !important',
-              border: '2px solid #ffeb3b',
+              border: '2px solid transparent',
               borderRadius: '8px',
               margin: '4px',
               backgroundColor: 'black',
               '&.Mui-selected': {
                 color: 'black !important',
                 backgroundColor: '#ffeb3b !important',
-                border: '2px solid #ffeb3b',
+                border: '2px solid transparent',
                 '& .MuiSvgIcon-root': {
                   color: 'black !important'
                 }
