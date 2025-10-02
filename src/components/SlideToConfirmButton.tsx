@@ -50,7 +50,7 @@ export const SlideToConfirmButton: React.FC<SlideToConfirmButtonProps> = ({
   const handleTouchEnd = () => {
     if (disabled) return;
 
-    const threshold = 200; // Umbral para confirmar (80% del ancho)
+    const threshold = 230; // Umbral para confirmar (92% del ancho - casi completo)
     
     // Si se deslizó más del umbral, confirmar
     if (slideState.translateX > threshold) {
@@ -115,7 +115,7 @@ export const SlideToConfirmButton: React.FC<SlideToConfirmButtonProps> = ({
   const handleMouseUp = () => {
     if (disabled) return;
 
-    const threshold = 200;
+    const threshold = 230; // Umbral para confirmar (92% del ancho - casi completo)
     
     if (slideState.translateX > threshold) {
       if (navigator.vibrate) {
@@ -173,7 +173,11 @@ export const SlideToConfirmButton: React.FC<SlideToConfirmButtonProps> = ({
           left: 0,
           right: 0,
           bottom: 0,
-          background: `linear-gradient(90deg, rgba(76, 175, 80, ${progressPercentage / 100}) 0%, rgba(76, 175, 80, 0) 100%)`,
+          background: progressPercentage > 92
+            ? `linear-gradient(90deg, rgba(76, 175, 80, ${progressPercentage / 100}) 0%, rgba(76, 175, 80, 0) 100%)`
+            : progressPercentage > 70
+            ? `linear-gradient(90deg, rgba(255, 152, 0, ${progressPercentage / 100}) 0%, rgba(255, 152, 0, 0) 100%)`
+            : `linear-gradient(90deg, rgba(255, 235, 59, ${progressPercentage / 100}) 0%, rgba(255, 235, 59, 0) 100%)`,
           transition: slideState.isSliding ? 'none' : 'background 0.3s ease'
         }}
       />
@@ -220,8 +224,10 @@ export const SlideToConfirmButton: React.FC<SlideToConfirmButtonProps> = ({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          background: progressPercentage > 80 
+          background: progressPercentage > 92 
             ? 'linear-gradient(135deg, #4caf50, #66bb6a)' 
+            : progressPercentage > 70
+            ? 'linear-gradient(135deg, #ff9800, #ffb74d)'
             : 'linear-gradient(135deg, #ffeb3b, #fff176)',
           borderRadius: 2,
           cursor: disabled ? 'not-allowed' : 'grab',
@@ -231,7 +237,7 @@ export const SlideToConfirmButton: React.FC<SlideToConfirmButtonProps> = ({
           }
         }}
       >
-        {progressPercentage > 80 ? (
+        {progressPercentage > 92 ? (
           <CheckCircle sx={{ color: 'white', fontSize: 32 }} />
         ) : (
           <ArrowForward sx={{ color: '#333', fontSize: 32 }} />
@@ -246,7 +252,11 @@ export const SlideToConfirmButton: React.FC<SlideToConfirmButtonProps> = ({
           left: 0,
           height: 4,
           width: `${progressPercentage}%`,
-          background: 'linear-gradient(90deg, #4caf50, #66bb6a)',
+          background: progressPercentage > 92
+            ? 'linear-gradient(90deg, #4caf50, #66bb6a)'
+            : progressPercentage > 70
+            ? 'linear-gradient(90deg, #ff9800, #ffb74d)'
+            : 'linear-gradient(90deg, #ffeb3b, #fff176)',
           transition: slideState.isSliding ? 'none' : 'width 0.3s ease'
         }}
       />
