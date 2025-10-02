@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { auth, db, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, sendPasswordResetEmail, GoogleAuthProvider, signInWithPopup } from './firebase';
 import type { User } from 'firebase/auth';
 import { doc, setDoc, getDoc, updateDoc, arrayUnion, Timestamp } from 'firebase/firestore';
@@ -710,10 +710,13 @@ const partnersData = [
   }
 ];
 
-function MapView({ offers, selectedCategory, onOfferClick }: { 
+function MapView({ offers, selectedCategory, onOfferClick, userLocation, getUserLocation, calculateDistance }: { 
   offers: Offer[], 
   selectedCategory: string, 
-  onOfferClick: (offer: Offer) => void 
+  onOfferClick: (offer: Offer) => void,
+  userLocation: {lat: number, lng: number} | null,
+  getUserLocation: () => void,
+  calculateDistance: (lat1: number, lng1: number, lat2: number, lng2: number) => number
 }) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
@@ -739,6 +742,60 @@ function MapView({ offers, selectedCategory, onOfferClick }: {
     oldPrice: ''
   });
 
+  // Location state for UI
+  const [locationError, setLocationError] = useState<string | null>(null);
+  const [isGettingLocation, setIsGettingLocation] = useState(false);
+
+  // Enhanced getUserLocation that also centers the map
+  const handleGetUserLocation = () => {
+    if (!navigator.geolocation) {
+      setLocationError('Geolocation is not supported by this browser.');
+      return;
+    }
+
+    setIsGettingLocation(true);
+    setLocationError(null);
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const location = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude
+        };
+        getUserLocation(); // Call the parent function
+        setIsGettingLocation(false);
+        
+        // Center map on user location
+        if (mapInstanceRef.current) {
+          mapInstanceRef.current.setCenter(location);
+          mapInstanceRef.current.setZoom(12);
+        }
+      },
+      (error) => {
+        setIsGettingLocation(false);
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            setLocationError('Location access denied by user.');
+            break;
+          case error.POSITION_UNAVAILABLE:
+            setLocationError('Location information is unavailable.');
+            break;
+          case error.TIMEOUT:
+            setLocationError('Location request timed out.');
+            break;
+          default:
+            setLocationError('An unknown error occurred.');
+            break;
+        }
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 300000 // 5 minutes
+      }
+    );
+  };
+
   // Función para abrir en Apple Maps (iOS) o Google Maps
   const openInNativeMaps = (lat: number, lng: number) => {
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
@@ -754,9 +811,29 @@ function MapView({ offers, selectedCategory, onOfferClick }: {
     }
   };
   
-  const filteredOffers = selectedCategory === 'all' 
-    ? offers 
-    : offers.filter(offer => offer.category === selectedCategory);
+  // Filter and sort offers by distance when user location is available
+  const filteredOffers = useMemo(() => {
+    let filtered = selectedCategory === 'all' 
+      ? offers 
+      : offers.filter(offer => offer.category === selectedCategory);
+
+    // Sort by distance if user location is available
+    if (userLocation) {
+      filtered = filtered
+        .map(offer => ({
+          ...offer,
+          distance: calculateDistance(
+            userLocation.lat, 
+            userLocation.lng, 
+            offer.location.lat, 
+            offer.location.lng
+          )
+        }))
+        .sort((a, b) => a.distance - b.distance);
+    }
+
+    return filtered;
+  }, [offers, selectedCategory, userLocation]);
 
   useEffect(() => {
     // Cargar Google Maps API
@@ -848,6 +925,7 @@ function MapView({ offers, selectedCategory, onOfferClick }: {
       });
 
       // Info window con información de la oferta
+      const distanceText = (offer as any).distance ? `📍 ${(offer as any).distance.toFixed(1)} km` : '';
       const infoWindow = new window.google.maps.InfoWindow({
         content: `
           <div style="padding: 10px; max-width: 200px;">
@@ -855,6 +933,7 @@ function MapView({ offers, selectedCategory, onOfferClick }: {
             <p style="margin: 0 0 5px 0; color: #e74c3c; font-weight: bold;">${offer.discount}</p>
             <p style="margin: 0 0 5px 0; color: #666; font-size: 12px;">${offer.description}</p>
             <p style="margin: 0; color: #999; font-size: 11px;">⭐ ${offer.rating} • ${offer.location.address}</p>
+            ${distanceText ? `<p style="margin: 5px 0 0 0; color: #4caf50; font-size: 11px; font-weight: bold;">${distanceText}</p>` : ''}
           </div>
         `
       });
@@ -867,6 +946,13 @@ function MapView({ offers, selectedCategory, onOfferClick }: {
       markersRef.current.push(marker);
     });
   }, [filteredOffers, onOfferClick, mapLoaded]);
+
+  // Auto-request location when map loads
+  useEffect(() => {
+    if (mapLoaded && !userLocation && !locationError) {
+      handleGetUserLocation();
+    }
+  }, [mapLoaded]);
 
   // (Eliminado) Lógica de búsqueda de lugares y handlers
 
@@ -980,6 +1066,45 @@ function MapView({ offers, selectedCategory, onOfferClick }: {
             gap: { xs: 1, sm: 1 },
             minWidth: { xs: '100px', sm: '120px' }
       }}>
+        {/* Location button */}
+        <Button
+          variant="contained"
+          onClick={handleGetUserLocation}
+          disabled={isGettingLocation}
+          sx={{
+            bgcolor: userLocation ? '#4caf50' : '#ffeb3b',
+            color: userLocation ? 'white' : '#333',
+            minWidth: { xs: '80px', sm: '100px' },
+            height: { xs: '36px', sm: '40px' },
+            fontSize: { xs: '10px', sm: '12px' },
+            '&:hover': {
+              bgcolor: userLocation ? '#45a049' : '#fbc02d',
+            },
+            '&:disabled': {
+              bgcolor: '#ccc',
+              color: '#666'
+            }
+          }}
+        >
+          {isGettingLocation ? '📍' : userLocation ? '📍' : '📍'}
+          {isGettingLocation ? 'Getting...' : userLocation ? 'Located' : 'My Location'}
+        </Button>
+
+        {/* Location error display */}
+        {locationError && (
+          <Box sx={{
+            bgcolor: 'rgba(244, 67, 54, 0.9)',
+            color: 'white',
+            p: 1,
+            borderRadius: 1,
+            fontSize: '10px',
+            textAlign: 'center',
+            maxWidth: '120px'
+          }}>
+            {locationError}
+          </Box>
+        )}
+
         {/* Debug info - Solo en desktop */}
         <Box sx={{
           display: { xs: 'none', sm: 'block' },
@@ -1423,7 +1548,7 @@ function MapView({ offers, selectedCategory, onOfferClick }: {
   );
 }
 
-function OffersList({ offers, selectedCategory, selectedSubCategory, onOfferClick, currentUser, userProfile, setUserProfile, addNotification }: {
+function OffersList({ offers, selectedCategory, selectedSubCategory, onOfferClick, currentUser, userProfile, setUserProfile, addNotification, userLocation, calculateDistance }: {
   offers: Offer[],
   selectedCategory: string,
   selectedSubCategory: string,
@@ -1431,7 +1556,9 @@ function OffersList({ offers, selectedCategory, selectedSubCategory, onOfferClic
   currentUser: User | null,
   userProfile: UserProfile | null,
   setUserProfile: React.Dispatch<React.SetStateAction<UserProfile | null>>,
-  addNotification: (type: 'success' | 'info' | 'warning', message: string) => void
+  addNotification: (type: 'success' | 'info' | 'warning', message: string) => void,
+  userLocation: {lat: number, lng: number} | null,
+  calculateDistance: (lat1: number, lng1: number, lat2: number, lng2: number) => number
 }) {
   const [showActivationModal, setShowActivationModal] = useState(false);
   const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null);
@@ -1462,11 +1589,30 @@ function OffersList({ offers, selectedCategory, selectedSubCategory, onOfferClic
     return () => clearInterval(interval);
   }, [userProfile]);
 
-  const filteredOffers = offers.filter(offer => {
-    if (selectedCategory !== 'all' && offer.category !== selectedCategory) return false;
-    if (selectedSubCategory !== 'all' && offer.subCategory !== selectedSubCategory) return false;
-    return true;
-  });
+  const filteredOffers = useMemo(() => {
+    let filtered = offers.filter(offer => {
+      if (selectedCategory !== 'all' && offer.category !== selectedCategory) return false;
+      if (selectedSubCategory !== 'all' && offer.subCategory !== selectedSubCategory) return false;
+      return true;
+    });
+
+    // Sort by distance if user location is available
+    if (userLocation) {
+      filtered = filtered
+        .map(offer => ({
+          ...offer,
+          distance: calculateDistance(
+            userLocation.lat, 
+            userLocation.lng, 
+            offer.location.lat, 
+            offer.location.lng
+          )
+        }))
+        .sort((a, b) => a.distance - b.distance);
+    }
+
+    return filtered;
+  }, [offers, selectedCategory, selectedSubCategory, userLocation, calculateDistance]);
 
   const handleSlideToActivate = (offer: Offer) => {
     // Vibrate if available
@@ -1787,6 +1933,15 @@ function OffersList({ offers, selectedCategory, selectedSubCategory, onOfferClic
                     <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}>
                       {offer.location.address}
                     </Typography>
+                    {(offer as any).distance && (
+                      <Typography variant="body2" color="primary" sx={{ 
+                        fontSize: { xs: '0.7rem', sm: '0.875rem' },
+                        fontWeight: 'bold',
+                        ml: 1
+                      }}>
+                        📍 {(offer as any).distance.toFixed(1)} km
+                      </Typography>
+                    )}
                   </Box>
                   {offer.price && offer.oldPrice && (
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -2540,6 +2695,54 @@ function App() {
   });
   
   const [isLoading, setIsLoading] = useState(false);
+  
+  // User location state for distance-based sorting
+  const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null);
+  
+  // Distance calculation function using Haversine formula
+  const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: number): number => {
+    const R = 6371; // Earth's radius in kilometers
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLng = (lng2 - lng1) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+              Math.sin(dLng/2) * Math.sin(dLng/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c; // Distance in kilometers
+  };
+
+  // Get user's current location
+  const getUserLocation = () => {
+    if (!navigator.geolocation) {
+      console.error('Geolocation is not supported by this browser.');
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const location = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude
+        };
+        setUserLocation(location);
+      },
+      (error) => {
+        console.error('Error getting location:', error);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 300000 // 5 minutes
+      }
+    );
+  };
+
+  // Auto-request location when user enters map view
+  useEffect(() => {
+    if (selectedTab === 0 && !userLocation) {
+      getUserLocation();
+    }
+  }, [selectedTab]);
   
   // Estados para funcionalidad de swipe estilo Instagram
   const [isDragging, setIsDragging] = useState(false);
@@ -4465,7 +4668,10 @@ function App() {
               <MapView 
                 offers={offers} 
                 selectedCategory={selectedCategory} 
-                onOfferClick={handleOfferClick} 
+                onOfferClick={handleOfferClick}
+                userLocation={userLocation}
+                getUserLocation={getUserLocation}
+                calculateDistance={calculateDistance}
               />
             )}
             {selectedTab === 1 && (
@@ -4478,6 +4684,8 @@ function App() {
                 userProfile={userProfile}
                 setUserProfile={setUserProfile}
                 addNotification={addNotification}
+                userLocation={userLocation}
+                calculateDistance={calculateDistance}
               />
             )}
             {selectedTab === 2 && (
@@ -5295,56 +5503,63 @@ function App() {
         {selectedTab === 1 && (
           <Box sx={{ 
             display: 'flex',
+            flexDirection: 'column',
             bgcolor: '#1a1a1a',
             px: 2,
             py: 1,
             gap: 1,
-            justifyContent: 'center',
             alignItems: 'center',
             borderBottom: '1px solid #333'
           }}>
-            <Typography variant="body2" sx={{ color: '#ffeb3b !important', mr: 1, fontSize: '0.8rem' }}>
+            <Typography variant="body2" sx={{ color: '#ffeb3b !important', fontSize: '0.8rem', mb: 1 }}>
               {t('filtros')}
             </Typography>
-            <IconButton
-              onClick={() => setSelectedCategory(selectedCategory === 'restaurants' ? 'all' : 'restaurants')}
-              sx={{
-                bgcolor: selectedCategory === 'restaurants' ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.1)',
-                minWidth: 40,
-                minHeight: 40,
-                color: 'white',
-                fontSize: '18px',
-                border: '1px solid rgba(255,255,255,0.2)'
-              }}
-            >
-              <Restaurant sx={{ fontSize: 20, color: '#ffeb3b' }} />
-            </IconButton>
-            <IconButton
-              onClick={() => setSelectedCategory(selectedCategory === 'bars' ? 'all' : 'bars')}
-              sx={{
-                bgcolor: selectedCategory === 'bars' ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.1)',
-                minWidth: 40,
-                minHeight: 40,
-                color: 'white',
-                fontSize: '18px',
-                border: '1px solid rgba(255,255,255,0.2)'
-              }}
-            >
-              <LocalBar sx={{ fontSize: 20, color: '#ffeb3b' }} />
-            </IconButton>
-            <IconButton
-              onClick={() => setSelectedCategory(selectedCategory === 'shops' ? 'all' : 'shops')}
-              sx={{
-                bgcolor: selectedCategory === 'shops' ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.1)',
-                minWidth: 40,
-                minHeight: 40,
-                color: 'white',
-                fontSize: '18px',
-                border: '1px solid rgba(255,255,255,0.2)'
-              }}
-            >
-              <Store sx={{ fontSize: 20, color: '#ffeb3b' }} />
-            </IconButton>
+            <Box sx={{
+              display: 'flex',
+              gap: 1,
+              justifyContent: 'center',
+              alignItems: 'center'
+            }}>
+              <IconButton
+                onClick={() => setSelectedCategory(selectedCategory === 'restaurants' ? 'all' : 'restaurants')}
+                sx={{
+                  bgcolor: selectedCategory === 'restaurants' ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.1)',
+                  minWidth: 40,
+                  minHeight: 40,
+                  color: 'white',
+                  fontSize: '18px',
+                  border: '1px solid rgba(255,255,255,0.2)'
+                }}
+              >
+                <Restaurant sx={{ fontSize: 20, color: '#ffeb3b' }} />
+              </IconButton>
+              <IconButton
+                onClick={() => setSelectedCategory(selectedCategory === 'bars' ? 'all' : 'bars')}
+                sx={{
+                  bgcolor: selectedCategory === 'bars' ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.1)',
+                  minWidth: 40,
+                  minHeight: 40,
+                  color: 'white',
+                  fontSize: '18px',
+                  border: '1px solid rgba(255,255,255,0.2)'
+                }}
+              >
+                <LocalBar sx={{ fontSize: 20, color: '#ffeb3b' }} />
+              </IconButton>
+              <IconButton
+                onClick={() => setSelectedCategory(selectedCategory === 'shops' ? 'all' : 'shops')}
+                sx={{
+                  bgcolor: selectedCategory === 'shops' ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.1)',
+                  minWidth: 40,
+                  minHeight: 40,
+                  color: 'white',
+                  fontSize: '18px',
+                  border: '1px solid rgba(255,255,255,0.2)'
+                }}
+              >
+                <Store sx={{ fontSize: 20, color: '#ffeb3b' }} />
+              </IconButton>
+            </Box>
           </Box>
         )}
 
