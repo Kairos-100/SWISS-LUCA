@@ -4626,7 +4626,41 @@ function App() {
             mx: { xs: 0, sm: 'auto' },
             pb: { xs: 15, sm: 15 } // Padding inferior para la navegación fija
           }}>
-
+            {/* Category Filters */}
+            {selectedCategory !== 'all' && currentCategory && (
+              <Box sx={{ mb: { xs: 2, sm: 2 } }}>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
+                  Subcategories
+                </Typography>
+                <Box sx={{ 
+                  display: 'flex', 
+                  gap: { xs: 1, sm: 1 }, 
+                  flexWrap: 'wrap',
+                  overflowX: 'auto',
+                  pb: 1,
+                  '&::-webkit-scrollbar': { display: 'none' },
+                  scrollbarWidth: 'none'
+                }}>
+                  <Chip
+                    label="All"
+                    onClick={() => setSelectedSubCategory('all')}
+                    color={selectedSubCategory === 'all' ? 'primary' : 'default'}
+                    size="small"
+                    sx={{ fontSize: { xs: '0.75rem', sm: '0.8125rem' } }}
+                  />
+                  {currentCategory.subCategories.map((subCat) => (
+                    <Chip
+                      key={subCat}
+                      label={subCat}
+                      onClick={() => setSelectedSubCategory(subCat)}
+                      color={selectedSubCategory === subCat ? 'primary' : 'default'}
+                      size="small"
+                      sx={{ fontSize: { xs: '0.75rem', sm: '0.8125rem' } }}
+                    />
+                  ))}
+                </Box>
+              </Box>
+            )}
 
             {/* Tab Content */}
             {selectedTab === 0 && (
