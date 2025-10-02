@@ -4962,23 +4962,6 @@ function App() {
                                   </Typography>
                                 </Box>
                                 
-                                <Box sx={{ p: 2, bgcolor: 'rgba(255,255,255,0.1)', borderRadius: 2 }}>
-                                  <Typography variant="body2" sx={{ opacity: 0.8, mb: 1 }}>
-                                    Gasto mensual actual
-                                  </Typography>
-                                  <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                                    CHF {stats.monthlyExpense.toFixed(2)}
-                                  </Typography>
-                                </Box>
-                                
-                                <Box sx={{ p: 2, bgcolor: 'rgba(255,255,255,0.1)', borderRadius: 2 }}>
-                                  <Typography variant="body2" sx={{ opacity: 0.8, mb: 1 }}>
-                                    Total suscripciones
-                                  </Typography>
-                                  <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                                    CHF {stats.totalSubscriptions.toFixed(2)}
-                                  </Typography>
-                                </Box>
                               </Box>
                               
                               {stats.favoriteCategories.length > 0 && (
