@@ -2211,11 +2211,11 @@ function TrialModal({
         subscriptionPlan: 'none'
       });
       
-      setShowTrialModal(false);
+      onClose();
       addNotification('success', '🎉 Essai gratuit de 7 jours activé!');
     } catch (error) {
       console.error('Error starting trial:', error);
-      addNotification('error', 'Erreur lors de l\'activation de l\'essai gratuit');
+      addNotification('warning', 'Erreur lors de l\'activation de l\'essai gratuit');
     } finally {
       setIsProcessing(false);
     }
@@ -3167,11 +3167,9 @@ function App() {
       const isSubscriptionActive = checkSubscriptionStatus(userProfile);
       
       if (!isSubscriptionActive) {
-        // Mostrar modal después de 1 segundo para usuarios sin suscripción
-        const timer = setTimeout(() => {
-          setShowSubscriptionOverlay(true);
-        }, 1000);
-        return () => clearTimeout(timer);
+        // Ya no mostramos el modal automáticamente - el usuario puede navegar libremente
+        // Solo ocultamos el overlay si existe
+        setShowSubscriptionOverlay(false);
       } else {
         // Ocultar modal si tiene suscripción activa
         setShowSubscriptionOverlay(false);
@@ -4208,11 +4206,8 @@ function App() {
   };
 
   const handleFlashDealClick = async (deal: FlashDeal) => {
-    // Verificar si el usuario tiene suscripción activa
-    if (!checkSubscriptionStatus(userProfile)) {
-      setShowSubscriptionOverlay(true);
-      return;
-    }
+    // Ya no verificamos suscripción aquí - el usuario puede hacer clic libremente
+    // El bloqueo individual de ofertas se maneja en el componente de la oferta
 
     // Registrar que el usuario vio esta oferta
     await updateOffersViewed(deal.id, deal.category);
@@ -4240,11 +4235,8 @@ function App() {
   };
 
   const handleOfferClick = async (offer: Offer | FlashDeal) => {
-    // Verificar si el usuario tiene suscripción activa
-    if (!checkSubscriptionStatus(userProfile)) {
-      setShowSubscriptionOverlay(true);
-      return;
-    }
+    // Ya no verificamos suscripción aquí - el usuario puede hacer clic libremente
+    // El bloqueo individual de ofertas se maneja en el componente de la oferta
 
     // Registrar que el usuario vio esta oferta
     await updateOffersViewed(offer.id, offer.category);
@@ -5677,8 +5669,7 @@ function App() {
                   size="large"
                   onClick={() => {
                     setShowSubscriptionOverlay(false);
-                    // Reaparecer después de 5 segundos
-                    setTimeout(() => setShowSubscriptionOverlay(true), 5000);
+                    // Ya no reaparece automáticamente - el usuario puede navegar libremente
                   }}
                   sx={{
                     px: 4,
