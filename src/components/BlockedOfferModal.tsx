@@ -134,7 +134,7 @@ export const BlockedOfferModal: React.FC<BlockedOfferModalProps> = ({
             left: 0,
             right: 0,
             bottom: 0,
-            background: 'linear-gradient(45deg, #ffeb3b, #fff176, #ffeb3b)',
+            background: 'linear-gradient(45deg, #1976d2, #42a5f5, #1976d2)',
             opacity: 0.3,
             zIndex: 1,
             animation: 'lightning 0.5s ease-in-out'
@@ -151,7 +151,7 @@ export const BlockedOfferModal: React.FC<BlockedOfferModalProps> = ({
           p: 2,
           background: 'linear-gradient(135deg, #2d2d2d 0%, #1a1a1a 100%)'
         }}>
-          <Typography variant="h6" sx={{ color: '#ffeb3b', fontWeight: 'bold' }}>
+          <Typography variant="h6" sx={{ color: '#1976d2', fontWeight: 'bold' }}>
             {offer.name}
           </Typography>
           {isActivated && (
@@ -182,7 +182,7 @@ export const BlockedOfferModal: React.FC<BlockedOfferModalProps> = ({
               alignItems: 'center',
               justifyContent: 'center'
             }}>
-              <LocalOffer sx={{ fontSize: 60, color: '#ffeb3b', opacity: 0.5 }} />
+              <LocalOffer sx={{ fontSize: 60, color: '#1976d2', opacity: 0.5 }} />
             </Box>
           )}
           
@@ -196,7 +196,7 @@ export const BlockedOfferModal: React.FC<BlockedOfferModalProps> = ({
             p: 2
           }}>
             <Typography variant="h5" sx={{ 
-              color: '#ffeb3b', 
+              color: '#1976d2', 
               fontWeight: 'bold',
               mb: 0.5
             }}>
@@ -311,7 +311,7 @@ export const BlockedOfferModal: React.FC<BlockedOfferModalProps> = ({
                 {/* Temporizador */}
                 <Box sx={{ textAlign: 'center', mb: 3 }}>
                   <Typography variant="h4" sx={{ 
-                    color: '#ffeb3b', 
+                    color: '#1976d2', 
                     fontWeight: 'bold',
                     fontFamily: 'monospace',
                     mb: 1
@@ -332,7 +332,7 @@ export const BlockedOfferModal: React.FC<BlockedOfferModalProps> = ({
                         borderRadius: 4,
                         backgroundColor: '#333',
                         '& .MuiLinearProgress-bar': {
-                          background: 'linear-gradient(90deg, #ffeb3b, #fff176)',
+                          background: 'linear-gradient(90deg, #1976d2, #42a5f5)',
                           borderRadius: 4
                         }
                       }}
@@ -350,13 +350,13 @@ export const BlockedOfferModal: React.FC<BlockedOfferModalProps> = ({
                     onClick={handleActivateNow}
                     startIcon={<FlashOn />}
                     sx={{
-                      borderColor: '#ffeb3b',
-                      color: '#ffeb3b',
+                      borderColor: '#1976d2',
+                      color: '#1976d2',
                       px: 3,
                       py: 1,
                       '&:hover': {
-                        borderColor: '#fff176',
-                        backgroundColor: 'rgba(255, 235, 59, 0.1)'
+                        borderColor: '#42a5f5',
+                        backgroundColor: 'rgba(25, 118, 210, 0.1)'
                       }
                     }}
                   >
@@ -391,16 +391,16 @@ export const BlockedOfferModal: React.FC<BlockedOfferModalProps> = ({
 
                 {/* Información de la oferta activada */}
                 <Card sx={{ 
-                  background: 'rgba(255, 235, 59, 0.1)',
-                  border: '1px solid #ffeb3b',
+                  background: 'rgba(25, 118, 210, 0.1)',
+                  border: '1px solid #1976d2',
                   mb: 3
                 }}>
                   <CardContent>
-                    <Typography variant="h6" sx={{ color: '#ffeb3b', mb: 1 }}>
+                    <Typography variant="h6" sx={{ color: '#1976d2', mb: 1 }}>
                       {offer.name}
                     </Typography>
                     <Typography variant="h4" sx={{ 
-                      color: '#ffeb3b', 
+                      color: '#1976d2', 
                       fontWeight: 'bold',
                       mb: 1
                     }}>
@@ -434,7 +434,7 @@ export const BlockedOfferModal: React.FC<BlockedOfferModalProps> = ({
                   background: 'rgba(255, 255, 255, 0.05)',
                   borderRadius: 2
                 }}>
-                  <AccessTime sx={{ color: '#ffeb3b' }} />
+                  <AccessTime sx={{ color: '#1976d2' }} />
                   <Typography variant="body2" sx={{ color: 'white' }}>
                     Tiempo de uso: 10 minutos
                   </Typography>

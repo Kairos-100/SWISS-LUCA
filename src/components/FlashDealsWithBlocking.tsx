@@ -151,8 +151,8 @@ export const FlashDealsWithBlocking: React.FC<FlashDealsWithBlockingProps> = ({
                   transition: 'all 0.3s ease',
                   '&:hover': {
                     transform: canScroll ? 'translateY(-4px)' : 'none',
-                    boxShadow: canScroll ? '0 8px 25px rgba(255, 107, 53, 0.3)' : 'none',
-                    borderColor: canScroll ? '#ffeb3b' : '#333'
+                    boxShadow: canScroll ? '0 8px 25px rgba(25, 118, 210, 0.3)' : 'none',
+                    borderColor: canScroll ? '#1976d2' : '#333'
                   }
                 }}
                 onClick={() => {
@@ -166,15 +166,15 @@ export const FlashDealsWithBlocking: React.FC<FlashDealsWithBlockingProps> = ({
                   position: 'absolute',
                   top: 12,
                   right: 12,
-                  background: 'linear-gradient(45deg, #ffeb3b, #fff176)',
-                  color: '#333',
+                  background: 'linear-gradient(45deg, #1976d2, #42a5f5)',
+                  color: 'white',
                   px: 2,
                   py: 0.5,
                   borderRadius: 2,
                   fontWeight: 'bold',
                   fontSize: '0.875rem',
                   zIndex: 2,
-                  boxShadow: '0 2px 8px rgba(255, 107, 53, 0.4)'
+                  boxShadow: '0 2px 8px rgba(25, 118, 210, 0.4)'
                 }}>
                   {deal.discount}
                 </Box>
@@ -346,8 +346,8 @@ export const FlashDealsWithBlocking: React.FC<FlashDealsWithBlockingProps> = ({
                       justifyContent: 'center'
                     }}>
                       <Box sx={{ 
-                        background: 'rgba(255, 215, 0, 0.9)',
-                        color: '#333',
+                        background: 'rgba(25, 118, 210, 0.9)',
+                        color: 'white',
                         px: 1.5,
                         py: 0.5,
                         borderRadius: 1,
@@ -362,8 +362,8 @@ export const FlashDealsWithBlocking: React.FC<FlashDealsWithBlockingProps> = ({
                         </Typography>
                       </Box>
                       <Box sx={{ 
-                        background: 'rgba(255, 215, 0, 0.9)',
-                        color: '#333',
+                        background: 'rgba(25, 118, 210, 0.9)',
+                        color: 'white',
                         px: 1.5,
                         py: 0.5,
                         borderRadius: 1,
@@ -378,8 +378,8 @@ export const FlashDealsWithBlocking: React.FC<FlashDealsWithBlockingProps> = ({
                         </Typography>
                       </Box>
                       <Box sx={{ 
-                        background: 'rgba(255, 215, 0, 0.9)',
-                        color: '#333',
+                        background: 'rgba(25, 118, 210, 0.9)',
+                        color: 'white',
                         px: 1.5,
                         py: 0.5,
                         borderRadius: 1,
@@ -421,7 +421,7 @@ export const FlashDealsWithBlocking: React.FC<FlashDealsWithBlockingProps> = ({
                   {/* Precios */}
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
                     <Typography variant="h5" sx={{ 
-                      color: '#ffeb3b', 
+                      color: '#1976d2', 
                       fontWeight: 'bold' 
                     }}>
                       CHF {deal.discountedPrice}
@@ -438,7 +438,7 @@ export const FlashDealsWithBlocking: React.FC<FlashDealsWithBlockingProps> = ({
                   {offerStatus === 'blocked' && !canScroll && (
                     <Box sx={{ mb: 2 }}>
                       <Typography variant="h6" sx={{ 
-                        color: '#ffeb3b', 
+                        color: '#1976d2', 
                         fontWeight: 'bold',
                         fontFamily: 'monospace',
                         textAlign: 'center',
@@ -455,7 +455,7 @@ export const FlashDealsWithBlocking: React.FC<FlashDealsWithBlockingProps> = ({
                           borderRadius: 3,
                           backgroundColor: '#333',
                           '& .MuiLinearProgress-bar': {
-                            background: 'linear-gradient(90deg, #ffeb3b, #fff176)',
+                            background: 'linear-gradient(90deg, #1976d2, #42a5f5)',
                             borderRadius: 3
                           }
                         }}
@@ -465,7 +465,7 @@ export const FlashDealsWithBlocking: React.FC<FlashDealsWithBlockingProps> = ({
 
                   {/* Rating y ubicación */}
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 2 }}>
-                    <Star sx={{ color: '#ffeb3b', fontSize: '1rem' }} />
+                    <Star sx={{ color: '#1976d2', fontSize: '1rem' }} />
                     <Typography variant="body2" sx={{ color: '#bbb' }}>
                       {deal.rating}
                     </Typography>
@@ -487,7 +487,7 @@ export const FlashDealsWithBlocking: React.FC<FlashDealsWithBlockingProps> = ({
                         <Typography variant="caption" sx={{ color: '#888' }}>
                           Vendu : {deal.soldQuantity || 0} / {deal.maxQuantity}
                         </Typography>
-                        <Typography variant="caption" sx={{ color: '#ffeb3b', fontWeight: 'bold' }}>
+                        <Typography variant="caption" sx={{ color: '#1976d2', fontWeight: 'bold' }}>
                           {Math.round(progressPercentage)}% vendu
                         </Typography>
                       </Box>
@@ -501,7 +501,7 @@ export const FlashDealsWithBlocking: React.FC<FlashDealsWithBlockingProps> = ({
                         <Box sx={{ 
                           width: `${Math.min(progressPercentage, 100)}%`, 
                           height: '100%', 
-                          background: 'linear-gradient(90deg, #ffeb3b, #fff176)',
+                          background: 'linear-gradient(90deg, #1976d2, #42a5f5)',
                           transition: 'width 0.3s ease'
                         }} />
                       </Box>
@@ -513,7 +513,7 @@ export const FlashDealsWithBlocking: React.FC<FlashDealsWithBlockingProps> = ({
                     <Box sx={{ mt: 2 }}>
                       <SlideToConfirmButton
                         onConfirm={() => handleStartCountdown(deal)}
-                        text="Desliza para activar ⚡"
+                        text="Desliza para activar"
                       />
                     </Box>
                   )}
