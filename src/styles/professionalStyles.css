@@ -1,0 +1,334 @@
+/* Estilos profesionales para la aplicación FLASH */
+
+/* Fuentes profesionales */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+/* Variables CSS para consistencia */
+:root {
+  --primary-gold: #FFD700;
+  --primary-gold-light: #FFF176;
+  --primary-gold-dark: #F57F17;
+  --secondary-blue: #2196F3;
+  --background-dark: #0F0F0F;
+  --background-paper: #1A1A1A;
+  --text-primary: #FFFFFF;
+  --text-secondary: #B0B0B0;
+  --border-subtle: rgba(255, 255, 255, 0.1);
+  --shadow-soft: 0 8px 32px rgba(0, 0, 0, 0.3);
+  --shadow-strong: 0 12px 40px rgba(0, 0, 0, 0.4);
+  --gradient-gold: linear-gradient(135deg, #FFD700 0%, #FFA000 100%);
+  --gradient-dark: linear-gradient(145deg, #1A1A1A 0%, #2A2A2A 100%);
+}
+
+/* Mejoras globales */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--background-dark);
+  color: var(--text-primary);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Animaciones suaves */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.4);
+  }
+  70% {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 10px rgba(255, 215, 0, 0);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(255, 215, 0, 0);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: calc(200px + 100%) 0;
+  }
+}
+
+/* Estilos para tarjetas profesionales */
+.professional-card {
+  background: var(--gradient-dark);
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;
+  box-shadow: var(--shadow-soft);
+  backdrop-filter: blur(10px);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: fadeInUp 0.6s ease-out;
+}
+
+.professional-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-strong);
+  border-color: rgba(255, 215, 0, 0.3);
+}
+
+/* Botones profesionales */
+.professional-button {
+  background: var(--gradient-gold);
+  border: none;
+  border-radius: 12px;
+  color: #000000;
+  font-weight: 600;
+  padding: 12px 24px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: none;
+  text-transform: none;
+  font-family: 'Inter', sans-serif;
+}
+
+.professional-button:hover {
+  background: linear-gradient(135deg, #FFA000 0%, #FF8F00 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(255, 107, 53, 0.3);
+}
+
+.professional-button:active {
+  transform: translateY(0);
+}
+
+/* Botón secundario */
+.professional-button-secondary {
+  background: transparent;
+  border: 2px solid var(--primary-gold);
+  border-radius: 12px;
+  color: var(--primary-gold);
+  font-weight: 600;
+  padding: 10px 22px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  text-transform: none;
+  font-family: 'Inter', sans-serif;
+}
+
+.professional-button-secondary:hover {
+  background: rgba(255, 215, 0, 0.1);
+  border-color: #FFA000;
+  transform: translateY(-2px);
+}
+
+/* Iconos con efectos profesionales */
+.professional-icon {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+}
+
+.professional-icon:hover {
+  transform: scale(1.1);
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+}
+
+/* Badges y chips profesionales */
+.professional-badge {
+  background: rgba(255, 215, 0, 0.1);
+  color: var(--primary-gold);
+  border: 1px solid rgba(255, 215, 0, 0.3);
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  backdrop-filter: blur(10px);
+}
+
+.professional-badge:hover {
+  background: rgba(255, 215, 0, 0.2);
+  border-color: rgba(255, 215, 0, 0.5);
+}
+
+/* Efectos de carga profesionales */
+.professional-skeleton {
+  background: linear-gradient(90deg, #2A2A2A 25%, #3A3A3A 50%, #2A2A2A 75%);
+  background-size: 200px 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 8px;
+}
+
+/* Notificaciones profesionales */
+.professional-notification {
+  background: var(--gradient-dark);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  backdrop-filter: blur(20px);
+  box-shadow: var(--shadow-soft);
+  animation: slideInRight 0.4s ease-out;
+}
+
+/* Modal profesional */
+.professional-modal {
+  background: var(--gradient-dark);
+  border: 1px solid var(--border-subtle);
+  border-radius: 20px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(20px);
+}
+
+/* Pestañas profesionales */
+.professional-tab {
+  border-radius: 12px;
+  margin: 0 4px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  text-transform: none;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+}
+
+.professional-tab.active {
+  background: var(--gradient-gold);
+  color: #000000;
+  box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+}
+
+.professional-tab:hover {
+  background: rgba(255, 215, 0, 0.1);
+}
+
+/* Header profesional */
+.professional-header {
+  background: var(--gradient-dark);
+  border-bottom: 1px solid var(--border-subtle);
+  backdrop-filter: blur(20px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+/* Efectos de hover para elementos interactivos */
+.interactive-element {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+}
+
+.interactive-element:hover {
+  transform: translateY(-2px);
+}
+
+/* Mejoras para móviles */
+@media (max-width: 768px) {
+  .professional-card {
+    margin: 8px;
+    border-radius: 12px;
+  }
+  
+  .professional-button {
+    padding: 14px 20px;
+    font-size: 0.9rem;
+  }
+  
+  .professional-tab {
+    margin: 0 2px;
+    padding: 8px 12px;
+  }
+}
+
+/* Efectos de glassmorphism */
+.glass-effect {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Gradientes profesionales */
+.gradient-text {
+  background: var(--gradient-gold);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 600;
+}
+
+/* Efectos de pulso para elementos importantes */
+.pulse-effect {
+  animation: pulse 2s infinite;
+}
+
+/* Mejoras para accesibilidad */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Estilos para estados de carga */
+.loading-state {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* Efectos de profundidad */
+.depth-1 {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.depth-2 {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+.depth-3 {
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+/* Estilos para alertas profesionales */
+.professional-alert {
+  border-radius: 12px;
+  border: 1px solid var(--border-subtle);
+  backdrop-filter: blur(10px);
+  font-family: 'Inter', sans-serif;
+}
+
+.professional-alert.success {
+  background: rgba(76, 175, 80, 0.1);
+  border-color: rgba(76, 175, 80, 0.3);
+  color: #4CAF50;
+}
+
+.professional-alert.error {
+  background: rgba(244, 67, 54, 0.1);
+  border-color: rgba(244, 67, 54, 0.3);
+  color: #F44336;
+}
+
+.professional-alert.warning {
+  background: rgba(255, 152, 0, 0.1);
+  border-color: rgba(255, 152, 0, 0.3);
+  color: #FF9800;
+}
+
+.professional-alert.info {
+  background: rgba(33, 150, 243, 0.1);
+  border-color: rgba(33, 150, 243, 0.3);
+  color: #2196F3;
+}

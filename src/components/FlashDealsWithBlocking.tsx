@@ -8,12 +8,10 @@ import {
   LinearProgress
 } from '@mui/material';
 import {
-  Lock,
-  AccessTime,
   Star,
-  LocationOn,
   CheckCircle
 } from '@mui/icons-material';
+import { LocationIcon, LockIcon, TimeIcon } from './ProfessionalIcons';
 import { ActivationCountdownModal } from './ActivationCountdownModal';
 import { BlockedOfferModal } from './BlockedOfferModal';
 import { ScrollBlockWrapper } from './ScrollBlockWrapper';
@@ -197,7 +195,7 @@ export const FlashDealsWithBlocking: React.FC<FlashDealsWithBlockingProps> = ({
                     gap: 0.5,
                     zIndex: 2
                   }}>
-                    <Lock sx={{ fontSize: 16 }} />
+                    <LockIcon sx={{ fontSize: 16 }} />
                     <Typography variant="caption" sx={{ fontWeight: 'bold' }}>
                       BLOQUEADA
                     </Typography>
@@ -337,7 +335,7 @@ export const FlashDealsWithBlocking: React.FC<FlashDealsWithBlockingProps> = ({
                       color: 'white',
                       mb: 1
                     }}>
-                      <AccessTime sx={{ fontSize: '1rem' }} />
+                      <TimeIcon sx={{ fontSize: '1rem' }} />
                       <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
                         Temps restant :
                       </Typography>
@@ -471,7 +469,7 @@ export const FlashDealsWithBlocking: React.FC<FlashDealsWithBlockingProps> = ({
                     <Typography variant="body2" sx={{ color: '#bbb' }}>
                       {deal.rating}
                     </Typography>
-                    <LocationOn sx={{ color: '#888', fontSize: '1rem', ml: 1 }} />
+                    <LocationIcon sx={{ color: '#888', fontSize: '1rem', ml: 1 }} />
                     <Typography variant="body2" sx={{ color: '#888' }}>
                       {deal.location.address}
                     </Typography>

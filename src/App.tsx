@@ -38,20 +38,14 @@ import {
   Snackbar,
   Alert
 } from '@mui/material';
-import { ThemeProvider, createTheme } from '@mui/material/styles';
+import { ThemeProvider } from '@mui/material/styles';
 import { 
-  LocationOn, 
-  Restaurant, 
-  LocalBar, 
-  BakeryDining, 
-  ShoppingBag, 
   AttachMoney,
   Person,
   Star,
   Phone,
   Directions,
   Close,
-  MyLocation,
   Add,
   ContentCut,
   Store,
@@ -66,9 +60,23 @@ import {
   AccessTime,
   FlashOn,
   AccountBalanceWallet,
-  MonetizationOn,
-  Lock
+  MonetizationOn
 } from '@mui/icons-material';
+import { 
+  MapIcon,
+  RestaurantIcon,
+  BarIcon,
+  BakeryIcon,
+  ShopIcon,
+  ListIcon,
+  FlashIcon,
+  ProfileIcon,
+  LocationIcon,
+  MyLocationIcon,
+  LockIcon
+} from './components/ProfessionalIcons';
+import professionalTheme from './theme/professionalTheme';
+import './styles/professionalStyles.css';
 import './App.css';
 
 // Declaraciones de tipos para Google Maps
@@ -257,25 +265,25 @@ const categories: Category[] = [
   {
     id: 'restaurants',
     name: 'Restaurants',
-    icon: <Restaurant />,
+    icon: <RestaurantIcon sx={{ fontSize: 28 }} />,
     subCategories: ['Vegan', 'Grill', 'Salad', 'Pizza', 'Fastfood', 'Italien', 'Chinois', 'Japonais', 'Indien', 'Mexicain', 'Français']
   },
   {
     id: 'bars',
     name: 'Bars',
-    icon: <LocalBar />,
+    icon: <BarIcon sx={{ fontSize: 28 }} />,
     subCategories: ['Cocktails', 'Beers', 'Wines', 'Coffee', 'Tea', 'Pubs', 'Clubs', 'Lounge']
   },
   {
     id: 'bakeries',
     name: 'Bakeries',
-    icon: <BakeryDining />,
+    icon: <BakeryIcon sx={{ fontSize: 28 }} />,
     subCategories: ['Bread', 'Pastries', 'Sandwiches', 'Croissants', 'Cakes', 'Pies']
   },
   {
     id: 'shops',
     name: 'Shops',
-    icon: <Store />,
+    icon: <ShopIcon sx={{ fontSize: 28 }} />,
     subCategories: ['Clothing', 'Shoes', 'Accessories', 'Electronics', 'Home', 'Toys', 'Books', 'Music']
   },
   {
@@ -935,7 +943,7 @@ function MapView({ offers, selectedCategory, onOfferClick, userLocation, getUser
         icon: {
           url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
             <svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="20" cy="20" r="18" fill="${offer.isNew ? '#ffeb3b' : '#ffeb3b'}" stroke="white" stroke-width="2"/>
+              <circle cx="20" cy="20" r="18" fill="${offer.isNew ? '#2196f3' : '#2196f3'}" stroke="white" stroke-width="2"/>
               <text x="20" y="25" text-anchor="middle" fill="white" font-size="16" font-weight="bold">
                 ${offer.category === 'restaurants' ? '🍽️' : offer.category === 'bars' ? '🍷' : '🥖'}
               </text>
@@ -1085,8 +1093,8 @@ function MapView({ offers, selectedCategory, onOfferClick, userLocation, getUser
         zIndex: 9999,
         display: 'flex',
         flexDirection: 'column',
-            gap: { xs: 1, sm: 1 },
-            minWidth: { xs: '100px', sm: '120px' }
+        gap: { xs: 2, sm: 1 }, // Aumentado el gap en móvil de 1 a 2
+        minWidth: { xs: '100px', sm: '120px' }
       }}>
         {/* Location button */}
         <Button
@@ -1117,11 +1125,13 @@ function MapView({ offers, selectedCategory, onOfferClick, userLocation, getUser
           <Box sx={{
             bgcolor: 'rgba(244, 67, 54, 0.9)',
             color: 'white',
-            p: 1,
+            p: { xs: 1.5, sm: 1 }, // Aumentado el padding en móvil
             borderRadius: 1,
-            fontSize: '10px',
+            fontSize: { xs: '9px', sm: '10px' }, // Reducido ligeramente el tamaño de fuente en móvil
             textAlign: 'center',
-            maxWidth: '120px'
+            maxWidth: { xs: '140px', sm: '120px' }, // Aumentado el ancho máximo en móvil
+            lineHeight: 1.2, // Añadido line-height para mejor legibilidad
+            wordWrap: 'break-word' // Añadido para manejar texto largo
           }}>
             {locationError}
           </Box>
@@ -1145,7 +1155,7 @@ function MapView({ offers, selectedCategory, onOfferClick, userLocation, getUser
             display: 'flex',
             alignItems: 'center',
             gap: { xs: 1, sm: 1 },
-            bgcolor: '#ffeb3b',
+            bgcolor: '#2196f3',
             color: 'white',
             borderRadius: { xs: 1, sm: 2 },
             px: { xs: 2, sm: 2 },
@@ -1175,7 +1185,7 @@ function MapView({ offers, selectedCategory, onOfferClick, userLocation, getUser
             display: 'flex',
             alignItems: 'center',
             gap: { xs: 1, sm: 1 },
-            bgcolor: '#ffeb3b',
+            bgcolor: '#2196f3',
             color: 'white',
             borderRadius: { xs: 1, sm: 2 },
             px: { xs: 2, sm: 2 },
@@ -1229,7 +1239,7 @@ function MapView({ offers, selectedCategory, onOfferClick, userLocation, getUser
             }
           }}
                   >
-            <MyLocation sx={{ fontSize: { xs: 18, sm: 24 } }} />
+            <MyLocationIcon sx={{ fontSize: { xs: 18, sm: 24 } }} />
           </IconButton>
       </Box>
 
@@ -1269,7 +1279,7 @@ function MapView({ offers, selectedCategory, onOfferClick, userLocation, getUser
                   width: 40,
                   height: 40,
                   borderRadius: '50%',
-                  bgcolor: offer.isNew ? '#ffeb3b' : '#ffeb3b',
+                  bgcolor: offer.isNew ? '#2196f3' : '#2196f3',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -1401,7 +1411,7 @@ function MapView({ offers, selectedCategory, onOfferClick, userLocation, getUser
           <Button 
             onClick={handleAddOffer}
             variant="contained"
-            sx={{ bgcolor: '#ffeb3b', '&:hover': { bgcolor: '#45a049' } }}
+            sx={{ bgcolor: '#2196f3', '&:hover': { bgcolor: '#1976d2' } }}
           >
             Ajouter Offre
           </Button>
@@ -1460,7 +1470,7 @@ function MapView({ offers, selectedCategory, onOfferClick, userLocation, getUser
           <Button 
             onClick={handleLogin}
             variant="contained"
-            sx={{ bgcolor: '#ffeb3b', '&:hover': { bgcolor: '#1976d2' } }}
+            sx={{ bgcolor: '#2196f3', '&:hover': { bgcolor: '#1565c0' } }}
           >
             Sign in
           </Button>
@@ -1481,12 +1491,18 @@ function MapView({ offers, selectedCategory, onOfferClick, userLocation, getUser
         overflowY: 'auto'
       }}>
         <Typography variant="h6" sx={{ 
-          color: '#ffeb3b', 
-          mb: 2, 
-          fontWeight: 'bold',
-          textAlign: 'center'
+          background: 'linear-gradient(135deg, #FFD700 0%, #FFA000 100%)',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          backgroundClip: 'text',
+          mb: 3, 
+          fontWeight: 700,
+          textAlign: 'center',
+          fontSize: { xs: '1.5rem', sm: '2rem' },
+          fontFamily: 'Inter, sans-serif',
+          letterSpacing: '-0.02em'
         }}>
-          🤝 Nuestros Socios
+          Nuestros Socios
         </Typography>
         
         <Box sx={{ 
@@ -1498,19 +1514,23 @@ function MapView({ offers, selectedCategory, onOfferClick, userLocation, getUser
           {partnersData.map((partner) => (
             <Box
               key={partner.id}
+              className="professional-card interactive-element"
               sx={{
-                minWidth: '120px',
-                backgroundColor: '#333',
-                borderRadius: 2,
-                p: 1.5,
+                minWidth: '140px',
+                background: 'linear-gradient(145deg, #1A1A1A 0%, #2A2A2A 100%)',
+                borderRadius: 3,
+                p: 2,
                 textAlign: 'center',
-                border: '1px solid #555',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
                 cursor: 'pointer',
-                transition: 'all 0.3s ease',
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
+                backdropFilter: 'blur(10px)',
                 '&:hover': {
-                  backgroundColor: '#444',
-                  borderColor: '#ffeb3b',
-                  transform: 'translateY(-2px)'
+                  background: 'linear-gradient(145deg, #2A2A2A 0%, #3A3A3A 100%)',
+                  borderColor: 'rgba(255, 215, 0, 0.3)',
+                  transform: 'translateY(-4px)',
+                  boxShadow: '0 12px 40px rgba(0, 0, 0, 0.4)'
                 }
               }}
               onClick={() => {
@@ -1531,14 +1551,20 @@ function MapView({ offers, selectedCategory, onOfferClick, userLocation, getUser
               </Typography>
               <Typography variant="body2" sx={{ 
                 color: 'white', 
-                fontWeight: 'bold',
-                mb: 0.5
+                fontWeight: 600,
+                mb: 0.5,
+                fontSize: '0.9rem',
+                fontFamily: 'Inter, sans-serif'
               }}>
                 {partner.name}
               </Typography>
               <Typography variant="caption" sx={{ 
-                color: '#ffeb3b',
-                fontWeight: 'bold'
+                background: 'linear-gradient(135deg, #FFD700 0%, #FFA000 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+                fontWeight: 700,
+                fontSize: '0.8rem'
               }}>
                 {partner.discount}
               </Typography>
@@ -1731,7 +1757,8 @@ function OffersList({ offers, selectedCategory, selectedSubCategory, onOfferClic
   return (
     <>
       <Box sx={{ 
-        height: { xs: 'calc(100vh - 120px)', sm: '70vh' }, 
+        height: { xs: 'calc(100vh - 120px)', sm: '70vh' },
+        mb: 3, 
         overflow: 'auto',
         width: '100%'
       }}>
@@ -1752,7 +1779,7 @@ function OffersList({ offers, selectedCategory, selectedSubCategory, onOfferClic
             className="offer-card"
             sx={{
               position: 'relative',
-              mb: { xs: 2, sm: 2 },
+              mb: { xs: 3, sm: 4 },
               overflow: 'visible',
               borderRadius: { xs: 1, sm: 2 }
             }}
@@ -1801,8 +1828,8 @@ function OffersList({ offers, selectedCategory, selectedSubCategory, onOfferClic
               >
                 <FlashOn sx={{ 
                   fontSize: { xs: 200, sm: 300, md: 400 },
-                  color: '#ffeb3b',
-                  filter: 'drop-shadow(0 0 20px #ffeb3b) drop-shadow(0 0 40px #ffeb3b) drop-shadow(0 0 60px #ffeb3b)',
+                  color: '#2196f3',
+                  filter: 'drop-shadow(0 0 20px #2196f3) drop-shadow(0 0 40px #2196f3) drop-shadow(0 0 60px #2196f3)',
                   width: '100vw',
                   height: '100vh',
                   objectFit: 'contain'
@@ -1887,7 +1914,7 @@ function OffersList({ offers, selectedCategory, selectedSubCategory, onOfferClic
                             fontSize: '0.85rem'
                           }}
                         >
-                          <Lock sx={{ fontSize: 16 }} />
+                          <LockIcon sx={{ fontSize: 16 }} />
                           ACTIVÉE
                         </Box>
                         {userProfile?.activatedOffers?.find(activation => 
@@ -1951,7 +1978,7 @@ function OffersList({ offers, selectedCategory, selectedSubCategory, onOfferClic
                 </Typography>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <LocationOn sx={{ fontSize: '1rem', color: '#888' }} />
+                    <LocationIcon sx={{ fontSize: '1rem', color: '#888' }} />
                     <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}>
                       {offer.location.address}
                     </Typography>
@@ -2019,8 +2046,8 @@ function OffersList({ offers, selectedCategory, selectedSubCategory, onOfferClic
             <Box sx={{ mb: 3 }}>
               <FlashOn sx={{ 
                 fontSize: 80, 
-                color: '#ffeb3b',
-                filter: 'drop-shadow(0 0 20px #ffeb3b)',
+                color: '#2196f3',
+                filter: 'drop-shadow(0 0 20px #2196f3)',
                 animation: 'pulse 1s ease-in-out infinite',
                 '@keyframes pulse': {
                   '0%': { transform: 'scale(1)' },
@@ -2032,7 +2059,7 @@ function OffersList({ offers, selectedCategory, selectedSubCategory, onOfferClic
 
             {/* Offer name */}
             <Typography variant="h4" sx={{ 
-              color: '#ffeb3b', 
+              color: '#2196f3', 
               fontWeight: 'bold', 
               mb: 2
             }}>
@@ -2092,11 +2119,11 @@ function ActivationCountdownTimer({ onComplete, duration }: { onComplete: () => 
   return (
     <Box>
       <Typography variant="h2" sx={{ 
-        color: '#ffeb3b', 
+        color: '#2196f3', 
         fontWeight: 'bold',
         fontFamily: 'monospace',
         mb: 2,
-        textShadow: '0 0 10px #ffeb3b'
+        textShadow: '0 0 10px #2196f3'
       }}>
         {formatTime(timeLeft)}
       </Typography>
@@ -2112,7 +2139,7 @@ function ActivationCountdownTimer({ onComplete, duration }: { onComplete: () => 
         <Box sx={{ 
           width: `${progressPercentage}%`, 
           height: '100%', 
-          background: 'linear-gradient(90deg, #ffeb3b, #fff176)',
+          background: 'linear-gradient(90deg, #2196f3, #1976d2)',
           transition: 'width 0.3s ease',
           borderRadius: 4
         }} />
@@ -2129,7 +2156,7 @@ function ActivationCountdownTimer({ onComplete, duration }: { onComplete: () => 
           size={120}
           thickness={4}
           sx={{
-            color: '#ffeb3b',
+            color: '#2196f3',
             '& .MuiCircularProgress-circle': {
               strokeLinecap: 'round',
             }
@@ -2148,7 +2175,7 @@ function ActivationCountdownTimer({ onComplete, duration }: { onComplete: () => 
           }}
         >
           <Typography variant="h6" sx={{ 
-            color: '#ffeb3b', 
+            color: '#2196f3', 
             fontWeight: 'bold'
           }}>
             {Math.round(progressPercentage)}%
@@ -2434,7 +2461,7 @@ function SubscriptionModal({
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle sx={{ 
-        background: 'linear-gradient(135deg, #ffeb3b 0%, #fff176 100%)',
+        background: 'linear-gradient(135deg, #2196f3 0%, #1976d2 100%)',
         color: '#333',
         textAlign: 'center',
         py: 3
@@ -2536,7 +2563,7 @@ function SubscriptionModal({
             variant="contained"
             disabled={isProcessing}
             sx={{
-              background: 'linear-gradient(135deg, #ffeb3b 0%, #fff176 100%)',
+              background: 'linear-gradient(135deg, #2196f3 0%, #1976d2 100%)',
               '&:hover': {
                 background: 'linear-gradient(135deg, #fbc02d 0%, #fbc02d 100%)',
               }
@@ -2600,7 +2627,7 @@ function SubscriptionRequiredModal({
       }}
     >
       <DialogTitle sx={{ 
-        background: 'linear-gradient(135deg, #ffeb3b 0%, #fff176 100%)',
+        background: 'linear-gradient(135deg, #2196f3 0%, #1976d2 100%)',
         color: '#333',
         textAlign: 'center',
         py: 4,
@@ -2693,7 +2720,7 @@ function SubscriptionRequiredModal({
           variant="contained"
           size="large"
           sx={{
-            background: 'linear-gradient(135deg, #ffeb3b 0%, #fff176 100%)',
+            background: 'linear-gradient(135deg, #2196f3 0%, #1976d2 100%)',
             px: 6,
             py: 1.5,
             fontSize: '1.1rem',
@@ -3206,91 +3233,7 @@ function App() {
     image: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?auto=format&fit=crop&w=400&q=80'
   });
 
-  const theme = createTheme({
-    palette: {
-      mode: 'dark',
-      primary: {
-        main: '#111',
-        contrastText: '#fff',
-      },
-      secondary: {
-        main: '#888',
-        contrastText: '#fff',
-      },
-      background: {
-        default: '#222',
-        paper: '#111',
-      },
-      text: {
-        primary: '#fff',
-        secondary: '#bbb',
-      },
-    },
-    components: {
-      MuiAppBar: {
-        styleOverrides: {
-          root: {
-            backgroundColor: '#111',
-            color: '#fff',
-          },
-        },
-      },
-      MuiButton: {
-        styleOverrides: {
-          root: {
-            color: '#fff',
-            backgroundColor: '#333',
-            border: '1px solid #555',
-            '&:hover': {
-              backgroundColor: '#444',
-              border: '1px solid #666',
-            },
-          },
-          containedPrimary: {
-            backgroundColor: '#111',
-            color: '#fff',
-            '&:hover': {
-              backgroundColor: '#333',
-            },
-          },
-        },
-      },
-      MuiCard: {
-        styleOverrides: {
-          root: {
-            backgroundColor: '#333',
-            color: '#fff',
-            border: '1px solid #555',
-          },
-        },
-      },
-      MuiDialog: {
-        styleOverrides: {
-          paper: {
-            backgroundColor: '#333',
-            color: '#fff',
-          },
-        },
-      },
-      MuiTabs: {
-        styleOverrides: {
-          indicator: {
-            backgroundColor: '#fff',
-          },
-        },
-      },
-      MuiTab: {
-        styleOverrides: {
-          root: {
-            color: '#bbb',
-            '&.Mui-selected': {
-              color: '#fff',
-            },
-          },
-        },
-      },
-    },
-  });
+  const theme = professionalTheme;
 
   // Función para crear o actualizar el perfil de usuario
   const createOrUpdateUserProfile = async (user: User) => {
@@ -4353,7 +4296,7 @@ function App() {
             onClick={handleUserLogin}
             variant="contained"
             disabled={!loginCredentials.email || !loginCredentials.password || isLoading}
-            sx={{ bgcolor: '#ffeb3b', '&:hover': { bgcolor: '#1976d2' } }}
+            sx={{ bgcolor: '#2196f3', '&:hover': { bgcolor: '#1565c0' } }}
             fullWidth
           >
             {isLoading ? (
@@ -4506,7 +4449,7 @@ function App() {
               signupCredentials.password !== signupCredentials.confirmPassword ||
               isLoading
             }
-            sx={{ bgcolor: '#ffeb3b', '&:hover': { bgcolor: '#45a049' } }}
+            sx={{ bgcolor: '#2196f3', '&:hover': { bgcolor: '#1976d2' } }}
             fullWidth
           >
             {isLoading ? (
@@ -4599,7 +4542,7 @@ function App() {
             onClick={handleResetPassword}
             variant="contained"
             disabled={!resetPasswordEmail || isLoading}
-            sx={{ bgcolor: '#ffeb3b', '&:hover': { bgcolor: '#1976d2' } }}
+            sx={{ bgcolor: '#2196f3', '&:hover': { bgcolor: '#1565c0' } }}
           >
             {isLoading ? (
               <>
@@ -4656,7 +4599,7 @@ function App() {
           <Button 
             onClick={handleEditProfile}
             variant="contained"
-            sx={{ bgcolor: '#ffeb3b', '&:hover': { bgcolor: '#1976d2' } }}
+            sx={{ bgcolor: '#2196f3', '&:hover': { bgcolor: '#1565c0' } }}
           >
             Sauvegarder
           </Button>
@@ -4708,7 +4651,7 @@ function App() {
           {/* Banner de suscripción - Solo mostrar si NO está en período de prueba */}
           {!checkTrialStatus(userProfile) && !checkSubscriptionStatus(userProfile) && userProfile && (
             <Box sx={{ 
-              bgcolor: '#ffeb3b', 
+              bgcolor: '#2196f3', 
               color: 'white', 
               textAlign: 'center', 
               py: 1,
@@ -4768,7 +4711,7 @@ function App() {
                 alignItems: 'center',
                 flexShrink: 0
               }}>
-                <LocationOn sx={{ mr: 0.5, fontSize: { xs: 18, sm: 24 } }} />
+                <LocationIcon sx={{ mr: 0.5, fontSize: { xs: 18, sm: 24 } }} />
                 <Typography variant="h6" sx={{ 
                   fontSize: { xs: '0.9rem', sm: '1.25rem' },
                   whiteSpace: 'nowrap'
@@ -4824,8 +4767,8 @@ function App() {
 
           {/* Main Content */}
           <Box sx={{ 
-            mt: { xs: 0, sm: 2 }, 
-            px: { xs: 1, sm: 3 },
+            mt: { xs: 1, sm: 3 }, 
+            px: { xs: 2, sm: 4 },
             width: '100%',
             maxWidth: { xs: '100vw', sm: 'lg' },
             mx: { xs: 0, sm: 'auto' },
@@ -4833,7 +4776,7 @@ function App() {
           }}>
             {/* Category Filters */}
             {selectedCategory !== 'all' && currentCategory && (
-              <Box sx={{ mb: { xs: 2, sm: 2 } }}>
+              <Box sx={{ mb: { xs: 3, sm: 4 } }}>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
                   Subcategories
                 </Typography>
@@ -4903,7 +4846,7 @@ function App() {
             )}
             {selectedTab === 3 && (
               <Box sx={{ 
-                p: { xs: 2, sm: 2 },
+                p: { xs: 3, sm: 4 },
                 height: { xs: 'calc(100vh - 120px)', sm: 'auto' },
                 overflow: 'auto',
                 width: '100%'
@@ -4919,7 +4862,7 @@ function App() {
                     <Person sx={{ mr: 1, fontSize: { xs: 18, sm: 24 }, color: '#ffeb3b' }} />
                     <Typography variant="h5" sx={{ 
                       fontSize: { xs: '1.1rem', sm: '1.5rem' },
-                      color: '#ffeb3b',
+                      color: '#2196f3',
                       fontWeight: 'bold'
                     }}>
                       Mon Profil
@@ -4965,14 +4908,14 @@ function App() {
                           width: { xs: 40, sm: 60 },
                           height: { xs: 40, sm: 60 },
                           borderRadius: '50%',
-                          bgcolor: '#ffeb3b',
+                          bgcolor: '#2196f3',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
                           mx: 'auto',
                           mb: 1
                         }}>
-                          <ShoppingBag sx={{ fontSize: { xs: 20, sm: 30 }, color: 'white' }} />
+                          <ShopIcon sx={{ fontSize: { xs: 20, sm: 30 }, color: 'white' }} />
                         </Box>
                         <Typography variant="h5" fontWeight="bold" sx={{ 
                           fontSize: { xs: '1.5rem', sm: '2rem' },
@@ -5032,8 +4975,8 @@ function App() {
                         size="small"
                         onClick={openEditProfileModal}
                         sx={{ 
-                          borderColor: '#ffeb3b', 
-                          color: '#ffeb3b',
+                          borderColor: '#2196f3', 
+                          color: '#2196f3',
                           '&:hover': { 
                             borderColor: '#1976d2', 
                             bgcolor: 'rgba(33, 150, 243, 0.1)' 
@@ -5049,7 +4992,7 @@ function App() {
                         <ListItemText primary={t('nom')} secondary={userProfile.name} />
                       </ListItem>
                       <ListItem>
-                        <ListItemIcon><LocationOn /></ListItemIcon>
+                        <ListItemIcon><LocationIcon /></ListItemIcon>
                         <ListItemText primary={t('ville')} secondary={userProfile.city} />
                       </ListItem>
                     </List>
@@ -5180,7 +5123,7 @@ function App() {
                                         label={category}
                                         size="small"
                                         sx={{
-                                          bgcolor: '#ffeb3b',
+                                          bgcolor: '#2196f3',
                                           color: '#333',
                                           fontWeight: 'bold'
                                         }}
@@ -5214,7 +5157,7 @@ function App() {
                         startIcon={<Add sx={{ fontSize: { xs: 18, sm: 20 } }} />}
                         onClick={() => setShowAddModal(true)}
                         sx={{ 
-                          bgcolor: '#ffeb3b', 
+                          bgcolor: '#2196f3', 
                           '&:hover': { bgcolor: '#45a049' },
                           py: { xs: 2, sm: 1.5 },
                           px: { xs: 3, sm: 2 },
@@ -5230,7 +5173,7 @@ function App() {
                         startIcon={<FlashOn sx={{ fontSize: { xs: 18, sm: 20 } }} />}
                         onClick={() => setShowAddFlashModal(true)}
                         sx={{ 
-                          bgcolor: '#ffeb3b', 
+                          bgcolor: '#2196f3', 
                           '&:hover': { bgcolor: '#fbc02d' },
                           py: { xs: 2, sm: 1.5 },
                           px: { xs: 3, sm: 2 },
@@ -5246,8 +5189,8 @@ function App() {
                         startIcon={<Close sx={{ fontSize: { xs: 18, sm: 20 } }} />}
                         onClick={() => setIsAdmin(false)}
                         sx={{ 
-                          borderColor: '#ffeb3b', 
-                          color: '#ffeb3b',
+                          borderColor: '#2196f3', 
+                          color: '#2196f3',
                           '&:hover': { 
                             borderColor: '#fbc02d', 
                             bgcolor: 'rgba(244, 67, 54, 0.1)' 
@@ -5448,7 +5391,7 @@ function App() {
               <Button 
                 onClick={handleAddOffer}
                 variant="contained"
-                sx={{ bgcolor: '#ffeb3b', '&:hover': { bgcolor: '#45a049' } }}
+                sx={{ bgcolor: '#2196f3', '&:hover': { bgcolor: '#1976d2' } }}
               >
                 Ajouter Offre
               </Button>
@@ -5727,7 +5670,7 @@ function App() {
                   border: '1px solid rgba(255,255,255,0.2)'
                 }}
               >
-                <Restaurant sx={{ fontSize: 20, color: '#ffeb3b' }} />
+                <RestaurantIcon sx={{ fontSize: 20, color: '#ffeb3b' }} />
               </IconButton>
               <IconButton
                 onClick={() => setSelectedCategory(selectedCategory === 'bars' ? 'all' : 'bars')}
@@ -5740,7 +5683,7 @@ function App() {
                   border: '1px solid rgba(255,255,255,0.2)'
                 }}
               >
-                <LocalBar sx={{ fontSize: 20, color: '#ffeb3b' }} />
+                <BarIcon sx={{ fontSize: 20, color: '#ffeb3b' }} />
               </IconButton>
               <IconButton
                 onClick={() => setSelectedCategory(selectedCategory === 'shops' ? 'all' : 'shops')}
@@ -5803,22 +5746,52 @@ function App() {
           }}
         >
           <Tab 
-            icon={<LocationOn sx={{ color: '#ffeb3b !important' }} />} 
+            icon={<MapIcon sx={{ color: '#ffeb3b !important' }} />} 
             label={t('carte')} 
             iconPosition="top"
           />
           <Tab 
-            icon={<Restaurant sx={{ color: '#ffeb3b !important' }} />} 
+            icon={<ListIcon sx={{ color: '#ffeb3b !important' }} />} 
             label={t('liste')} 
             iconPosition="top"
           />
           <Tab 
-            icon={<FlashOn sx={{ color: '#ffeb3b !important' }} />} 
+            icon={
+              ((userProfile?.activatedOffers?.length ?? 0) > 0 || activatedFlashDeals.size > 0) ? (
+                <FlashIcon sx={{ 
+                  color: '#ffeb3b !important',
+                  filter: 'drop-shadow(0 0 8px #ffeb3b)',
+                  animation: 'pulse 2s infinite',
+                  '@keyframes pulse': {
+                    '0%': {
+                      filter: 'drop-shadow(0 0 8px #ffeb3b)',
+                      transform: 'scale(1)'
+                    },
+                    '50%': {
+                      filter: 'drop-shadow(0 0 12px #ffeb3b)',
+                      transform: 'scale(1.1)'
+                    },
+                    '100%': {
+                      filter: 'drop-shadow(0 0 8px #ffeb3b)',
+                      transform: 'scale(1)'
+                    }
+                  }
+                }} />
+              ) : (
+                <Box sx={{ 
+                  width: 20, 
+                  height: 20, 
+                  borderRadius: '50%', 
+                  backgroundColor: '#ffeb3b',
+                  opacity: 0.3
+                }} />
+              )
+            } 
             label={t('flash')} 
             iconPosition="top"
           />
           <Tab 
-            icon={<Person sx={{ color: '#ffeb3b !important' }} />} 
+            icon={<ProfileIcon sx={{ color: '#ffeb3b !important' }} />} 
             label={t('profil')} 
             iconPosition="top"
           />
