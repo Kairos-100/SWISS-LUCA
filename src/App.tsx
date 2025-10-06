@@ -774,7 +774,6 @@ function MapView({ offers, selectedCategory, onOfferClick, userLocation, getUser
 
   // Location state for UI
   const [locationError, setLocationError] = useState<string | null>(null);
-  const [isGettingLocation, setIsGettingLocation] = useState(false);
 
   // Enhanced getUserLocation that also centers the map
   const handleGetUserLocation = () => {
@@ -783,7 +782,6 @@ function MapView({ offers, selectedCategory, onOfferClick, userLocation, getUser
       return;
     }
 
-    setIsGettingLocation(true);
     setLocationError(null);
 
     navigator.geolocation.getCurrentPosition(
@@ -793,7 +791,6 @@ function MapView({ offers, selectedCategory, onOfferClick, userLocation, getUser
           lng: position.coords.longitude
         };
         getUserLocation(); // Call the parent function
-        setIsGettingLocation(false);
         
         // Center map on user location
         if (mapInstanceRef.current) {
@@ -802,7 +799,6 @@ function MapView({ offers, selectedCategory, onOfferClick, userLocation, getUser
         }
       },
       (error) => {
-        setIsGettingLocation(false);
         switch (error.code) {
           case error.PERMISSION_DENIED:
             setLocationError('Location access denied by user.');
@@ -826,20 +822,6 @@ function MapView({ offers, selectedCategory, onOfferClick, userLocation, getUser
     );
   };
 
-  // Función para abrir en Apple Maps (iOS) o Google Maps
-  const openInNativeMaps = (lat: number, lng: number) => {
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    
-    if (isIOS) {
-      // Apple Maps
-      const url = `http://maps.apple.com/?daddr=${lat},${lng}&dirflg=d`;
-      window.open(url, '_blank');
-    } else {
-      // Google Maps
-      const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`;
-      window.open(url, '_blank');
-    }
-  };
   
   // Filter and sort offers by distance when user location is available
   const filteredOffers = useMemo(() => {
@@ -1096,46 +1078,6 @@ function MapView({ offers, selectedCategory, onOfferClick, userLocation, getUser
         gap: { xs: 2, sm: 1 }, // Aumentado el gap en móvil de 1 a 2
         minWidth: { xs: '100px', sm: '120px' }
       }}>
-        {/* Location button */}
-        <Button
-          variant="contained"
-          onClick={handleGetUserLocation}
-          disabled={isGettingLocation}
-          sx={{
-            bgcolor: userLocation ? '#4caf50' : '#ffeb3b',
-            color: userLocation ? 'white' : '#333',
-            minWidth: { xs: '80px', sm: '100px' },
-            height: { xs: '36px', sm: '40px' },
-            fontSize: { xs: '10px', sm: '12px' },
-            '&:hover': {
-              bgcolor: userLocation ? '#45a049' : '#fbc02d',
-            },
-            '&:disabled': {
-              bgcolor: '#ccc',
-              color: '#666'
-            }
-          }}
-        >
-          {isGettingLocation ? '📍' : userLocation ? '📍' : '📍'}
-          {isGettingLocation ? 'Getting...' : userLocation ? 'Located' : 'My Location'}
-        </Button>
-
-        {/* Location error display */}
-        {locationError && (
-          <Box sx={{
-            bgcolor: 'rgba(244, 67, 54, 0.9)',
-            color: 'white',
-            p: { xs: 1.5, sm: 1 }, // Aumentado el padding en móvil
-            borderRadius: 1,
-            fontSize: { xs: '9px', sm: '10px' }, // Reducido ligeramente el tamaño de fuente en móvil
-            textAlign: 'center',
-            maxWidth: { xs: '140px', sm: '120px' }, // Aumentado el ancho máximo en móvil
-            lineHeight: 1.2, // Añadido line-height para mejor legibilidad
-            wordWrap: 'break-word' // Añadido para manejar texto largo
-          }}>
-            {locationError}
-          </Box>
-        )}
 
         {/* Debug info - Solo en desktop */}
         <Box sx={{
@@ -1477,121 +1419,6 @@ function MapView({ offers, selectedCategory, onOfferClick, userLocation, getUser
         </DialogActions>
       </Dialog>
 
-      {/* Sección de Socios (como amigos en Snap) */}
-      <Box sx={{
-        position: 'absolute',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        backgroundColor: 'rgba(26, 26, 26, 0.95)',
-        backdropFilter: 'blur(10px)',
-        borderTop: '1px solid #333',
-        p: 2,
-        maxHeight: '200px',
-        overflowY: 'auto'
-      }}>
-        <Typography variant="h6" sx={{ 
-          background: 'linear-gradient(135deg, #FFD700 0%, #FFA000 100%)',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
-          backgroundClip: 'text',
-          mb: 3, 
-          fontWeight: 700,
-          textAlign: 'center',
-          fontSize: { xs: '1.5rem', sm: '2rem' },
-          fontFamily: 'Inter, sans-serif',
-          letterSpacing: '-0.02em'
-        }}>
-          Nuestros Socios
-        </Typography>
-        
-        <Box sx={{ 
-          display: 'flex', 
-          gap: 1, 
-          overflowX: 'auto',
-          pb: 1
-        }}>
-          {partnersData.map((partner) => (
-            <Box
-              key={partner.id}
-              className="professional-card interactive-element"
-              sx={{
-                minWidth: '140px',
-                background: 'linear-gradient(145deg, #1A1A1A 0%, #2A2A2A 100%)',
-                borderRadius: 3,
-                p: 2,
-                textAlign: 'center',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-                cursor: 'pointer',
-                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
-                backdropFilter: 'blur(10px)',
-                '&:hover': {
-                  background: 'linear-gradient(145deg, #2A2A2A 0%, #3A3A3A 100%)',
-                  borderColor: 'rgba(255, 215, 0, 0.3)',
-                  transform: 'translateY(-4px)',
-                  boxShadow: '0 12px 40px rgba(0, 0, 0, 0.4)'
-                }
-              }}
-              onClick={() => {
-                // Centrar el mapa en el socio
-                if (mapInstanceRef.current) {
-                  mapInstanceRef.current.setCenter(partner.location);
-                  mapInstanceRef.current.setZoom(16);
-                }
-                // Abrir en mapas externos
-                openInNativeMaps(partner.location.lat, partner.location.lng);
-              }}
-            >
-              <Typography sx={{ 
-                fontSize: '1.5rem', 
-                mb: 0.5 
-              }}>
-                {partner.icon}
-              </Typography>
-              <Typography variant="body2" sx={{ 
-                color: 'white', 
-                fontWeight: 600,
-                mb: 0.5,
-                fontSize: '0.9rem',
-                fontFamily: 'Inter, sans-serif'
-              }}>
-                {partner.name}
-              </Typography>
-              <Typography variant="caption" sx={{ 
-                background: 'linear-gradient(135deg, #FFD700 0%, #FFA000 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text',
-                fontWeight: 700,
-                fontSize: '0.8rem'
-              }}>
-                {partner.discount}
-              </Typography>
-              <Typography variant="caption" sx={{ 
-                color: '#bbb',
-                display: 'block',
-                mt: 0.5,
-                fontSize: '0.7rem'
-              }}>
-                {partner.address}
-              </Typography>
-            </Box>
-          ))}
-        </Box>
-        
-        <Box sx={{ 
-          textAlign: 'center', 
-          mt: 2 
-        }}>
-          <Typography variant="caption" sx={{ 
-            color: '#888',
-            fontSize: '0.7rem'
-          }}>
-            Toca un socio para ver la ruta
-          </Typography>
-        </Box>
-      </Box>
     </Box>
   );
 }
@@ -5698,6 +5525,137 @@ function App() {
               >
                 <Store sx={{ fontSize: 20, color: '#ffeb3b' }} />
               </IconButton>
+            </Box>
+          </Box>
+        )}
+
+        {/* Sección de Socios - Solo en la pestaña del mapa */}
+        {selectedTab === 0 && (
+          <Box sx={{
+            position: 'fixed',
+            bottom: { xs: 60, sm: 60 }, // Posicionado arriba de los tabs
+            left: 0,
+            right: 0,
+            backgroundColor: 'rgba(26, 26, 26, 0.95)',
+            backdropFilter: 'blur(10px)',
+            borderTop: '1px solid #333',
+            p: { xs: 1.5, sm: 2 },
+            maxHeight: { xs: '120px', sm: '150px' },
+            overflowY: 'hidden', // Solo scroll horizontal
+            zIndex: 1000
+          }}>
+            <Typography variant="h6" sx={{ 
+              background: 'linear-gradient(135deg, #FFD700 0%, #FFA000 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+              mb: { xs: 1.5, sm: 2 }, 
+              fontWeight: 700,
+              textAlign: 'center',
+              fontSize: { xs: '1.2rem', sm: '1.5rem' },
+              fontFamily: 'Inter, sans-serif',
+              letterSpacing: '-0.02em'
+            }}>
+              Nuestros Socios
+            </Typography>
+            
+            <Box sx={{ 
+              display: 'flex', 
+              gap: { xs: 1, sm: 1.5 }, 
+              overflowX: 'auto',
+              overflowY: 'hidden', // Solo scroll horizontal
+              pb: 1,
+              '&::-webkit-scrollbar': { 
+                height: 4,
+                backgroundColor: 'rgba(255,255,255,0.1)'
+              },
+              '&::-webkit-scrollbar-thumb': {
+                backgroundColor: '#ffeb3b',
+                borderRadius: 2
+              }
+            }}>
+              {partnersData.map((partner) => (
+                <Box
+                  key={partner.id}
+                  className="professional-card interactive-element"
+                  sx={{
+                    minWidth: { xs: '120px', sm: '140px' },
+                    background: 'linear-gradient(145deg, #1A1A1A 0%, #2A2A2A 100%)',
+                    borderRadius: 3,
+                    p: { xs: 1.5, sm: 2 },
+                    textAlign: 'center',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
+                    backdropFilter: 'blur(10px)',
+                    flexShrink: 0, // Evita que se compriman
+                    '&:hover': {
+                      background: 'linear-gradient(145deg, #2A2A2A 0%, #3A3A3A 100%)',
+                      borderColor: 'rgba(255, 215, 0, 0.3)',
+                      transform: 'translateY(-2px)',
+                      boxShadow: '0 12px 40px rgba(0, 0, 0, 0.4)'
+                    }
+                  }}
+                  onClick={() => {
+                    // Abrir en mapas externos
+                    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+                    if (isIOS) {
+                      const url = `http://maps.apple.com/?daddr=${partner.location.lat},${partner.location.lng}&dirflg=d`;
+                      window.open(url, '_blank');
+                    } else {
+                      const url = `https://www.google.com/maps/dir/?api=1&destination=${partner.location.lat},${partner.location.lng}&travelmode=driving`;
+                      window.open(url, '_blank');
+                    }
+                  }}
+                >
+                  <Typography sx={{ 
+                    fontSize: { xs: '1.2rem', sm: '1.5rem' }, 
+                    mb: 0.5 
+                  }}>
+                    {partner.icon}
+                  </Typography>
+                  <Typography variant="body2" sx={{ 
+                    color: 'white', 
+                    fontWeight: 600,
+                    mb: 0.5,
+                    fontSize: { xs: '0.8rem', sm: '0.9rem' },
+                    fontFamily: 'Inter, sans-serif'
+                  }}>
+                    {partner.name}
+                  </Typography>
+                  <Typography variant="caption" sx={{ 
+                    background: 'linear-gradient(135deg, #FFD700 0%, #FFA000 100%)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    backgroundClip: 'text',
+                    fontWeight: 700,
+                    fontSize: { xs: '0.7rem', sm: '0.8rem' }
+                  }}>
+                    {partner.discount}
+                  </Typography>
+                  <Typography variant="caption" sx={{ 
+                    color: '#bbb',
+                    display: 'block',
+                    mt: 0.5,
+                    fontSize: { xs: '0.6rem', sm: '0.7rem' }
+                  }}>
+                    {partner.address}
+                  </Typography>
+                </Box>
+              ))}
+            </Box>
+            
+            <Box sx={{ 
+              textAlign: 'center', 
+              mt: { xs: 1, sm: 1.5 } 
+            }}>
+              <Typography variant="caption" sx={{ 
+                color: '#888',
+                fontSize: { xs: '0.6rem', sm: '0.7rem' }
+              }}>
+                Toca un socio para ver la ruta
+              </Typography>
             </Box>
           </Box>
         )}
