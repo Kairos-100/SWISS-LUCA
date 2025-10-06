@@ -1123,7 +1123,7 @@ function MapView({ offers, flashDeals, selectedCategory, onOfferClick, onFlashDe
       data-map-container
       className="map-container no-select"
       sx={{ 
-        height: { xs: 'calc(100vh - 180px)', sm: 'calc(100vh - 200px)' }, 
+        height: { xs: 'calc(100vh - 300px)', sm: 'calc(100vh - 350px)' }, 
         position: 'relative', 
         borderRadius: { xs: 0, sm: 2 }, 
         overflow: 'hidden',
@@ -1131,7 +1131,7 @@ function MapView({ offers, flashDeals, selectedCategory, onOfferClick, onFlashDe
         touchAction: 'pan-x pan-y',
         boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
         border: '1px solid rgba(255, 255, 255, 0.1)',
-        marginBottom: { xs: '120px', sm: '140px' } // Espacio para la sección de socios
+        marginBottom: { xs: '20px', sm: '20px' }
       }}
     >
       {/* (Eliminada) Barra de búsqueda */}
@@ -4753,7 +4753,16 @@ function App() {
 
             {/* Tab Content */}
             {selectedTab === 0 && (
-              <Box className="tab-content">
+              <Box 
+                className="tab-content"
+                sx={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  height: '100%',
+                  width: '100%',
+                  position: 'relative'
+                }}
+              >
                 <MapView 
                   offers={offers} 
                   flashDeals={flashDeals}
@@ -5906,7 +5915,8 @@ function App() {
               overflowY: 'hidden', // Solo scroll horizontal
               zIndex: 1000,
               touchAction: 'pan-x',
-              marginTop: 'auto' // Empuja hacia abajo
+              marginTop: { xs: '20px', sm: '20px' },
+              width: '100%'
             }}
           >
             <Typography variant="h6" sx={{ 
