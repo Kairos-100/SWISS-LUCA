@@ -332,3 +332,113 @@ body {
   border-color: rgba(33, 150, 243, 0.3);
   color: #2196F3;
 }
+
+/* Transiciones de página profesionales */
+.page-transition {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.page-transition-entering {
+  opacity: 0;
+  transform: translateX(20px);
+}
+
+.page-transition-entered {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.page-transition-exiting {
+  opacity: 0;
+  transform: translateX(-20px);
+}
+
+/* Mejoras para el mapa */
+.map-container {
+  touch-action: pan-x pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+/* Sección de partners mejorada */
+.partners-section {
+  touch-action: pan-x;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+.partners-section * {
+  pointer-events: auto;
+}
+
+/* Animaciones suaves para navegación */
+@keyframes slideInFromLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInFromRight {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Efectos de swipe mejorados */
+.swipe-indicator {
+  position: absolute;
+  top: 50%;
+  left: 10px;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 40px;
+  background: var(--primary-gold);
+  border-radius: 2px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: 1000;
+}
+
+.swipe-indicator.active {
+  opacity: 0.6;
+  animation: pulse 1s infinite;
+}
+
+/* Mejoras para elementos interactivos */
+.no-select {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* Optimizaciones para touch */
+.touch-optimized {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+/* Transiciones suaves para tabs */
+.tab-content {
+  transition: opacity 0.2s ease-in-out;
+}
+
+.tab-content.changing {
+  opacity: 0.7;
+}

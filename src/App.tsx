@@ -704,12 +704,13 @@ const processOfferPayment = async (userId: string, offerId: string, offerPrice: 
   }
 };
 
-// Datos de socios (como amigos en Snap)
+// Datos de socios (como amigos en Snap) - Ya no se usa, ahora es dinámico
+/*
 const partnersData = [
   {
     id: 'mcdonalds',
     name: 'McDonald\'s',
-    icon: '🍔',
+    icon: '🍽️',
     location: { lat: 46.2306, lng: 7.3590 },
     address: 'Rue du Simplon, Sion',
     discount: '20% OFF'
@@ -717,7 +718,7 @@ const partnersData = [
   {
     id: 'burger_king',
     name: 'Burger King',
-    icon: '🍟',
+    icon: '🍽️',
     location: { lat: 46.2310, lng: 7.3600 },
     address: 'Avenue de la Gare, Sion',
     discount: '15% OFF'
@@ -725,7 +726,7 @@ const partnersData = [
   {
     id: 'kfc',
     name: 'KFC',
-    icon: '🐔',
+    icon: '🍽️',
     location: { lat: 46.2320, lng: 7.3610 },
     address: 'Rue du Rhône, Sion',
     discount: '25% OFF'
@@ -733,17 +734,20 @@ const partnersData = [
   {
     id: 'subway',
     name: 'Subway',
-    icon: '🥪',
+    icon: '🍽️',
     location: { lat: 46.2330, lng: 7.3620 },
     address: 'Place de la Planta, Sion',
     discount: '30% OFF'
   }
 ];
+*/
 
-function MapView({ offers, selectedCategory, onOfferClick, userLocation, getUserLocation, calculateDistance }: { 
+function MapView({ offers, flashDeals, selectedCategory, onOfferClick, onFlashDealClick, userLocation, getUserLocation, calculateDistance }: { 
   offers: Offer[], 
+  flashDeals: FlashDeal[],
   selectedCategory: string, 
   onOfferClick: (offer: Offer) => void,
+  onFlashDealClick: (deal: FlashDeal) => void,
   userLocation: {lat: number, lng: number} | null,
   getUserLocation: () => void,
   calculateDistance: (lat1: number, lng1: number, lat2: number, lng2: number) => number
@@ -823,11 +827,31 @@ function MapView({ offers, selectedCategory, onOfferClick, userLocation, getUser
   };
 
   
-  // Filter and sort offers by distance when user location is available
+  // Combinar ofertas de List y Flash, y filtrar por categoría
   const filteredOffers = useMemo(() => {
+    // Convertir FlashDeals a formato compatible con Offer para el mapa
+    const flashOffersAsOffers: Offer[] = flashDeals.map(deal => ({
+      id: deal.id,
+      name: deal.name,
+      image: deal.image,
+      category: deal.category,
+      subCategory: deal.subCategory,
+      discount: deal.discount,
+      description: deal.description,
+      location: deal.location,
+      rating: deal.rating,
+      isNew: true, // Las ofertas flash siempre son nuevas
+      price: `CHF ${deal.discountedPrice}`,
+      oldPrice: `CHF ${deal.originalPrice}`,
+      usagePrice: deal.discountedPrice
+    }));
+
+    // Combinar ofertas regulares y flash
+    const allOffers = [...offers, ...flashOffersAsOffers];
+    
     let filtered = selectedCategory === 'all' 
-      ? offers 
-      : offers.filter(offer => offer.category === selectedCategory);
+      ? allOffers 
+      : allOffers.filter(offer => offer.category === selectedCategory);
 
     // Sort by distance if user location is available
     if (userLocation) {
@@ -918,6 +942,9 @@ function MapView({ offers, selectedCategory, onOfferClick, userLocation, getUser
     filteredOffers.forEach((offer) => {
       if (!window.google) return;
       
+      // Determinar si es una oferta flash o regular
+      const isFlashDeal = flashDeals.some(deal => deal.id === offer.id);
+      
       const marker = new window.google.maps.Marker({
         position: { lat: offer.location.lat, lng: offer.location.lng },
         map: mapInstanceRef.current,
@@ -925,10 +952,38 @@ function MapView({ offers, selectedCategory, onOfferClick, userLocation, getUser
         icon: {
           url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
             <svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="20" cy="20" r="18" fill="${offer.isNew ? '#2196f3' : '#2196f3'}" stroke="white" stroke-width="2"/>
-              <text x="20" y="25" text-anchor="middle" fill="white" font-size="16" font-weight="bold">
-                ${offer.category === 'restaurants' ? '🍽️' : offer.category === 'bars' ? '🍷' : '🥖'}
-              </text>
+              <defs>
+                <linearGradient id="grad${offer.id}" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" style="stop-color:${isFlashDeal ? '#FF6B35' : '#FFD700'};stop-opacity:1" />
+                  <stop offset="100%" style="stop-color:${isFlashDeal ? '#FF4500' : '#FFA000'};stop-opacity:1" />
+                </linearGradient>
+              </defs>
+              <circle cx="20" cy="20" r="18" fill="url(#grad${offer.id})" stroke="white" stroke-width="2" opacity="0.95"/>
+              <circle cx="20" cy="20" r="14" fill="rgba(26, 26, 26, 0.9)" stroke="white" stroke-width="1"/>
+              ${isFlashDeal ? `
+                <path d="M16 12h8l-2 6h6l-8 8 2-6h-6z" fill="white" transform="translate(4, 4) scale(1.2)"/>
+              ` : offer.category === 'restaurants' ? `
+                <path d="M12 16h16v2H12zm0 4h16v2H12zm0 4h12v2H12z" fill="white" transform="translate(4, 4) scale(1.5)"/>
+                <path d="M14 18h12v1H14z" fill="#FFD700" transform="translate(4, 4) scale(1.5)"/>
+              ` : offer.category === 'bars' ? `
+                <path d="M16 14h8v8h-8z" fill="white" transform="translate(4, 4) scale(1.2)"/>
+                <path d="M17 15h6v6h-6z" fill="#FFD700" transform="translate(4, 4) scale(1.2)"/>
+                <path d="M20 12v2" stroke="white" stroke-width="1" transform="translate(4, 4) scale(1.2)"/>
+              ` : offer.category === 'shops' ? `
+                <path d="M12 14h16v8H12z" fill="white" transform="translate(4, 4) scale(1.2)"/>
+                <path d="M14 16h12v4H14z" fill="#FFD700" transform="translate(4, 4) scale(1.2)"/>
+                <path d="M18 14v8M22 14v8" stroke="white" stroke-width="1" transform="translate(4, 4) scale(1.2)"/>
+              ` : offer.category === 'beauty' ? `
+                <path d="M16 14c0-2 2-4 4-4s4 2 4 4v2h-8v-2z" fill="white" transform="translate(4, 4) scale(1.2)"/>
+                <path d="M14 18h12v4H14z" fill="#FFD700" transform="translate(4, 4) scale(1.2)"/>
+              ` : offer.category === 'fitness' ? `
+                <path d="M16 12h8v8h-8z" fill="white" transform="translate(4, 4) scale(1.2)"/>
+                <path d="M18 14h4v4h-4z" fill="#FFD700" transform="translate(4, 4) scale(1.2)"/>
+                <circle cx="20" cy="16" r="1" fill="white" transform="translate(4, 4) scale(1.2)"/>
+              ` : `
+                <path d="M14 14h12v8H14z" fill="white" transform="translate(4, 4) scale(1.2)"/>
+                <path d="M16 16h8v4H16z" fill="#FFD700" transform="translate(4, 4) scale(1.2)"/>
+              `}
             </svg>
           `)}`,
           scaledSize: new window.google.maps.Size(40, 40),
@@ -941,7 +996,10 @@ function MapView({ offers, selectedCategory, onOfferClick, userLocation, getUser
       const infoWindow = new window.google.maps.InfoWindow({
         content: `
           <div style="padding: 10px; max-width: 200px;">
-            <h3 style="margin: 0 0 5px 0; color: #333;">${offer.name}</h3>
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 5px;">
+              <h3 style="margin: 0; color: #333;">${offer.name}</h3>
+              ${isFlashDeal ? '<span style="background: #FF6B35; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold;">FLASH</span>' : ''}
+            </div>
             <p style="margin: 0 0 5px 0; color: #e74c3c; font-weight: bold;">${offer.discount}</p>
             <p style="margin: 0 0 5px 0; color: #666; font-size: 12px;">${offer.description}</p>
             <p style="margin: 0; color: #999; font-size: 11px;">⭐ ${offer.rating} • ${offer.location.address}</p>
@@ -952,12 +1010,16 @@ function MapView({ offers, selectedCategory, onOfferClick, userLocation, getUser
 
       marker.addListener('click', () => {
         infoWindow.open(mapInstanceRef.current, marker);
-        onOfferClick(offer);
+        if (isFlashDeal) {
+          onFlashDealClick(offer as any);
+        } else {
+          onOfferClick(offer);
+        }
       });
 
       markersRef.current.push(marker);
     });
-  }, [filteredOffers, onOfferClick, mapLoaded]);
+  }, [filteredOffers, flashDeals, onOfferClick, onFlashDealClick, mapLoaded]);
 
   // Auto-request location when map loads
   useEffect(() => {
@@ -1056,13 +1118,22 @@ function MapView({ offers, selectedCategory, onOfferClick, userLocation, getUser
   };
 
   return (
-    <Box sx={{ 
-      height: { xs: 'calc(100vh - 120px)', sm: '70vh' }, 
-      position: 'relative', 
-      borderRadius: { xs: 0, sm: 2 }, 
-      overflow: 'hidden',
-      width: '100%'
-    }}>
+    <Box 
+      id="map"
+      data-map-container
+      className="map-container no-select"
+      sx={{ 
+        height: { xs: 'calc(100vh - 180px)', sm: 'calc(100vh - 200px)' }, 
+        position: 'relative', 
+        borderRadius: { xs: 0, sm: 2 }, 
+        overflow: 'hidden',
+        width: '100%',
+        touchAction: 'pan-x pan-y',
+        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
+        border: '1px solid rgba(255, 255, 255, 0.1)',
+        marginBottom: { xs: '120px', sm: '140px' } // Espacio para la sección de socios
+      }}
+    >
       {/* (Eliminada) Barra de búsqueda */}
 
       {/* (Eliminados) Resultados de búsqueda */}
@@ -2697,6 +2768,7 @@ function App() {
   const [flashDeals, setFlashDeals] = useState<FlashDeal[]>(initialFlashDeals);
   const [activatedFlashDeals, setActivatedFlashDeals] = useState<Set<string>>(new Set());
   const [flashActivationTimes, setFlashActivationTimes] = useState<{[key: string]: Date}>({});
+  const [partners, setPartners] = useState<any[]>([]); // Estado para socios dinámicos
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -2709,6 +2781,14 @@ function App() {
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [showAddFlashModal, setShowAddFlashModal] = useState(false);
+  const [showPartnersModal, setShowPartnersModal] = useState(false);
+  const [newPartner, setNewPartner] = useState({
+    name: '',
+    icon: '',
+    address: '',
+    location: { lat: 46.2306, lng: 7.3590 },
+    discount: '20% OFF'
+  });
   const [loginCredentials, setLoginCredentials] = useState({
     email: '',
     password: ''
@@ -2816,10 +2896,14 @@ function App() {
       return;
     }
     
-    // Solo activar swipe global si no estamos en una tarjeta de oferta
+    // Solo activar swipe global si no estamos en una tarjeta de oferta, mapa, o sección de partners
     const target = e.target as HTMLElement;
-    if (target.closest('.offer-card') || target.closest('.MuiCard-root')) {
-      console.log('❌ Touch on offer card, ignoring global swipe');
+    if (target.closest('.offer-card') || 
+        target.closest('.MuiCard-root') ||
+        target.closest('#map') ||
+        target.closest('.partners-section') ||
+        target.closest('[data-map-container]')) {
+      console.log('❌ Touch on interactive element, ignoring global swipe');
       return;
     }
     
@@ -2850,7 +2934,7 @@ function App() {
     setIsTransitioning(true);
     
     const deltaX = currentX - startX;
-    const threshold = window.innerWidth * 0.3; // 30% del ancho de pantalla
+    const threshold = window.innerWidth * 0.25; // 25% del ancho de pantalla (menos sensible)
     
     console.log('📊 SWIPE CALCULATION:', {
       startX,
@@ -2860,33 +2944,36 @@ function App() {
       windowWidth: window.innerWidth,
       isLeftSwipe: deltaX < -threshold,
       isRightSwipe: deltaX > threshold,
-      startedFromLeftEdge: startX < 50
+      startedFromAnywhere: true
     });
     
     // Solo permitir swipe global si:
     // 1. El swipe es suficientemente largo
-    // 2. Comenzó desde el borde izquierdo de la pantalla (primeros 50px)
-    // 3. No estamos en una tarjeta de oferta
-    if (Math.abs(deltaX) > threshold && startX < 50) {
+    // 2. Comenzó desde cualquier parte de la pantalla (pero excluyendo elementos interactivos)
+    // 3. No estamos en una tarjeta de oferta, mapa o sección de partners
+    if (Math.abs(deltaX) > threshold) {
       if (deltaX > 0) {
-        // Swipe hacia la derecha - ir a FLASH
-        console.log('✅ SWIPING RIGHT FROM LEFT EDGE - going to FLASH tab');
-        setSelectedTab(2);
+        // Swipe hacia la derecha - ir a pestaña anterior
+        console.log('✅ SWIPING RIGHT - going to previous tab');
+        setSelectedTab(prev => {
+          const newTab = Math.max(0, prev - 1);
+          console.log(`🔄 Changing from tab ${prev} to tab ${newTab}`);
+          return newTab;
+        });
       } else {
         // Swipe hacia la izquierda - pestaña siguiente
-        console.log('✅ SWIPING LEFT FROM LEFT EDGE - going to next tab');
+        console.log('✅ SWIPING LEFT - going to next tab');
         setSelectedTab(prev => {
-          const newTab = Math.min(4, prev + 1);
+          const newTab = Math.min(3, prev + 1);
           console.log(`🔄 Changing from tab ${prev} to tab ${newTab}`);
           return newTab;
         });
       }
     } else {
-      console.log('❌ Swipe not from left edge or distance too small:', {
+      console.log('❌ Swipe distance too small:', {
         deltaX: Math.abs(deltaX),
         threshold,
-        startX,
-        fromLeftEdge: startX < 50
+        startX
       });
     }
     
@@ -2894,7 +2981,7 @@ function App() {
     setTimeout(() => {
       setIsTransitioning(false);
       console.log('🔄 Transition completed');
-    }, 50);
+    }, 150);
   };
 
   // Hook para manejar swipe con eventos nativos del DOM
@@ -2902,10 +2989,14 @@ function App() {
     const handleTouchStart = (e: TouchEvent) => {
       console.log('🔥 NATIVE TOUCH START!', e.touches);
       if (e.touches && e.touches.length > 0) {
-        // Solo activar swipe global si no estamos en una tarjeta de oferta
+        // Solo activar swipe global si no estamos en una tarjeta de oferta, mapa, o sección de partners
         const target = e.target as HTMLElement;
-        if (target.closest('.offer-card') || target.closest('.MuiCard-root')) {
-          console.log('❌ Native touch on offer card, ignoring global swipe');
+        if (target.closest('.offer-card') || 
+            target.closest('.MuiCard-root') ||
+            target.closest('#map') ||
+            target.closest('.partners-section') ||
+            target.closest('[data-map-container]')) {
+          console.log('❌ Native touch on interactive element, ignoring global swipe');
           return;
         }
         
@@ -2939,7 +3030,7 @@ function App() {
       setIsTransitioning(true);
       
       const deltaX = currentX - startX;
-      const threshold = window.innerWidth * 0.3; // 30% del ancho de pantalla
+      const threshold = window.innerWidth * 0.25; // 25% del ancho de pantalla (menos sensible)
       
       console.log('📊 NATIVE SWIPE CALCULATION:', {
         startX,
@@ -2964,7 +3055,7 @@ function App() {
           // Swipe hacia la izquierda - pestaña siguiente
           console.log('✅ NATIVE SWIPING LEFT - going to next tab');
           setSelectedTab(prev => {
-            const newTab = Math.min(4, prev + 1);
+            const newTab = Math.min(3, prev + 1);
             console.log(`🔄 Native changing from tab ${prev} to tab ${newTab}`);
             return newTab;
           });
@@ -2977,7 +3068,7 @@ function App() {
       setTimeout(() => {
         setIsTransitioning(false);
         console.log('🔄 Native transition completed');
-      }, 50);
+      }, 150);
     };
 
     // Solo agregar listeners en móvil
@@ -4469,12 +4560,35 @@ function App() {
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
+          className="page-transition touch-optimized"
           sx={{
             outline: 'none',
             position: 'relative',
-            touchAction: 'pan-y'
+            touchAction: 'pan-y',
+            height: '100vh',
+            overflow: 'hidden'
           }}
         >
+          {/* Indicador de swipe */}
+          {isDragging && (
+            <Box 
+              className="swipe-indicator active"
+              sx={{
+                position: 'fixed',
+                top: '50%',
+                left: '10px',
+                transform: 'translateY(-50%)',
+                width: '4px',
+                height: '40px',
+                background: 'var(--primary-gold)',
+                borderRadius: '2px',
+                opacity: 0.6,
+                zIndex: 1000,
+                animation: 'pulse 1s infinite'
+              }}
+            />
+          )}
+
           {/* Banner de suscripción - Solo mostrar si NO está en período de prueba */}
           {!checkTrialStatus(userProfile) && !checkSubscriptionStatus(userProfile) && userProfile && (
             <Box sx={{ 
@@ -4639,45 +4753,56 @@ function App() {
 
             {/* Tab Content */}
             {selectedTab === 0 && (
-              <MapView 
-                offers={offers} 
-                selectedCategory={selectedCategory} 
-                onOfferClick={handleOfferClick}
-                userLocation={userLocation}
-                getUserLocation={getUserLocation}
-                calculateDistance={calculateDistance}
-              />
+              <Box className="tab-content">
+                <MapView 
+                  offers={offers} 
+                  flashDeals={flashDeals}
+                  selectedCategory={selectedCategory} 
+                  onOfferClick={handleOfferClick}
+                  onFlashDealClick={handleFlashDealClick}
+                  userLocation={userLocation}
+                  getUserLocation={getUserLocation}
+                  calculateDistance={calculateDistance}
+                />
+              </Box>
             )}
             {selectedTab === 1 && (
-              <OffersList 
-                offers={offers} 
-                selectedCategory={selectedCategory} 
-                selectedSubCategory={selectedSubCategory}
-                onOfferClick={handleOfferClick}
-                currentUser={currentUser}
-                userProfile={userProfile}
-                setUserProfile={setUserProfile}
-                addNotification={addNotification}
-                userLocation={userLocation}
-                calculateDistance={calculateDistance}
-              />
+              <Box className="tab-content">
+                <OffersList 
+                  offers={offers} 
+                  selectedCategory={selectedCategory} 
+                  selectedSubCategory={selectedSubCategory}
+                  onOfferClick={handleOfferClick}
+                  currentUser={currentUser}
+                  userProfile={userProfile}
+                  setUserProfile={setUserProfile}
+                  addNotification={addNotification}
+                  userLocation={userLocation}
+                  calculateDistance={calculateDistance}
+                />
+              </Box>
             )}
             {selectedTab === 2 && (
-              <FlashDealsWithBlocking 
-                flashDeals={flashDeals} 
-                onOfferClick={handleFlashDealClick}
-                activatedFlashDeals={activatedFlashDeals}
-                flashActivationTimes={flashActivationTimes}
-                onActivateFlashDeal={handleActivateFlashDeal}
-              />
+              <Box className="tab-content">
+                <FlashDealsWithBlocking 
+                  flashDeals={flashDeals} 
+                  onOfferClick={handleFlashDealClick}
+                  activatedFlashDeals={activatedFlashDeals}
+                  flashActivationTimes={flashActivationTimes}
+                  onActivateFlashDeal={handleActivateFlashDeal}
+                />
+              </Box>
             )}
             {selectedTab === 3 && (
-              <Box sx={{ 
-                p: { xs: 3, sm: 4 },
-                height: { xs: 'calc(100vh - 120px)', sm: 'auto' },
-                overflow: 'auto',
-                width: '100%'
-              }}>
+              <Box 
+                className="tab-content"
+                sx={{ 
+                  p: { xs: 3, sm: 4 },
+                  height: { xs: 'calc(100vh - 120px)', sm: 'auto' },
+                  overflow: 'auto',
+                  width: '100%'
+                }}
+              >
                 {/* Header del perfil */}
                 <Box sx={{ 
                   display: 'flex', 
@@ -5009,6 +5134,23 @@ function App() {
                         }}
                       >
                         Créer Offre Flash
+                      </Button>
+                      
+                      <Button
+                        variant="contained"
+                        startIcon={<Store sx={{ fontSize: { xs: 18, sm: 20 } }} />}
+                        onClick={() => setShowPartnersModal(true)}
+                        sx={{ 
+                          bgcolor: '#FFD700', 
+                          color: '#000',
+                          '&:hover': { bgcolor: '#FFA000' },
+                          py: { xs: 2, sm: 1.5 },
+                          px: { xs: 3, sm: 2 },
+                          fontSize: { xs: '0.875rem', sm: '1rem' },
+                          minHeight: { xs: 48, sm: 40 }
+                        }}
+                      >
+                        Gérer les Partenaires
                       </Button>
                       
                       <Button
@@ -5350,6 +5492,226 @@ function App() {
             </DialogActions>
           </Dialog>
 
+          {/* Modal de Gestión de Partenaires */}
+          <Dialog 
+            open={showPartnersModal} 
+            onClose={() => setShowPartnersModal(false)}
+            maxWidth="md"
+            fullWidth
+          >
+            <DialogTitle>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Typography variant="h6">🏪 Gérer les Partenaires</Typography>
+                <IconButton onClick={() => setShowPartnersModal(false)}>
+                  <Close />
+                </IconButton>
+              </Box>
+            </DialogTitle>
+            <DialogContent>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+                {/* Lista de socios existentes */}
+                <Typography variant="h6" gutterBottom>
+                  Partenaires actuels ({partners.length})
+                </Typography>
+                
+                {partners.length === 0 ? (
+                  <Box sx={{ 
+                    textAlign: 'center', 
+                    py: 4,
+                    color: 'rgba(255, 255, 255, 0.6)'
+                  }}>
+                    <Typography variant="body1">
+                      Aucun partenaire ajouté
+                    </Typography>
+                  </Box>
+                ) : (
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    {partners.map((partner, index) => (
+                      <Box 
+                        key={partner.id || index}
+                        sx={{ 
+                          display: 'flex', 
+                          justifyContent: 'space-between', 
+                          alignItems: 'center',
+                          p: 2,
+                          bgcolor: 'rgba(255, 255, 255, 0.05)',
+                          borderRadius: 2,
+                          border: '1px solid rgba(255, 255, 255, 0.1)'
+                        }}
+                      >
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                          <Typography sx={{ fontSize: '1.5rem' }}>
+                            {partner.icon}
+                          </Typography>
+                          <Box>
+                            <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                              {partner.name}
+                            </Typography>
+                            <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                              {partner.address}
+                            </Typography>
+                          </Box>
+                        </Box>
+                        <IconButton 
+                          onClick={() => {
+                            const newPartners = partners.filter((_, i) => i !== index);
+                            setPartners(newPartners);
+                          }}
+                          sx={{ color: '#f44336' }}
+                        >
+                          <Close />
+                        </IconButton>
+                      </Box>
+                    ))}
+                  </Box>
+                )}
+                
+                <Divider sx={{ my: 2 }} />
+                
+                {/* Formulario para añadir nuevo socio */}
+                <Typography variant="h6" gutterBottom>
+                  Ajouter un nouveau partenaire
+                </Typography>
+                
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <TextField
+                    label="Nom du partenaire"
+                    value={newPartner.name}
+                    onChange={(e) => setNewPartner({...newPartner, name: e.target.value})}
+                    fullWidth
+                    variant="outlined"
+                  />
+                  
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    <Typography variant="body2" sx={{ fontWeight: 600, color: 'rgba(255, 255, 255, 0.9)' }}>
+                      Icône du partenaire
+                    </Typography>
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, maxHeight: 120, overflowY: 'auto' }}>
+                      {[
+                        { id: 'restaurant', icon: '🍽️', name: 'Restaurant' },
+                        { id: 'bar', icon: '🍷', name: 'Bar' },
+                        { id: 'shop', icon: '🏪', name: 'Magasin' },
+                        { id: 'hotel', icon: '🏨', name: 'Hôtel' },
+                        { id: 'gas', icon: '⛽', name: 'Station' },
+                        { id: 'bank', icon: '🏦', name: 'Banque' },
+                        { id: 'pharmacy', icon: '💊', name: 'Pharmacie' },
+                        { id: 'gym', icon: '🏋️', name: 'Fitness' },
+                        { id: 'beauty', icon: '💄', name: 'Beauté' },
+                        { id: 'car', icon: '🚗', name: 'Auto' },
+                        { id: 'clothes', icon: '👔', name: 'Mode' },
+                        { id: 'electronics', icon: '📱', name: 'Électronique' }
+                      ].map((iconOption) => (
+                        <Box
+                          key={iconOption.id}
+                          onClick={() => setNewPartner({...newPartner, icon: iconOption.icon})}
+                          sx={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            p: 1.5,
+                            border: newPartner.icon === iconOption.icon ? '2px solid #FFD700' : '1px solid rgba(255, 255, 255, 0.2)',
+                            borderRadius: 2,
+                            cursor: 'pointer',
+                            bgcolor: newPartner.icon === iconOption.icon ? 'rgba(255, 215, 0, 0.1)' : 'rgba(255, 255, 255, 0.05)',
+                            transition: 'all 0.2s ease',
+                            '&:hover': {
+                              bgcolor: 'rgba(255, 215, 0, 0.1)',
+                              borderColor: '#FFD700'
+                            },
+                            minWidth: 60
+                          }}
+                        >
+                          <Typography sx={{ fontSize: '1.5rem', mb: 0.5 }}>
+                            {iconOption.icon}
+                          </Typography>
+                          <Typography variant="caption" sx={{ 
+                            fontSize: '0.7rem', 
+                            color: 'rgba(255, 255, 255, 0.8)',
+                            textAlign: 'center'
+                          }}>
+                            {iconOption.name}
+                          </Typography>
+                        </Box>
+                      ))}
+                    </Box>
+                    <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.6)', mt: 1 }}>
+                      Sélectionnez une icône professionnelle pour le partenaire
+                    </Typography>
+                  </Box>
+                  
+                  <TextField
+                    label="Adresse"
+                    value={newPartner.address}
+                    onChange={(e) => setNewPartner({...newPartner, address: e.target.value})}
+                    fullWidth
+                    variant="outlined"
+                  />
+                  
+                  <Box sx={{ display: 'flex', gap: 2 }}>
+                    <TextField
+                      label="Latitude"
+                      type="number"
+                      value={newPartner.location.lat}
+                      onChange={(e) => setNewPartner({
+                        ...newPartner, 
+                        location: {...newPartner.location, lat: parseFloat(e.target.value) || 0}
+                      })}
+                      sx={{ flex: 1 }}
+                    />
+                    
+                    <TextField
+                      label="Longitude"
+                      type="number"
+                      value={newPartner.location.lng}
+                      onChange={(e) => setNewPartner({
+                        ...newPartner, 
+                        location: {...newPartner.location, lng: parseFloat(e.target.value) || 0}
+                      })}
+                      sx={{ flex: 1 }}
+                    />
+                  </Box>
+                  
+                  <TextField
+                    label="Remise"
+                    value={newPartner.discount}
+                    onChange={(e) => setNewPartner({...newPartner, discount: e.target.value})}
+                    fullWidth
+                    variant="outlined"
+                    placeholder="20% OFF"
+                  />
+                </Box>
+              </Box>
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={() => setShowPartnersModal(false)}>
+                Annuler
+              </Button>
+              <Button 
+                onClick={() => {
+                  if (newPartner.name && newPartner.icon && newPartner.address) {
+                    const partner = {
+                      ...newPartner,
+                      id: `partner_${Date.now()}`
+                    };
+                    setPartners([...partners, partner]);
+                    setNewPartner({
+                      name: '',
+                      icon: '',
+                      address: '',
+                      location: { lat: 46.2306, lng: 7.3590 },
+                      discount: '20% OFF'
+                    });
+                  }
+                }}
+                variant="contained"
+                disabled={!newPartner.name || !newPartner.icon || !newPartner.address}
+                sx={{ bgcolor: '#FFD700', color: '#000', '&:hover': { bgcolor: '#FFA000' } }}
+              >
+                Ajouter Partenaire
+              </Button>
+            </DialogActions>
+          </Dialog>
+
           {/* Offer Detail Dialog */}
           <OfferDetail 
             offer={selectedOffer} 
@@ -5529,21 +5891,24 @@ function App() {
           </Box>
         )}
 
-        {/* Sección de Socios - Solo en la pestaña del mapa */}
+        {/* Sección de Partenaires - Solo en la pestaña del mapa */}
         {selectedTab === 0 && (
-          <Box sx={{
-            position: 'fixed',
-            bottom: { xs: 60, sm: 60 }, // Posicionado arriba de los tabs
-            left: 0,
-            right: 0,
-            backgroundColor: 'rgba(26, 26, 26, 0.95)',
-            backdropFilter: 'blur(10px)',
-            borderTop: '1px solid #333',
-            p: { xs: 1.5, sm: 2 },
-            maxHeight: { xs: '120px', sm: '150px' },
-            overflowY: 'hidden', // Solo scroll horizontal
-            zIndex: 1000
-          }}>
+          <Box 
+            className="partners-section"
+            sx={{
+              position: 'relative',
+              backgroundColor: 'rgba(26, 26, 26, 0.95)',
+              backdropFilter: 'blur(10px)',
+              borderTop: '1px solid #333',
+              borderBottom: '1px solid #333',
+              p: { xs: 1.5, sm: 2 },
+              maxHeight: { xs: '120px', sm: '150px' },
+              overflowY: 'hidden', // Solo scroll horizontal
+              zIndex: 1000,
+              touchAction: 'pan-x',
+              marginTop: 'auto' // Empuja hacia abajo
+            }}
+          >
             <Typography variant="h6" sx={{ 
               background: 'linear-gradient(135deg, #FFD700 0%, #FFA000 100%)',
               WebkitBackgroundClip: 'text',
@@ -5556,106 +5921,175 @@ function App() {
               fontFamily: 'Inter, sans-serif',
               letterSpacing: '-0.02em'
             }}>
-              Nuestros Socios
+              Nos Partenaires
             </Typography>
             
-            <Box sx={{ 
-              display: 'flex', 
-              gap: { xs: 1, sm: 1.5 }, 
-              overflowX: 'auto',
-              overflowY: 'hidden', // Solo scroll horizontal
-              pb: 1,
-              '&::-webkit-scrollbar': { 
-                height: 4,
-                backgroundColor: 'rgba(255,255,255,0.1)'
-              },
-              '&::-webkit-scrollbar-thumb': {
-                backgroundColor: '#ffeb3b',
-                borderRadius: 2
-              }
-            }}>
-              {partnersData.map((partner) => (
-                <Box
-                  key={partner.id}
-                  className="professional-card interactive-element"
-                  sx={{
-                    minWidth: { xs: '120px', sm: '140px' },
-                    background: 'linear-gradient(145deg, #1A1A1A 0%, #2A2A2A 100%)',
-                    borderRadius: 3,
-                    p: { xs: 1.5, sm: 2 },
+            {/* Mostrar todos los sitios de List y Flash como partners */}
+            <Box 
+              className="no-select touch-optimized"
+              sx={{ 
+                display: 'flex', 
+                gap: { xs: 1, sm: 1.5 }, 
+                overflowX: 'auto',
+                overflowY: 'hidden', // Solo scroll horizontal
+                pb: 1,
+                '&::-webkit-scrollbar': { 
+                  height: 6,
+                  backgroundColor: 'rgba(255,255,255,0.05)'
+                },
+                '&::-webkit-scrollbar-thumb': {
+                  backgroundColor: 'var(--primary-gold)',
+                  borderRadius: 3,
+                  '&:hover': {
+                    backgroundColor: 'var(--primary-gold-light)'
+                  }
+                },
+                '&::-webkit-scrollbar-track': {
+                  backgroundColor: 'rgba(255,255,255,0.05)',
+                  borderRadius: 3
+                }
+              }}
+            >
+              {/* Ofertas regulares de List */}
+              {offers.map((offer) => (
+                <Box 
+                  key={`list-${offer.id}`}
+                  sx={{ 
+                    minWidth: { xs: 120, sm: 140 },
+                    maxWidth: { xs: 120, sm: 140 },
+                    background: 'linear-gradient(135deg, #2d2d2d 0%, #1a1a1a 100%)',
+                    border: '1px solid #333',
+                    borderRadius: 2,
+                    p: 2,
                     textAlign: 'center',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
                     cursor: 'pointer',
-                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
-                    backdropFilter: 'blur(10px)',
-                    flexShrink: 0, // Evita que se compriman
+                    transition: 'all 0.3s ease',
                     '&:hover': {
-                      background: 'linear-gradient(145deg, #2A2A2A 0%, #3A3A3A 100%)',
-                      borderColor: 'rgba(255, 215, 0, 0.3)',
                       transform: 'translateY(-2px)',
-                      boxShadow: '0 12px 40px rgba(0, 0, 0, 0.4)'
+                      borderColor: 'var(--primary-gold)',
+                      boxShadow: '0 4px 12px rgba(255, 215, 0, 0.2)'
                     }
                   }}
-                  onClick={() => {
-                    // Abrir en mapas externos
-                    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-                    if (isIOS) {
-                      const url = `http://maps.apple.com/?daddr=${partner.location.lat},${partner.location.lng}&dirflg=d`;
-                      window.open(url, '_blank');
-                    } else {
-                      const url = `https://www.google.com/maps/dir/?api=1&destination=${partner.location.lat},${partner.location.lng}&travelmode=driving`;
-                      window.open(url, '_blank');
-                    }
-                  }}
+                  onClick={() => handleOfferClick(offer)}
                 >
-                  <Typography sx={{ 
-                    fontSize: { xs: '1.2rem', sm: '1.5rem' }, 
-                    mb: 0.5 
+                  <Box sx={{ 
+                    width: 40, 
+                    height: 40, 
+                    mx: 'auto', 
+                    mb: 1,
+                    background: 'linear-gradient(135deg, #FFD700, #FFA000)',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '1.2rem'
                   }}>
-                    {partner.icon}
-                  </Typography>
-                  <Typography variant="body2" sx={{ 
-                    color: 'white', 
-                    fontWeight: 600,
-                    mb: 0.5,
-                    fontSize: { xs: '0.8rem', sm: '0.9rem' },
-                    fontFamily: 'Inter, sans-serif'
-                  }}>
-                    {partner.name}
-                  </Typography>
+                    {offer.category === 'restaurants' ? '🍽️' : 
+                     offer.category === 'bars' ? '🍸' : 
+                     offer.category === 'shops' ? '🛍️' : 
+                     offer.category === 'beauty' ? '💄' : 
+                     offer.category === 'fitness' ? '💪' : '🏪'}
+                  </Box>
                   <Typography variant="caption" sx={{ 
-                    background: 'linear-gradient(135deg, #FFD700 0%, #FFA000 100%)',
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent',
-                    backgroundClip: 'text',
-                    fontWeight: 700,
-                    fontSize: { xs: '0.7rem', sm: '0.8rem' }
-                  }}>
-                    {partner.discount}
-                  </Typography>
-                  <Typography variant="caption" sx={{ 
-                    color: '#bbb',
+                    color: '#fff', 
+                    fontWeight: 'bold',
                     display: 'block',
-                    mt: 0.5,
-                    fontSize: { xs: '0.6rem', sm: '0.7rem' }
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap'
                   }}>
-                    {partner.address}
+                    {offer.name}
+                  </Typography>
+                  <Typography variant="caption" sx={{ 
+                    color: 'var(--primary-gold)', 
+                    fontSize: '0.7rem',
+                    display: 'block',
+                    mt: 0.5
+                  }}>
+                    {offer.discount}
                   </Typography>
                 </Box>
               ))}
-            </Box>
-            
-            <Box sx={{ 
-              textAlign: 'center', 
-              mt: { xs: 1, sm: 1.5 } 
-            }}>
-              <Typography variant="caption" sx={{ 
-                color: '#888',
-                fontSize: { xs: '0.6rem', sm: '0.7rem' }
-              }}>
-                Toca un socio para ver la ruta
-              </Typography>
+
+              {/* Ofertas Flash */}
+              {flashDeals.map((deal) => (
+                <Box 
+                  key={`flash-${deal.id}`}
+                  sx={{ 
+                    minWidth: { xs: 120, sm: 140 },
+                    maxWidth: { xs: 120, sm: 140 },
+                    background: 'linear-gradient(135deg, #FF6B35 0%, #FF4500 100%)',
+                    border: '1px solid #FF6B35',
+                    borderRadius: 2,
+                    p: 2,
+                    textAlign: 'center',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s ease',
+                    position: 'relative',
+                    '&:hover': {
+                      transform: 'translateY(-2px)',
+                      boxShadow: '0 4px 12px rgba(255, 107, 53, 0.3)'
+                    }
+                  }}
+                  onClick={() => handleFlashDealClick(deal)}
+                >
+                  {/* Badge Flash */}
+                  <Box sx={{
+                    position: 'absolute',
+                    top: -8,
+                    right: -8,
+                    background: '#FFD700',
+                    color: '#333',
+                    borderRadius: '50%',
+                    width: 24,
+                    height: 24,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '0.8rem',
+                    fontWeight: 'bold'
+                  }}>
+                    ⚡
+                  </Box>
+                  
+                  <Box sx={{ 
+                    width: 40, 
+                    height: 40, 
+                    mx: 'auto', 
+                    mb: 1,
+                    background: 'linear-gradient(135deg, #FFD700, #FFA000)',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '1.2rem'
+                  }}>
+                    {deal.category === 'restaurants' ? '🍽️' : 
+                     deal.category === 'bars' ? '🍸' : 
+                     deal.category === 'shops' ? '🛍️' : 
+                     deal.category === 'beauty' ? '💄' : 
+                     deal.category === 'fitness' ? '💪' : '🏪'}
+                  </Box>
+                  <Typography variant="caption" sx={{ 
+                    color: '#fff', 
+                    fontWeight: 'bold',
+                    display: 'block',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap'
+                  }}>
+                    {deal.name}
+                  </Typography>
+                  <Typography variant="caption" sx={{ 
+                    color: '#FFD700', 
+                    fontSize: '0.7rem',
+                    display: 'block',
+                    mt: 0.5
+                  }}>
+                    {deal.discount}
+                  </Typography>
+                </Box>
+              ))}
             </Box>
           </Box>
         )}
