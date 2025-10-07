@@ -176,8 +176,8 @@ export const SlideToConfirmButton: React.FC<SlideToConfirmButtonProps> = ({
           background: progressPercentage > 92
             ? `linear-gradient(90deg, rgba(76, 175, 80, ${progressPercentage / 100}) 0%, rgba(76, 175, 80, 0) 100%)`
             : progressPercentage > 70
-            ? `linear-gradient(90deg, rgba(25, 118, 210, ${progressPercentage / 100}) 0%, rgba(25, 118, 210, 0) 100%)`
-            : `linear-gradient(90deg, rgba(66, 165, 245, ${progressPercentage / 100}) 0%, rgba(66, 165, 245, 0) 100%)`,
+            ? `linear-gradient(90deg, rgba(255, 215, 0, ${progressPercentage / 100}) 0%, rgba(255, 215, 0, 0) 100%)`
+            : `linear-gradient(90deg, rgba(255, 193, 7, ${progressPercentage / 100}) 0%, rgba(255, 193, 7, 0) 100%)`,
           transition: slideState.isSliding ? 'none' : 'background 0.3s ease'
         }}
       />
@@ -227,8 +227,8 @@ export const SlideToConfirmButton: React.FC<SlideToConfirmButtonProps> = ({
           background: progressPercentage > 92 
             ? 'linear-gradient(135deg, #4caf50, #66bb6a)' 
             : progressPercentage > 70
-            ? 'linear-gradient(135deg, #1976d2, #42a5f5)'
-            : 'linear-gradient(135deg, #66b3f5, #90caf9)',
+            ? 'linear-gradient(135deg, #FFD700, #FFA000)'
+            : 'linear-gradient(135deg, #FFF176, #FFEB3B)',
           borderRadius: 2,
           cursor: disabled ? 'not-allowed' : 'grab',
           boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
@@ -255,8 +255,8 @@ export const SlideToConfirmButton: React.FC<SlideToConfirmButtonProps> = ({
           background: progressPercentage > 92
             ? 'linear-gradient(90deg, #4caf50, #66bb6a)'
             : progressPercentage > 70
-            ? 'linear-gradient(90deg, #1976d2, #42a5f5)'
-            : 'linear-gradient(90deg, #66b3f5, #90caf9)',
+            ? 'linear-gradient(90deg, #FFD700, #FFA000)'
+            : 'linear-gradient(90deg, #FFF176, #FFEB3B)',
           transition: slideState.isSliding ? 'none' : 'width 0.3s ease'
         }}
       />

@@ -93,7 +93,7 @@ export const ActivationCountdownModal: React.FC<ActivationCountdownModalProps> =
             left: 0,
             right: 0,
             bottom: 0,
-            background: 'linear-gradient(45deg, #1976d2, #42a5f5, #1976d2)',
+            background: 'linear-gradient(45deg, #FFD700, #FFA000, #FFD700)',
             opacity: 0.8,
             zIndex: 1,
             animation: 'lightning 0.5s ease-in-out'
@@ -108,8 +108,8 @@ export const ActivationCountdownModal: React.FC<ActivationCountdownModalProps> =
             <Box sx={{ mb: 3 }}>
               <FlashOn sx={{ 
                 fontSize: 80, 
-                color: '#1976d2',
-                filter: 'drop-shadow(0 0 20px #1976d2)',
+                color: '#FFD700',
+                filter: 'drop-shadow(0 0 20px #FFD700)',
                 animation: 'pulse 1s ease-in-out infinite'
               }} />
             </Box>
@@ -117,7 +117,7 @@ export const ActivationCountdownModal: React.FC<ActivationCountdownModalProps> =
 
           {/* Título */}
           <Typography variant="h4" sx={{ 
-            color: '#1976d2', 
+            color: '#FFD700', 
             fontWeight: 'bold', 
             mb: 2
           }}>
@@ -136,11 +136,11 @@ export const ActivationCountdownModal: React.FC<ActivationCountdownModalProps> =
           {/* Temporizador */}
           <Box sx={{ mb: 4 }}>
             <Typography variant="h2" sx={{ 
-              color: '#1976d2', 
+              color: '#FFD700', 
               fontWeight: 'bold',
               fontFamily: 'monospace',
               mb: 2,
-              textShadow: '0 0 10px #1976d2'
+              textShadow: '0 0 10px #FFD700'
             }}>
               {formatTime(timeLeft)}
             </Typography>
@@ -164,7 +164,7 @@ export const ActivationCountdownModal: React.FC<ActivationCountdownModalProps> =
                 size={120}
                 thickness={4}
                 sx={{
-                  color: '#1976d2',
+                  color: '#fbc02d',
                   '& .MuiCircularProgress-circle': {
                     strokeLinecap: 'round',
                   }
@@ -183,7 +183,7 @@ export const ActivationCountdownModal: React.FC<ActivationCountdownModalProps> =
                 }}
               >
                 <Typography variant="h6" sx={{ 
-                  color: '#1976d2', 
+                  color: '#fbc02d', 
                   fontWeight: 'bold'
                 }}>
                   {Math.round(progressPercentage)}%
@@ -203,7 +203,7 @@ export const ActivationCountdownModal: React.FC<ActivationCountdownModalProps> =
               <Box sx={{ 
                 width: `${progressPercentage}%`, 
                 height: '100%', 
-                          background: 'linear-gradient(90deg, #1976d2, #42a5f5)',
+                background: 'linear-gradient(90deg, #FFD700, #FFA000)',
                 transition: 'width 0.3s ease',
                 borderRadius: 4
               }} />
@@ -218,13 +218,13 @@ export const ActivationCountdownModal: React.FC<ActivationCountdownModalProps> =
               justifyContent: 'center',
               gap: 2,
               p: 3,
-              background: 'rgba(25, 118, 210, 0.1)',
+              background: 'rgba(255, 215, 0, 0.1)',
               borderRadius: 2,
-              border: '1px solid #1976d2'
+              border: '1px solid #FFD700'
             }}>
-              <AccessTime sx={{ color: '#1976d2', fontSize: 32 }} />
+              <AccessTime sx={{ color: '#FFD700', fontSize: 32 }} />
               <Typography variant="h6" sx={{ 
-                color: '#1976d2', 
+                color: '#FFD700', 
                 fontWeight: 'bold'
               }}>
                 ¡Oferta Activada!

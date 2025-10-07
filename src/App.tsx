@@ -1168,7 +1168,7 @@ function MapView({ offers, flashDeals, selectedCategory, onOfferClick, onFlashDe
             display: 'flex',
             alignItems: 'center',
             gap: { xs: 1, sm: 1 },
-            bgcolor: '#2196f3',
+            bgcolor: '#FFD700',
             color: 'white',
             borderRadius: { xs: 1, sm: 2 },
             px: { xs: 2, sm: 2 },
@@ -1198,7 +1198,7 @@ function MapView({ offers, flashDeals, selectedCategory, onOfferClick, onFlashDe
             display: 'flex',
             alignItems: 'center',
             gap: { xs: 1, sm: 1 },
-            bgcolor: '#2196f3',
+            bgcolor: '#FFD700',
             color: 'white',
             borderRadius: { xs: 1, sm: 2 },
             px: { xs: 2, sm: 2 },
@@ -1269,10 +1269,10 @@ function MapView({ offers, flashDeals, selectedCategory, onOfferClick, onFlashDe
         }}>
           <Box sx={{ textAlign: 'center', color: 'white' }}>
             <Typography variant="h6" sx={{ mb: 2 }}>
-              🗺️ <span style={{ color: '#1976d2' }}>FLASH</span> Map
+              🗺️ <span style={{ color: '#FFD700' }}>FLASH</span> Map
             </Typography>
             <Typography variant="body2" sx={{ mb: 3, opacity: 0.8 }}>
-              Vue interactive des offres <span style={{ color: '#1976d2' }}>FLASH</span>
+              Vue interactive des offres <span style={{ color: '#FFD700' }}>FLASH</span>
             </Typography>
             
             {/* Marcadores simulados */}
@@ -1292,7 +1292,7 @@ function MapView({ offers, flashDeals, selectedCategory, onOfferClick, onFlashDe
                   width: 40,
                   height: 40,
                   borderRadius: '50%',
-                  bgcolor: offer.isNew ? '#2196f3' : '#2196f3',
+                  bgcolor: offer.isNew ? '#FFD700' : '#FFD700',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -1424,7 +1424,7 @@ function MapView({ offers, flashDeals, selectedCategory, onOfferClick, onFlashDe
           <Button 
             onClick={handleAddOffer}
             variant="contained"
-            sx={{ bgcolor: '#2196f3', '&:hover': { bgcolor: '#1976d2' } }}
+            sx={{ bgcolor: '#FFD700', '&:hover': { bgcolor: '#FFD700' } }}
           >
             Ajouter Offre
           </Button>
@@ -1483,7 +1483,7 @@ function MapView({ offers, flashDeals, selectedCategory, onOfferClick, onFlashDe
           <Button 
             onClick={handleLogin}
             variant="contained"
-            sx={{ bgcolor: '#2196f3', '&:hover': { bgcolor: '#1565c0' } }}
+            sx={{ bgcolor: '#FFD700', '&:hover': { bgcolor: '#1565c0' } }}
           >
             Sign in
           </Button>
@@ -1509,7 +1509,7 @@ function OffersList({ offers, selectedCategory, selectedSubCategory, onOfferClic
   const [showActivationModal, setShowActivationModal] = useState(false);
   const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null);
   const [swipedOffers, setSwipedOffers] = useState<Set<string>>(new Set());
-  const [explosions, setExplosions] = useState<Set<string>>(new Set());
+  const [showGlobalFlash, setShowGlobalFlash] = useState(false);
 
   // Función para limpiar ofertas expiradas del estado local
   const cleanupExpiredOffers = () => {
@@ -1576,22 +1576,20 @@ function OffersList({ offers, selectedCategory, selectedSubCategory, onOfferClic
     
     const offerId = selectedOffer.id;
     
-    // Trigger explosion effect
-    setExplosions(prev => new Set([...prev, offerId]));
-    
-    // Vibrate if available
-    if (navigator.vibrate) {
-      navigator.vibrate([100, 50, 100, 50, 200]);
+    // Trigger global flash effect (only once)
+    if (!showGlobalFlash) {
+      setShowGlobalFlash(true);
+      
+      // Vibrate if available
+      if (navigator.vibrate) {
+        navigator.vibrate([100, 50, 100, 50, 200]);
+      }
+      
+      // Remove flash after animation
+      setTimeout(() => {
+        setShowGlobalFlash(false);
+      }, 1500);
     }
-    
-    // Remove explosion after animation
-    setTimeout(() => {
-      setExplosions(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(offerId);
-        return newSet;
-      });
-    }, 1500);
 
     // Activar la oferta en el perfil del usuario
     if (selectedOffer.price && selectedOffer.oldPrice) {
@@ -1669,7 +1667,6 @@ function OffersList({ offers, selectedCategory, selectedSubCategory, onOfferClic
           const isBlocked = activatedOffer?.blockedUntil && activatedOffer.blockedUntil.toDate() > new Date();
           
           const isActivated = isSwiped || isBlocked;
-          const isExploding = explosions.has(offer.id);
           
           return (
           <Box
@@ -1682,58 +1679,6 @@ function OffersList({ offers, selectedCategory, selectedSubCategory, onOfferClic
               borderRadius: { xs: 1, sm: 2 }
             }}
           >
-            {/* Lightning Effect */}
-            {isExploding && (
-              <Box
-                sx={{
-                  position: 'fixed',
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  animation: 'lightningBolt 1.2s ease-out forwards',
-                  zIndex: 10000,
-                  '@keyframes lightningBolt': {
-                    '0%': {
-                      transform: 'scale(0) rotate(0deg)',
-                      opacity: 1
-                    },
-                    '20%': {
-                      transform: 'scale(1.5) rotate(5deg)',
-                      opacity: 1
-                    },
-                    '40%': {
-                      transform: 'scale(2.2) rotate(-3deg)',
-                      opacity: 0.9
-                    },
-                    '60%': {
-                      transform: 'scale(2.8) rotate(2deg)',
-                      opacity: 0.8
-                    },
-                    '80%': {
-                      transform: 'scale(3.2) rotate(-1deg)',
-                      opacity: 0.6
-                    },
-                    '100%': {
-                      transform: 'scale(3.5) rotate(0deg)',
-                      opacity: 0
-                    }
-                  }
-                }}
-              >
-                <FlashOn sx={{ 
-                  fontSize: { xs: 200, sm: 300, md: 400 },
-                  color: '#2196f3',
-                  filter: 'drop-shadow(0 0 20px #2196f3) drop-shadow(0 0 40px #2196f3) drop-shadow(0 0 60px #2196f3)',
-                  width: '100vw',
-                  height: '100vh',
-                  objectFit: 'contain'
-                }} />
-              </Box>
-            )}
             
             <Card 
               sx={{ 
@@ -1852,7 +1797,7 @@ function OffersList({ offers, selectedCategory, selectedSubCategory, onOfferClic
                   py: 0.5,
                   borderRadius: 1
                 }}>
-                  <Star sx={{ fontSize: 16, color: '#1976d2' }} />
+                  <Star sx={{ fontSize: 16, color: '#FFD700' }} />
                   <Typography variant="body2">{offer.rating}</Typography>
                 </Box>
               </Box>
@@ -1944,8 +1889,8 @@ function OffersList({ offers, selectedCategory, selectedSubCategory, onOfferClic
             <Box sx={{ mb: 3 }}>
               <FlashOn sx={{ 
                 fontSize: 80, 
-                color: '#2196f3',
-                filter: 'drop-shadow(0 0 20px #2196f3)',
+                color: '#FFD700',
+                filter: 'drop-shadow(0 0 20px #FFD700)',
                 animation: 'pulse 1s ease-in-out infinite',
                 '@keyframes pulse': {
                   '0%': { transform: 'scale(1)' },
@@ -1957,7 +1902,7 @@ function OffersList({ offers, selectedCategory, selectedSubCategory, onOfferClic
 
             {/* Offer name */}
             <Typography variant="h4" sx={{ 
-              color: '#2196f3', 
+              color: '#FFD700', 
               fontWeight: 'bold', 
               mb: 2
             }}>
@@ -1978,6 +1923,79 @@ function OffersList({ offers, selectedCategory, selectedSubCategory, onOfferClic
             </Typography>
           </DialogContent>
         </Dialog>
+      )}
+
+      {/* Global Flash Animation */}
+      {showGlobalFlash && (
+        <Box
+          sx={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            animation: 'globalLightningBolt 1.5s ease-out forwards',
+            zIndex: 10000,
+            '@keyframes globalLightningBolt': {
+              '0%': {
+                transform: 'scale(0.1) rotate(0deg)',
+                opacity: 1
+              },
+              '10%': {
+                transform: 'scale(0.5) rotate(2deg)',
+                opacity: 1
+              },
+              '20%': {
+                transform: 'scale(1) rotate(-1deg)',
+                opacity: 0.95
+              },
+              '30%': {
+                transform: 'scale(1.5) rotate(1deg)',
+                opacity: 0.9
+              },
+              '40%': {
+                transform: 'scale(2) rotate(-0.5deg)',
+                opacity: 0.85
+              },
+              '50%': {
+                transform: 'scale(2.5) rotate(0.5deg)',
+                opacity: 0.8
+              },
+              '60%': {
+                transform: 'scale(3) rotate(-0.3deg)',
+                opacity: 0.7
+              },
+              '70%': {
+                transform: 'scale(3.5) rotate(0.2deg)',
+                opacity: 0.6
+              },
+              '80%': {
+                transform: 'scale(4) rotate(-0.1deg)',
+                opacity: 0.4
+              },
+              '90%': {
+                transform: 'scale(4.5) rotate(0.1deg)',
+                opacity: 0.2
+              },
+              '100%': {
+                transform: 'scale(5) rotate(0deg)',
+                opacity: 0
+              }
+            }
+          }}
+        >
+          <FlashOn sx={{ 
+            fontSize: { xs: 300, sm: 400, md: 500 },
+            color: '#FFD700',
+            filter: 'drop-shadow(0 0 30px #FFD700) drop-shadow(0 0 60px #FFD700) drop-shadow(0 0 90px #FFD700)',
+            width: '100vw',
+            height: '100vh',
+            objectFit: 'contain'
+          }} />
+        </Box>
       )}
     </>
   );
@@ -2017,11 +2035,11 @@ function ActivationCountdownTimer({ onComplete, duration }: { onComplete: () => 
   return (
     <Box>
       <Typography variant="h2" sx={{ 
-        color: '#2196f3', 
+        color: '#FFD700', 
         fontWeight: 'bold',
         fontFamily: 'monospace',
         mb: 2,
-        textShadow: '0 0 10px #2196f3'
+        textShadow: '0 0 10px #FFD700'
       }}>
         {formatTime(timeLeft)}
       </Typography>
@@ -2037,7 +2055,7 @@ function ActivationCountdownTimer({ onComplete, duration }: { onComplete: () => 
         <Box sx={{ 
           width: `${progressPercentage}%`, 
           height: '100%', 
-          background: 'linear-gradient(90deg, #2196f3, #1976d2)',
+          background: 'linear-gradient(90deg, #FFD700, #FFA000)',
           transition: 'width 0.3s ease',
           borderRadius: 4
         }} />
@@ -2054,7 +2072,7 @@ function ActivationCountdownTimer({ onComplete, duration }: { onComplete: () => 
           size={120}
           thickness={4}
           sx={{
-            color: '#2196f3',
+            color: '#FFD700',
             '& .MuiCircularProgress-circle': {
               strokeLinecap: 'round',
             }
@@ -2073,7 +2091,7 @@ function ActivationCountdownTimer({ onComplete, duration }: { onComplete: () => 
           }}
         >
           <Typography variant="h6" sx={{ 
-            color: '#2196f3', 
+            color: '#FFD700', 
             fontWeight: 'bold'
           }}>
             {Math.round(progressPercentage)}%
@@ -2359,7 +2377,7 @@ function SubscriptionModal({
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle sx={{ 
-        background: 'linear-gradient(135deg, #2196f3 0%, #1976d2 100%)',
+        background: 'linear-gradient(135deg, #FFD700 0%, #FFD700 100%)',
         color: '#333',
         textAlign: 'center',
         py: 3
@@ -2416,7 +2434,7 @@ function SubscriptionModal({
                   key={plan.id}
                   sx={{ 
                     flex: 1,
-                    border: selectedPlan === plan.id ? '2px solid #1976d2' : '1px solid #e0e0e0',
+                    border: selectedPlan === plan.id ? '2px solid #FFD700' : '1px solid #e0e0e0',
                     cursor: 'pointer',
                     transition: 'all 0.3s ease'
                   }}
@@ -2426,7 +2444,7 @@ function SubscriptionModal({
                     <Typography variant="h6" gutterBottom>
                       {plan.name}
                     </Typography>
-                    <Typography variant="h4" sx={{ color: '#1976d2', fontWeight: 'bold' }}>
+                    <Typography variant="h4" sx={{ color: '#FFD700', fontWeight: 'bold' }}>
                       CHF {plan.price}
                     </Typography>
                     <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
@@ -2437,7 +2455,7 @@ function SubscriptionModal({
                       {plan.features.map((feature, index) => (
                         <ListItem key={index} sx={{ py: 0.5 }}>
                           <ListItemIcon sx={{ minWidth: 32 }}>
-                            <Star sx={{ color: '#1976d2', fontSize: 16 }} />
+                            <Star sx={{ color: '#FFD700', fontSize: 16 }} />
                           </ListItemIcon>
                           <ListItemText primary={feature} />
                         </ListItem>
@@ -2461,7 +2479,7 @@ function SubscriptionModal({
             variant="contained"
             disabled={isProcessing}
             sx={{
-              background: 'linear-gradient(135deg, #2196f3 0%, #1976d2 100%)',
+              background: 'linear-gradient(135deg, #FFD700 0%, #FFD700 100%)',
               '&:hover': {
                 background: 'linear-gradient(135deg, #fbc02d 0%, #fbc02d 100%)',
               }
@@ -2525,7 +2543,7 @@ function SubscriptionRequiredModal({
       }}
     >
       <DialogTitle sx={{ 
-        background: 'linear-gradient(135deg, #2196f3 0%, #1976d2 100%)',
+        background: 'linear-gradient(135deg, #FFD700 0%, #FFD700 100%)',
         color: '#333',
         textAlign: 'center',
         py: 4,
@@ -2563,7 +2581,7 @@ function SubscriptionRequiredModal({
           mb: 4 
         }}>
           <Box sx={{ p: 2, bgcolor: '#f8f9fa', borderRadius: 2 }}>
-            <Typography variant="h6" sx={{ color: '#1976d2', mb: 1 }}>💎</Typography>
+            <Typography variant="h6" sx={{ color: '#FFD700', mb: 1 }}>💎</Typography>
             <Typography variant="subtitle2" gutterBottom>Ofertas Exclusivas</Typography>
             <Typography variant="body2" color="text.secondary">
               Acceso a ofertas únicas no disponibles para usuarios gratuitos
@@ -2571,7 +2589,7 @@ function SubscriptionRequiredModal({
           </Box>
           
           <Box sx={{ p: 2, bgcolor: '#f8f9fa', borderRadius: 2 }}>
-            <Typography variant="h6" sx={{ color: '#1976d2', mb: 1 }}>💎</Typography>
+            <Typography variant="h6" sx={{ color: '#FFD700', mb: 1 }}>💎</Typography>
             <Typography variant="subtitle2" gutterBottom>Sin Límites</Typography>
             <Typography variant="body2" color="text.secondary">
               Usa todas las ofertas que quieras sin restricciones
@@ -2579,7 +2597,7 @@ function SubscriptionRequiredModal({
           </Box>
           
           <Box sx={{ p: 2, bgcolor: '#f8f9fa', borderRadius: 2 }}>
-            <Typography variant="h6" sx={{ color: '#1976d2', mb: 1 }}>🎯</Typography>
+            <Typography variant="h6" sx={{ color: '#FFD700', mb: 1 }}>🎯</Typography>
             <Typography variant="subtitle2" gutterBottom>Ahorro Garantizado</Typography>
             <Typography variant="body2" color="text.secondary">
               Ahorra dinero real en cada compra con nuestras ofertas
@@ -2592,7 +2610,7 @@ function SubscriptionRequiredModal({
           bgcolor: '#fff3e0', 
           p: 3, 
           borderRadius: 2, 
-          border: '2px solid #1976d2',
+          border: '2px solid #FFD700',
           mb: 3
         }}>
           <Typography variant="h5" sx={{ color: '#e65100', fontWeight: 'bold', mb: 1 }}>
@@ -2618,7 +2636,7 @@ function SubscriptionRequiredModal({
           variant="contained"
           size="large"
           sx={{
-            background: 'linear-gradient(135deg, #2196f3 0%, #1976d2 100%)',
+            background: 'linear-gradient(135deg, #FFD700 0%, #FFD700 100%)',
             px: 6,
             py: 1.5,
             fontSize: '1.1rem',
@@ -2682,7 +2700,7 @@ function OfferDetail({ offer, open, onClose }: { offer: Offer | null, open: bool
         </Typography>
         
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-          <Star sx={{ color: '#1976d2', mr: 0.5 }} />
+          <Star sx={{ color: '#FFD700', mr: 0.5 }} />
           <Typography variant="body1" sx={{ mr: 1 }}>{offer.rating}</Typography>
           <Typography variant="body2" color="text.secondary">
             {offer.location.address}
@@ -2716,7 +2734,7 @@ function OfferDetail({ offer, open, onClose }: { offer: Offer | null, open: bool
             <Typography variant="body2" color="text.secondary" gutterBottom>
               💳 Coût pour utiliser cette offre :
             </Typography>
-            <Typography variant="h6" sx={{ color: '#1976d2', fontWeight: 'bold' }}>
+            <Typography variant="h6" sx={{ color: '#FFD700', fontWeight: 'bold' }}>
               CHF {offer.usagePrice}
             </Typography>
             <Typography variant="caption" color="text.secondary">
@@ -2751,7 +2769,7 @@ function OfferDetail({ offer, open, onClose }: { offer: Offer | null, open: bool
                 // addNotification('success', '¡Enlace copiado al portapapeles!');
               }
             }}
-            sx={{ borderColor: '#1976d2', color: '#1976d2' }}
+            sx={{ borderColor: '#FFD700', color: '#FFD700' }}
           >
             📤 Partager
           </Button>
@@ -4214,7 +4232,7 @@ function App() {
             onClick={handleUserLogin}
             variant="contained"
             disabled={!loginCredentials.email || !loginCredentials.password || isLoading}
-            sx={{ bgcolor: '#2196f3', '&:hover': { bgcolor: '#1565c0' } }}
+            sx={{ bgcolor: '#FFD700', '&:hover': { bgcolor: '#1565c0' } }}
             fullWidth
           >
             {isLoading ? (
@@ -4367,7 +4385,7 @@ function App() {
               signupCredentials.password !== signupCredentials.confirmPassword ||
               isLoading
             }
-            sx={{ bgcolor: '#2196f3', '&:hover': { bgcolor: '#1976d2' } }}
+            sx={{ bgcolor: '#FFD700', '&:hover': { bgcolor: '#FFD700' } }}
             fullWidth
           >
             {isLoading ? (
@@ -4460,7 +4478,7 @@ function App() {
             onClick={handleResetPassword}
             variant="contained"
             disabled={!resetPasswordEmail || isLoading}
-            sx={{ bgcolor: '#2196f3', '&:hover': { bgcolor: '#1565c0' } }}
+            sx={{ bgcolor: '#FFD700', '&:hover': { bgcolor: '#1565c0' } }}
           >
             {isLoading ? (
               <>
@@ -4517,7 +4535,7 @@ function App() {
           <Button 
             onClick={handleEditProfile}
             variant="contained"
-            sx={{ bgcolor: '#2196f3', '&:hover': { bgcolor: '#1565c0' } }}
+            sx={{ bgcolor: '#FFD700', '&:hover': { bgcolor: '#1565c0' } }}
           >
             Sauvegarder
           </Button>
@@ -4592,7 +4610,7 @@ function App() {
           {/* Banner de suscripción - Solo mostrar si NO está en período de prueba */}
           {!checkTrialStatus(userProfile) && !checkSubscriptionStatus(userProfile) && userProfile && (
             <Box sx={{ 
-              bgcolor: '#2196f3', 
+              bgcolor: '#FFD700', 
               color: 'white', 
               textAlign: 'center', 
               py: 1,
@@ -4656,7 +4674,7 @@ function App() {
                 <Typography variant="h6" sx={{ 
                   fontSize: { xs: '0.9rem', sm: '1.25rem' },
                   whiteSpace: 'nowrap'
-                }}><span style={{ color: '#1976d2 !important' }}>FLASH</span></Typography>
+                }}><span style={{ color: '#FFD700 !important' }}>FLASH</span></Typography>
               </Box>
               
               <Box sx={{ display: 'flex', gap: 0.5 }}>
@@ -4820,10 +4838,10 @@ function App() {
                   justifyContent: 'space-between'
                 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    <Person sx={{ mr: 1, fontSize: { xs: 18, sm: 24 }, color: '#1976d2' }} />
+                    <Person sx={{ mr: 1, fontSize: { xs: 18, sm: 24 }, color: '#FFD700' }} />
                     <Typography variant="h5" sx={{ 
                       fontSize: { xs: '1.1rem', sm: '1.5rem' },
-                      color: '#2196f3',
+                      color: '#FFD700',
                       fontWeight: 'bold'
                     }}>
                       Mon Profil
@@ -4869,7 +4887,7 @@ function App() {
                           width: { xs: 40, sm: 60 },
                           height: { xs: 40, sm: 60 },
                           borderRadius: '50%',
-                          bgcolor: '#2196f3',
+                          bgcolor: '#FFD700',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
@@ -4880,7 +4898,7 @@ function App() {
                         </Box>
                         <Typography variant="h5" fontWeight="bold" sx={{ 
                           fontSize: { xs: '1.5rem', sm: '2rem' },
-                          color: '#1976d2'
+                          color: '#FFD700'
                         }}>
                           {userProfile.activatedOffers.length}
                         </Typography>
@@ -4936,10 +4954,10 @@ function App() {
                         size="small"
                         onClick={openEditProfileModal}
                         sx={{ 
-                          borderColor: '#2196f3', 
-                          color: '#2196f3',
+                          borderColor: '#FFD700', 
+                          color: '#FFD700',
                           '&:hover': { 
-                            borderColor: '#1976d2', 
+                            borderColor: '#FFD700', 
                             bgcolor: 'rgba(33, 150, 243, 0.1)' 
                           }
                         }}
@@ -4981,7 +4999,7 @@ function App() {
                     {/* Sección de dinero integrada */}
                     <Divider sx={{ my: 3 }} />
                     <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                      <MonetizationOn sx={{ mr: 1, fontSize: { xs: 18, sm: 24 }, color: '#1976d2' }} />
+                      <MonetizationOn sx={{ mr: 1, fontSize: { xs: 18, sm: 24 }, color: '#FFD700' }} />
                       <Typography variant="h5" sx={{ fontSize: { xs: '1.1rem', sm: '1.5rem' } }}>
                         {t('tableauBordFinancier')}
                       </Typography>
@@ -5033,7 +5051,7 @@ function App() {
                     {/* Nueva sección: Estadísticas detalladas del usuario */}
                     <Divider sx={{ my: 3 }} />
                     <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                      <AccessTime sx={{ mr: 1, fontSize: { xs: 18, sm: 24 }, color: '#1976d2' }} />
+                      <AccessTime sx={{ mr: 1, fontSize: { xs: 18, sm: 24 }, color: '#FFD700' }} />
                       <Typography variant="h5" sx={{ fontSize: { xs: '1.1rem', sm: '1.5rem' } }}>
                         Estadísticas Personales
                       </Typography>
@@ -5047,7 +5065,7 @@ function App() {
                           
                           return (
                             <>
-                              <Typography variant="h6" sx={{ mb: 2, color: '#1976d2' }}>
+                              <Typography variant="h6" sx={{ mb: 2, color: '#FFD700' }}>
                                 Tu actividad en FLASH
                               </Typography>
                               
@@ -5084,7 +5102,7 @@ function App() {
                                         label={category}
                                         size="small"
                                         sx={{
-                                          bgcolor: '#2196f3',
+                                          bgcolor: '#FFD700',
                                           color: '#333',
                                           fontWeight: 'bold'
                                         }}
@@ -5118,7 +5136,7 @@ function App() {
                         startIcon={<Add sx={{ fontSize: { xs: 18, sm: 20 } }} />}
                         onClick={() => setShowAddModal(true)}
                         sx={{ 
-                          bgcolor: '#2196f3', 
+                          bgcolor: '#FFD700', 
                           '&:hover': { bgcolor: '#45a049' },
                           py: { xs: 2, sm: 1.5 },
                           px: { xs: 3, sm: 2 },
@@ -5134,7 +5152,7 @@ function App() {
                         startIcon={<FlashOn sx={{ fontSize: { xs: 18, sm: 20 } }} />}
                         onClick={() => setShowAddFlashModal(true)}
                         sx={{ 
-                          bgcolor: '#2196f3', 
+                          bgcolor: '#FFD700', 
                           '&:hover': { bgcolor: '#fbc02d' },
                           py: { xs: 2, sm: 1.5 },
                           px: { xs: 3, sm: 2 },
@@ -5167,8 +5185,8 @@ function App() {
                         startIcon={<Close sx={{ fontSize: { xs: 18, sm: 20 } }} />}
                         onClick={() => setIsAdmin(false)}
                         sx={{ 
-                          borderColor: '#2196f3', 
-                          color: '#2196f3',
+                          borderColor: '#FFD700', 
+                          color: '#FFD700',
                           '&:hover': { 
                             borderColor: '#fbc02d', 
                             bgcolor: 'rgba(244, 67, 54, 0.1)' 
@@ -5244,7 +5262,7 @@ function App() {
             onClick={handleAdminLogin}
             variant="contained"
             disabled={!adminLoginCredentials.email || !adminLoginCredentials.password || isLoading}
-            sx={{ bgcolor: '#1976d2', '&:hover': { bgcolor: '#1565c0' } }}
+            sx={{ bgcolor: '#FFD700', '&:hover': { bgcolor: '#1565c0' } }}
           >
             {isLoading ? (
               <>
@@ -5369,7 +5387,7 @@ function App() {
               <Button 
                 onClick={handleAddOffer}
                 variant="contained"
-                sx={{ bgcolor: '#2196f3', '&:hover': { bgcolor: '#1976d2' } }}
+                sx={{ bgcolor: '#FFD700', '&:hover': { bgcolor: '#FFD700' } }}
               >
                 Ajouter Offre
               </Button>
@@ -5494,7 +5512,7 @@ function App() {
               <Button 
                 onClick={handleAddFlashDeal}
                 variant="contained"
-                sx={{ bgcolor: '#1976d2', '&:hover': { bgcolor: '#1565c0' } }}
+                sx={{ bgcolor: '#FFD700', '&:hover': { bgcolor: '#1565c0' } }}
               >
                 Créer Offre Flash
               </Button>
@@ -5848,7 +5866,7 @@ function App() {
             alignItems: 'center',
             borderBottom: '1px solid #333'
           }}>
-            <Typography variant="body2" sx={{ color: '#1976d2 !important', fontSize: '0.8rem', mb: 1 }}>
+            <Typography variant="body2" sx={{ color: '#FFD700 !important', fontSize: '0.8rem', mb: 1 }}>
               {t('filtros')}
             </Typography>
             <Box sx={{
@@ -5868,7 +5886,7 @@ function App() {
                   border: '1px solid rgba(255,255,255,0.2)'
                 }}
               >
-                <RestaurantIcon sx={{ fontSize: 20, color: '#1976d2' }} />
+                <RestaurantIcon sx={{ fontSize: 20, color: '#FFD700' }} />
               </IconButton>
               <IconButton
                 onClick={() => setSelectedCategory(selectedCategory === 'bars' ? 'all' : 'bars')}
@@ -5881,7 +5899,7 @@ function App() {
                   border: '1px solid rgba(255,255,255,0.2)'
                 }}
               >
-                <BarIcon sx={{ fontSize: 20, color: '#1976d2' }} />
+                <BarIcon sx={{ fontSize: 20, color: '#FFD700' }} />
               </IconButton>
               <IconButton
                 onClick={() => setSelectedCategory(selectedCategory === 'shops' ? 'all' : 'shops')}
@@ -5894,7 +5912,7 @@ function App() {
                   border: '1px solid rgba(255,255,255,0.2)'
                 }}
               >
-                <Store sx={{ fontSize: 20, color: '#1976d2' }} />
+                <Store sx={{ fontSize: 20, color: '#FFD700' }} />
               </IconButton>
             </Box>
           </Box>
@@ -6124,14 +6142,14 @@ function App() {
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              color: '#1976d2 !important',
+              color: '#FFD700 !important',
               border: '2px solid transparent',
               borderRadius: '8px',
               margin: '4px',
               backgroundColor: 'black',
               '&.Mui-selected': {
                 color: 'black !important',
-                backgroundColor: '#1976d2 !important',
+                backgroundColor: '#FFD700 !important',
                 border: '2px solid transparent',
                 '& .MuiSvgIcon-root': {
                   color: 'black !important'
@@ -6139,7 +6157,7 @@ function App() {
               },
               '& .MuiSvgIcon-root': {
                 fontSize: { xs: 18, sm: 20 },
-                color: '#1976d2 !important',
+                color: '#FFD700 !important',
                 display: 'block',
                 visibility: 'visible',
                 marginBottom: '2px'
@@ -6161,20 +6179,20 @@ function App() {
             icon={
               ((userProfile?.activatedOffers?.length ?? 0) > 0 || activatedFlashDeals.size > 0) ? (
                 <FlashIcon sx={{ 
-                  color: '#1976d2 !important',
-                  filter: 'drop-shadow(0 0 8px #1976d2)',
+                  color: '#FFD700 !important',
+                  filter: 'drop-shadow(0 0 8px #FFD700)',
                   animation: 'pulse 2s infinite',
                   '@keyframes pulse': {
                     '0%': {
-                      filter: 'drop-shadow(0 0 8px #1976d2)',
+                      filter: 'drop-shadow(0 0 8px #FFD700)',
                       transform: 'scale(1)'
                     },
                     '50%': {
-                      filter: 'drop-shadow(0 0 12px #1976d2)',
+                      filter: 'drop-shadow(0 0 12px #FFD700)',
                       transform: 'scale(1.1)'
                     },
                     '100%': {
-                      filter: 'drop-shadow(0 0 8px #1976d2)',
+                      filter: 'drop-shadow(0 0 8px #FFD700)',
                       transform: 'scale(1)'
                     }
                   }
@@ -6184,7 +6202,7 @@ function App() {
                   width: 20, 
                   height: 20, 
                   borderRadius: '50%', 
-                  backgroundColor: '#1976d2',
+                  backgroundColor: '#FFD700',
                   opacity: 0.3
                 }} />
               )

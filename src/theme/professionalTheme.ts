@@ -11,9 +11,9 @@ const professionalTheme = createTheme({
       contrastText: '#000000',
     },
     secondary: {
-      main: '#2196F3', // Azul profesional
-      light: '#64B5F6',
-      dark: '#1976D2',
+      main: '#FFD700', // Azul profesional
+      light: '#FFA000',
+      dark: '#FFF176',
       contrastText: '#FFFFFF',
     },
     background: {
@@ -40,9 +40,9 @@ const professionalTheme = createTheme({
       dark: '#388E3C',
     },
     info: {
-      main: '#2196F3',
-      light: '#64B5F6',
-      dark: '#1976D2',
+      main: '#FFD700',
+      light: '#FFA000',
+      dark: '#FFF176',
     },
   },
   typography: {
@@ -299,7 +299,7 @@ const professionalTheme = createTheme({
         standardInfo: {
           background: 'rgba(33, 150, 243, 0.1)',
           borderColor: 'rgba(33, 150, 243, 0.3)',
-          color: '#2196F3',
+          color: '#FFD700',
         },
       },
     },
@@ -327,3 +327,4 @@ const professionalTheme = createTheme({
 });
 
 export default professionalTheme;
+

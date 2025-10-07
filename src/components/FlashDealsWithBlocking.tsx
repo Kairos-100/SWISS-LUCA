@@ -152,7 +152,7 @@ export const FlashDealsWithBlocking: React.FC<FlashDealsWithBlockingProps> = ({
                   '&:hover': {
                     transform: canScroll ? 'translateY(-4px)' : 'none',
                     boxShadow: canScroll ? '0 8px 25px rgba(25, 118, 210, 0.3)' : 'none',
-                    borderColor: canScroll ? '#1976d2' : '#333'
+                    borderColor: canScroll ? '#FFD700' : '#333'
                   }
                 }}
                 onClick={() => {
@@ -166,7 +166,7 @@ export const FlashDealsWithBlocking: React.FC<FlashDealsWithBlockingProps> = ({
                   position: 'absolute',
                   top: 12,
                   right: 12,
-                  background: 'linear-gradient(45deg, #1976d2, #42a5f5)',
+                  background: 'linear-gradient(45deg, #FFD700, #FFA000)',
                   color: 'white',
                   px: 2,
                   py: 0.5,
@@ -421,7 +421,7 @@ export const FlashDealsWithBlocking: React.FC<FlashDealsWithBlockingProps> = ({
                   {/* Precios */}
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
                     <Typography variant="h5" sx={{ 
-                      color: '#1976d2', 
+                      color: '#FFD700', 
                       fontWeight: 'bold' 
                     }}>
                       CHF {deal.discountedPrice}
@@ -438,7 +438,7 @@ export const FlashDealsWithBlocking: React.FC<FlashDealsWithBlockingProps> = ({
                   {offerStatus === 'blocked' && !canScroll && (
                     <Box sx={{ mb: 2 }}>
                       <Typography variant="h6" sx={{ 
-                        color: '#1976d2', 
+                        color: '#FFD700', 
                         fontWeight: 'bold',
                         fontFamily: 'monospace',
                         textAlign: 'center',
@@ -455,7 +455,7 @@ export const FlashDealsWithBlocking: React.FC<FlashDealsWithBlockingProps> = ({
                           borderRadius: 3,
                           backgroundColor: '#333',
                           '& .MuiLinearProgress-bar': {
-                            background: 'linear-gradient(90deg, #1976d2, #42a5f5)',
+                            background: 'linear-gradient(90deg, #FFD700, #FFA000)',
                             borderRadius: 3
                           }
                         }}
@@ -465,7 +465,7 @@ export const FlashDealsWithBlocking: React.FC<FlashDealsWithBlockingProps> = ({
 
                   {/* Rating y ubicación */}
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 2 }}>
-                    <Star sx={{ color: '#1976d2', fontSize: '1rem' }} />
+                    <Star sx={{ color: '#FFD700', fontSize: '1rem' }} />
                     <Typography variant="body2" sx={{ color: '#bbb' }}>
                       {deal.rating}
                     </Typography>
@@ -487,7 +487,7 @@ export const FlashDealsWithBlocking: React.FC<FlashDealsWithBlockingProps> = ({
                         <Typography variant="caption" sx={{ color: '#888' }}>
                           Vendu : {deal.soldQuantity || 0} / {deal.maxQuantity}
                         </Typography>
-                        <Typography variant="caption" sx={{ color: '#1976d2', fontWeight: 'bold' }}>
+                        <Typography variant="caption" sx={{ color: '#FFD700', fontWeight: 'bold' }}>
                           {Math.round(progressPercentage)}% vendu
                         </Typography>
                       </Box>
@@ -501,7 +501,7 @@ export const FlashDealsWithBlocking: React.FC<FlashDealsWithBlockingProps> = ({
                         <Box sx={{ 
                           width: `${Math.min(progressPercentage, 100)}%`, 
                           height: '100%', 
-                          background: 'linear-gradient(90deg, #1976d2, #42a5f5)',
+                          background: 'linear-gradient(90deg, #FFD700, #FFA000)',
                           transition: 'width 0.3s ease'
                         }} />
                       </Box>
