@@ -885,28 +885,74 @@ function MapView({ offers, flashDeals, selectedCategory, onOfferClick, onFlashDe
         await loader.load();
         
         if (mapRef.current && !mapInstanceRef.current && window.google) {
-          // Centrar el mapa en Valais (coordenadas del cantón)
-          const valaisCenter = { lat: 46.2097, lng: 7.6056 };
-          // Aproximación de límites del cantón du Valais
-          const valaisBounds = new window.google.maps.LatLngBounds(
-            { lat: 45.8, lng: 6.8 }, // Sudoeste
-            { lat: 46.6, lng: 8.7 }  // Noreste
+          // Centrar el mapa en Suiza (como en la imagen)
+          const switzerlandCenter = { lat: 46.8182, lng: 8.2275 };
+          // Límites de Suiza completa (como se ve en la imagen)
+          const switzerlandBounds = new window.google.maps.LatLngBounds(
+            { lat: 45.8, lng: 5.9 }, // Sudoeste
+            { lat: 47.8, lng: 10.5 }  // Noreste
           );
           
           const map = new window.google.maps.Map(mapRef.current, {
-            center: valaisCenter,
-            zoom: 10,
-            // Restringir ligeramente la navegación a la zona de Valais
-            restriction: { latLngBounds: { north: 46.6, south: 45.8, west: 6.8, east: 8.7 }, strictBounds: false },
+            center: switzerlandCenter,
+            zoom: 7,
+            // Restringir ligeramente la navegación a Suiza
+            restriction: { latLngBounds: { north: 47.8, south: 45.8, west: 5.9, east: 10.5 }, strictBounds: false },
             disableDefaultUI: true,
             mapTypeControl: false,
             fullscreenControl: false,
             streetViewControl: false,
-            styles: []
+            styles: [
+              {
+                "featureType": "all",
+                "elementType": "geometry.fill",
+                "stylers": [
+                  {
+                    "color": "#2c2c2c"
+                  }
+                ]
+              },
+              {
+                "featureType": "water",
+                "elementType": "geometry.fill",
+                "stylers": [
+                  {
+                    "color": "#1e3a8a"
+                  }
+                ]
+              },
+              {
+                "featureType": "landscape",
+                "elementType": "geometry.fill",
+                "stylers": [
+                  {
+                    "color": "#16a34a"
+                  }
+                ]
+              },
+              {
+                "featureType": "road",
+                "elementType": "geometry.fill",
+                "stylers": [
+                  {
+                    "color": "#374151"
+                  }
+                ]
+              },
+              {
+                "featureType": "poi",
+                "elementType": "geometry.fill",
+                "stylers": [
+                  {
+                    "color": "#374151"
+                  }
+                ]
+              }
+            ]
           });
 
-          // Encajar el mapa a los límites del Valais
-          map.fitBounds(valaisBounds);
+          // Encajar el mapa a los límites de Suiza
+          map.fitBounds(switzerlandBounds);
           
           mapInstanceRef.current = map;
           setMapLoaded(true);
@@ -939,55 +985,26 @@ function MapView({ offers, flashDeals, selectedCategory, onOfferClick, onFlashDe
     markersRef.current = [];
 
     // Agregar nuevos marcadores
-    filteredOffers.forEach((offer) => {
+    filteredOffers.forEach((offer, index) => {
       if (!window.google) return;
       
       // Determinar si es una oferta flash o regular
       const isFlashDeal = flashDeals.some(deal => deal.id === offer.id);
       
+      // Crear marcadores rojos numerados como en la imagen
       const marker = new window.google.maps.Marker({
         position: { lat: offer.location.lat, lng: offer.location.lng },
         map: mapInstanceRef.current,
         title: offer.name,
         icon: {
           url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
-            <svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
-              <defs>
-                <linearGradient id="grad${offer.id}" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" style="stop-color:${isFlashDeal ? '#FF6B35' : '#FFD700'};stop-opacity:1" />
-                  <stop offset="100%" style="stop-color:${isFlashDeal ? '#FF4500' : '#FFA000'};stop-opacity:1" />
-                </linearGradient>
-              </defs>
-              <circle cx="20" cy="20" r="18" fill="url(#grad${offer.id})" stroke="white" stroke-width="2" opacity="0.95"/>
-              <circle cx="20" cy="20" r="14" fill="rgba(26, 26, 26, 0.9)" stroke="white" stroke-width="1"/>
-              ${isFlashDeal ? `
-                <path d="M16 12h8l-2 6h6l-8 8 2-6h-6z" fill="white" transform="translate(4, 4) scale(1.2)"/>
-              ` : offer.category === 'restaurants' ? `
-                <path d="M12 16h16v2H12zm0 4h16v2H12zm0 4h12v2H12z" fill="white" transform="translate(4, 4) scale(1.5)"/>
-                <path d="M14 18h12v1H14z" fill="#FFD700" transform="translate(4, 4) scale(1.5)"/>
-              ` : offer.category === 'bars' ? `
-                <path d="M16 14h8v8h-8z" fill="white" transform="translate(4, 4) scale(1.2)"/>
-                <path d="M17 15h6v6h-6z" fill="#FFD700" transform="translate(4, 4) scale(1.2)"/>
-                <path d="M20 12v2" stroke="white" stroke-width="1" transform="translate(4, 4) scale(1.2)"/>
-              ` : offer.category === 'shops' ? `
-                <path d="M12 14h16v8H12z" fill="white" transform="translate(4, 4) scale(1.2)"/>
-                <path d="M14 16h12v4H14z" fill="#FFD700" transform="translate(4, 4) scale(1.2)"/>
-                <path d="M18 14v8M22 14v8" stroke="white" stroke-width="1" transform="translate(4, 4) scale(1.2)"/>
-              ` : offer.category === 'beauty' ? `
-                <path d="M16 14c0-2 2-4 4-4s4 2 4 4v2h-8v-2z" fill="white" transform="translate(4, 4) scale(1.2)"/>
-                <path d="M14 18h12v4H14z" fill="#FFD700" transform="translate(4, 4) scale(1.2)"/>
-              ` : offer.category === 'fitness' ? `
-                <path d="M16 12h8v8h-8z" fill="white" transform="translate(4, 4) scale(1.2)"/>
-                <path d="M18 14h4v4h-4z" fill="#FFD700" transform="translate(4, 4) scale(1.2)"/>
-                <circle cx="20" cy="16" r="1" fill="white" transform="translate(4, 4) scale(1.2)"/>
-              ` : `
-                <path d="M14 14h12v8H14z" fill="white" transform="translate(4, 4) scale(1.2)"/>
-                <path d="M16 16h8v4H16z" fill="#FFD700" transform="translate(4, 4) scale(1.2)"/>
-              `}
+            <svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="16" cy="16" r="14" fill="#dc2626" stroke="white" stroke-width="2"/>
+              <text x="16" y="20" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="14" font-weight="bold">${index + 1}</text>
             </svg>
           `)}`,
-          scaledSize: new window.google.maps.Size(40, 40),
-          anchor: new window.google.maps.Point(20, 20)
+          scaledSize: new window.google.maps.Size(32, 32),
+          anchor: new window.google.maps.Point(16, 16)
         }
       });
 
@@ -1018,6 +1035,60 @@ function MapView({ offers, flashDeals, selectedCategory, onOfferClick, onFlashDe
       });
 
       markersRef.current.push(marker);
+    });
+
+    // Agregar iconos de montañas verdes (Mont Blanc y Matterhorn)
+    const mountainLocations = [
+      { name: 'Mont Blanc', lat: 45.8326, lng: 6.8652 },
+      { name: 'Matterhorn', lat: 45.9763, lng: 7.6586 }
+    ];
+
+    mountainLocations.forEach(mountain => {
+      const mountainMarker = new window.google.maps.Marker({
+        position: { lat: mountain.lat, lng: mountain.lng },
+        map: mapInstanceRef.current,
+        title: mountain.name,
+        icon: {
+          url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
+            <svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 2L8 8L12 6L16 8L12 2Z" fill="#16a34a"/>
+              <path d="M8 8L4 16L12 12L20 16L16 8L12 6L8 8Z" fill="#15803d"/>
+              <path d="M4 16L12 20L20 16L12 12L4 16Z" fill="#166534"/>
+            </svg>
+          `)}`,
+          scaledSize: new window.google.maps.Size(24, 24),
+          anchor: new window.google.maps.Point(12, 12)
+        }
+      });
+      markersRef.current.push(mountainMarker);
+    });
+
+    // Agregar marcadores negros con bordes amarillos para el área de Crans-Montana
+    const cransMontanaLocations = [
+      { lat: 46.3081, lng: 7.4706 },
+      { lat: 46.3100, lng: 7.4750 },
+      { lat: 46.3120, lng: 7.4800 },
+      { lat: 46.3085, lng: 7.4720 },
+      { lat: 46.3095, lng: 7.4770 },
+      { lat: 46.3110, lng: 7.4730 }
+    ];
+
+    cransMontanaLocations.forEach(location => {
+      const specialMarker = new window.google.maps.Marker({
+        position: { lat: location.lat, lng: location.lng },
+        map: mapInstanceRef.current,
+        icon: {
+          url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
+            <svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="10" cy="10" r="8" fill="#000000" stroke="#fbbf24" stroke-width="2"/>
+              <circle cx="10" cy="10" r="4" fill="#fbbf24"/>
+            </svg>
+          `)}`,
+          scaledSize: new window.google.maps.Size(20, 20),
+          anchor: new window.google.maps.Point(10, 10)
+        }
+      });
+      markersRef.current.push(specialMarker);
     });
   }, [filteredOffers, flashDeals, onOfferClick, onFlashDealClick, mapLoaded]);
 
@@ -1312,15 +1383,36 @@ function MapView({ offers, flashDeals, selectedCategory, onOfferClick, onFlashDe
           </Box>
         </Box>
       ) : (
-        <div 
-          ref={mapRef} 
-          style={{ 
-            width: '100%', 
-            height: '100%',
+        <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+          <div 
+            ref={mapRef} 
+            style={{ 
+              width: '100%', 
+              height: '100%',
+              borderRadius: '8px',
+              background: '#ffffff'
+            }} 
+          />
+          {/* Overlay de instrucciones como en la imagen */}
+          <Box sx={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+            color: 'white',
+            padding: '12px 20px',
             borderRadius: '8px',
-            background: '#ffffff'
-          }} 
-        />
+            fontSize: '16px',
+            fontWeight: 'bold',
+            textAlign: 'center',
+            zIndex: 1000,
+            pointerEvents: 'none',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)'
+          }}>
+            Use two fingers to move the map
+          </Box>
+        </div>
       )}
 
       {/* Modal para agregar nueva oferta */}
