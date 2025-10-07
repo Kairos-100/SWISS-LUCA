@@ -510,90 +510,6 @@ const initialOffers: Offer[] = [
     isNew: true,
     price: 'CHF 120',
     oldPrice: 'CHF 170'
-  },
-  {
-    id: '13',
-    name: 'Restaurant Zürich',
-    image: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=400&q=80',
-    category: 'restaurants',
-    subCategory: 'Suisse',
-    discount: 'Menu déjeuner à CHF 22',
-    description: 'Cuisine suisse traditionnelle dans le cœur de Zürich.',
-    location: { lat: 47.3769, lng: 8.5417, address: 'Bahnhofstrasse, Zürich' },
-    rating: 4.5,
-    isNew: true,
-    price: 'CHF 22',
-    oldPrice: 'CHF 28'
-  },
-  {
-    id: '14',
-    name: 'Café Basel',
-    image: 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?auto=format&fit=crop&w=400&q=80',
-    category: 'bars',
-    subCategory: 'Café',
-    discount: 'Cappuccino à CHF 3.50',
-    description: 'Café artisanal avec vue sur le Rhin.',
-    location: { lat: 47.5596, lng: 7.5886, address: 'Marktplatz, Basel' },
-    rating: 4.3,
-    isNew: false,
-    price: 'CHF 3.50',
-    oldPrice: 'CHF 4.50'
-  },
-  {
-    id: '15',
-    name: 'Boutique Bern',
-    image: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=400&q=80',
-    category: 'shops',
-    subCategory: 'Mode',
-    discount: '25% sur les accessoires',
-    description: 'Boutique moderne au centre historique de Bern.',
-    location: { lat: 46.9481, lng: 7.4474, address: 'Kramgasse, Bern' },
-    rating: 4.6,
-    isNew: true,
-    price: 'CHF 85',
-    oldPrice: 'CHF 110'
-  },
-  {
-    id: '16',
-    name: 'Restaurant Luzern',
-    image: 'https://images.unsplash.com/photo-1571091718767-18b5b1457add?auto=format&fit=crop&w=400&q=80',
-    category: 'restaurants',
-    subCategory: 'Italien',
-    discount: 'Pizza à CHF 16',
-    description: 'Pizza authentique avec vue sur le lac.',
-    location: { lat: 47.0502, lng: 8.3093, address: 'Kapellplatz, Luzern' },
-    rating: 4.4,
-    isNew: false,
-    price: 'CHF 16',
-    oldPrice: 'CHF 20'
-  },
-  {
-    id: '17',
-    name: 'Bar St. Gallen',
-    image: 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&w=400&q=80',
-    category: 'bars',
-    subCategory: 'Cocktails',
-    discount: 'Happy Hour 17h-19h',
-    description: 'Cocktails créatifs dans une ambiance moderne.',
-    location: { lat: 47.4245, lng: 9.3767, address: 'Marktgasse, St. Gallen' },
-    rating: 4.7,
-    isNew: true,
-    price: 'CHF 12',
-    oldPrice: 'CHF 16'
-  },
-  {
-    id: '18',
-    name: 'Fitness Lugano',
-    image: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?auto=format&fit=crop&w=400&q=80',
-    category: 'fitness',
-    subCategory: 'Gym',
-    discount: 'Premier mois gratuit',
-    description: 'Salle de sport moderne avec vue sur le lac.',
-    location: { lat: 46.0101, lng: 8.9600, address: 'Via Nassa, Lugano' },
-    rating: 4.8,
-    isNew: true,
-    price: 'CHF 95',
-    oldPrice: 'CHF 130'
   }
 ];
 
@@ -969,19 +885,19 @@ function MapView({ offers, flashDeals, selectedCategory, onOfferClick, onFlashDe
         await loader.load();
         
         if (mapRef.current && !mapInstanceRef.current && window.google) {
-          // Centrar el mapa en Suiza (como en la imagen)
-          const switzerlandCenter = { lat: 46.8182, lng: 8.2275 };
-          // Límites de Suiza completa (como se ve en la imagen)
-          const switzerlandBounds = new window.google.maps.LatLngBounds(
-            { lat: 45.8, lng: 5.9 }, // Sudoeste
-            { lat: 47.8, lng: 10.5 }  // Noreste
+          // Centrar el mapa en Valais
+          const valaisCenter = { lat: 46.2097, lng: 7.6056 };
+          // Límites del cantón du Valais
+          const valaisBounds = new window.google.maps.LatLngBounds(
+            { lat: 45.8, lng: 6.8 }, // Sudoeste
+            { lat: 46.6, lng: 8.7 }  // Noreste
           );
           
           const map = new window.google.maps.Map(mapRef.current, {
-            center: switzerlandCenter,
-            zoom: 7,
-            // Restringir ligeramente la navegación a Suiza
-            restriction: { latLngBounds: { north: 47.8, south: 45.8, west: 5.9, east: 10.5 }, strictBounds: false },
+            center: valaisCenter,
+            zoom: 10,
+            // Restringir ligeramente la navegación a Valais
+            restriction: { latLngBounds: { north: 46.6, south: 45.8, west: 6.8, east: 8.7 }, strictBounds: false },
             disableDefaultUI: true,
             mapTypeControl: false,
             fullscreenControl: false,
@@ -1035,8 +951,8 @@ function MapView({ offers, flashDeals, selectedCategory, onOfferClick, onFlashDe
             ]
           });
 
-          // Encajar el mapa a los límites de Suiza
-          map.fitBounds(switzerlandBounds);
+          // Encajar el mapa a los límites del Valais
+          map.fitBounds(valaisBounds);
           
           mapInstanceRef.current = map;
           setMapLoaded(true);
