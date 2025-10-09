@@ -1175,9 +1175,9 @@ function MapView({ offers, flashDeals, selectedCategory, onOfferClick, onFlashDe
       const isFlashDeal = flashDeals.some(deal => deal.id === offer.id);
       
       // Crear marcadores profesionales con diseño sofisticado
-      const primaryColor = isFlashDeal ? '#FF6B35' : '#1e40af';
-      const secondaryColor = isFlashDeal ? '#FF8C42' : '#3b82f6';
-      const accentColor = isFlashDeal ? '#FFB366' : '#60a5fa';
+      const primaryColor = isFlashDeal ? '#1e40af' : '#1e40af';
+      const secondaryColor = isFlashDeal ? '#3b82f6' : '#3b82f6';
+      const accentColor = isFlashDeal ? '#60a5fa' : '#60a5fa';
       
       const marker = new window.google.maps.Marker({
         position: { lat: offer.location.lat, lng: offer.location.lng },
@@ -6558,8 +6558,8 @@ function App() {
                   sx={{ 
                     minWidth: { xs: 120, sm: 140 },
                     maxWidth: { xs: 120, sm: 140 },
-                    background: 'linear-gradient(135deg, #FF6B35 0%, #FF4500 100%)',
-                    border: '1px solid #FF6B35',
+                    background: 'linear-gradient(135deg, #1e40af 0%, #3b82f6 100%)',
+                    border: '1px solid #1e40af',
                     borderRadius: 2,
                     p: 2,
                     textAlign: 'center',

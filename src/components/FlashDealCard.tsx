@@ -226,7 +226,7 @@ export const FlashDealCard = memo<FlashDealCardProps>(({
             <Button
               variant="contained"
               sx={{
-                backgroundColor: '#ff6b35',
+                backgroundColor: '#1e40af',
                 color: 'white',
                 fontSize: '0.75rem',
                 px: 2,
@@ -234,7 +234,7 @@ export const FlashDealCard = memo<FlashDealCardProps>(({
                 borderRadius: 2,
                 fontWeight: 'bold',
                 '&:hover': {
-                  backgroundColor: '#e55a2b'
+                  backgroundColor: '#1d4ed8'
                 }
               }}
               onClick={handleBlockedClick}
