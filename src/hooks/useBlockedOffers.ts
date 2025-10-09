@@ -56,19 +56,23 @@ export const useBlockedOffers = (): UseBlockedOffersReturn => {
     localStorage.setItem('blockedOffers', JSON.stringify(blockedOffers));
   }, [blockedOffers]);
 
-  // Verificar ofertas que ya no están bloqueadas
+  // Verificar ofertas que ya no están bloqueadas - optimizado para mejor rendimiento
   useEffect(() => {
     const interval = setInterval(() => {
       const now = Date.now();
-      setBlockedOffers(prev => 
-        prev.map(offer => {
+      setBlockedOffers(prev => {
+        // Solo actualizar si hay cambios reales
+        const hasChanges = prev.some(offer => !offer.isActivated && offer.blockedUntil <= now);
+        if (!hasChanges) return prev;
+        
+        return prev.map(offer => {
           if (!offer.isActivated && offer.blockedUntil <= now) {
             return { ...offer, isActivated: true };
           }
           return offer;
-        })
-      );
-    }, 1000);
+        });
+      });
+    }, 2000); // Reducir frecuencia de 1s a 2s
 
     return () => clearInterval(interval);
   }, []);

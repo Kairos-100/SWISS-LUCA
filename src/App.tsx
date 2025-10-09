@@ -75,6 +75,7 @@ import {
   MyLocationIcon,
   LockIcon
 } from './components/ProfessionalIcons';
+import { getCategoryIcon } from './utils/iconUtils';
 import professionalTheme from './theme/professionalTheme';
 import './styles/professionalStyles.css';
 import './App.css';
@@ -710,7 +711,7 @@ const partnersData = [
   {
     id: 'mcdonalds',
     name: 'McDonald\'s',
-    icon: '🍽️',
+    category: 'restaurants',
     location: { lat: 46.2306, lng: 7.3590 },
     address: 'Rue du Simplon, Sion',
     discount: '20% OFF'
@@ -718,7 +719,7 @@ const partnersData = [
   {
     id: 'burger_king',
     name: 'Burger King',
-    icon: '🍽️',
+    category: 'restaurants',
     location: { lat: 46.2310, lng: 7.3600 },
     address: 'Avenue de la Gare, Sion',
     discount: '15% OFF'
@@ -726,7 +727,7 @@ const partnersData = [
   {
     id: 'kfc',
     name: 'KFC',
-    icon: '🍽️',
+    category: 'restaurants',
     location: { lat: 46.2320, lng: 7.3610 },
     address: 'Rue du Rhône, Sion',
     discount: '25% OFF'
@@ -734,7 +735,7 @@ const partnersData = [
   {
     id: 'subway',
     name: 'Subway',
-    icon: '🍽️',
+    category: 'restaurants',
     location: { lat: 46.2330, lng: 7.3620 },
     address: 'Place de la Planta, Sion',
     discount: '30% OFF'
@@ -898,53 +899,235 @@ function MapView({ offers, flashDeals, selectedCategory, onOfferClick, onFlashDe
             zoom: 10,
             // Restringir ligeramente la navegación a Valais
             restriction: { latLngBounds: { north: 46.6, south: 45.8, west: 6.8, east: 8.7 }, strictBounds: false },
-            disableDefaultUI: true,
-            mapTypeControl: false,
-            fullscreenControl: false,
+            disableDefaultUI: false,
+            mapTypeControl: true,
+            fullscreenControl: true,
             streetViewControl: false,
+            zoomControl: true,
+            mapTypeControlOptions: {
+              style: window.google.maps.MapTypeControlStyle.DROPDOWN_MENU,
+              position: window.google.maps.ControlPosition.TOP_RIGHT,
+              mapTypeIds: ['roadmap', 'satellite', 'terrain']
+            },
+            zoomControlOptions: {
+              position: window.google.maps.ControlPosition.RIGHT_CENTER,
+              style: window.google.maps.ZoomControlStyle.SMALL
+            },
+            fullscreenControlOptions: {
+              position: window.google.maps.ControlPosition.TOP_RIGHT
+            },
             styles: [
+              // Estilo base profesional
               {
                 "featureType": "all",
                 "elementType": "geometry.fill",
                 "stylers": [
                   {
-                    "color": "#2c2c2c"
+                    "color": "#fafbfc"
                   }
                 ]
               },
+              // Agua con gradiente profesional
               {
                 "featureType": "water",
                 "elementType": "geometry.fill",
                 "stylers": [
                   {
-                    "color": "#1e3a8a"
+                    "color": "#e8f4fd"
                   }
                 ]
               },
+              {
+                "featureType": "water",
+                "elementType": "labels.text.fill",
+                "stylers": [
+                  {
+                    "color": "#1565c0",
+                    "weight": 1.2
+                  }
+                ]
+              },
+              // Paisaje natural más elegante
               {
                 "featureType": "landscape",
                 "elementType": "geometry.fill",
                 "stylers": [
                   {
-                    "color": "#16a34a"
+                    "color": "#ffffff"
                   }
                 ]
               },
               {
-                "featureType": "road",
+                "featureType": "landscape.natural",
                 "elementType": "geometry.fill",
                 "stylers": [
                   {
-                    "color": "#374151"
+                    "color": "#f0f7ff"
                   }
                 ]
               },
+              // Puntos de interés más sutiles
               {
                 "featureType": "poi",
                 "elementType": "geometry.fill",
                 "stylers": [
                   {
+                    "color": "#f8f9fa"
+                  }
+                ]
+              },
+              {
+                "featureType": "poi.park",
+                "elementType": "geometry.fill",
+                "stylers": [
+                  {
+                    "color": "#e8f5e8"
+                  }
+                ]
+              },
+              // Carreteras con diseño más profesional
+              {
+                "featureType": "road",
+                "elementType": "geometry.fill",
+                "stylers": [
+                  {
+                    "color": "#ffffff"
+                  }
+                ]
+              },
+              {
+                "featureType": "road",
+                "elementType": "geometry.stroke",
+                "stylers": [
+                  {
+                    "color": "#e1e5e9",
+                    "weight": 1
+                  }
+                ]
+              },
+              {
+                "featureType": "road.arterial",
+                "elementType": "geometry.fill",
+                "stylers": [
+                  {
+                    "color": "#f8f9fa"
+                  }
+                ]
+              },
+              {
+                "featureType": "road.arterial",
+                "elementType": "geometry.stroke",
+                "stylers": [
+                  {
+                    "color": "#d1d9e0",
+                    "weight": 1.5
+                  }
+                ]
+              },
+              {
+                "featureType": "road.highway",
+                "elementType": "geometry.fill",
+                "stylers": [
+                  {
+                    "color": "#f5f7fa"
+                  }
+                ]
+              },
+              {
+                "featureType": "road.highway",
+                "elementType": "geometry.stroke",
+                "stylers": [
+                  {
+                    "color": "#FFD700",
+                    "weight": 2
+                  }
+                ]
+              },
+              // Texto de carreteras más legible
+              {
+                "featureType": "road",
+                "elementType": "labels.text.fill",
+                "stylers": [
+                  {
+                    "color": "#374151",
+                    "weight": 1
+                  }
+                ]
+              },
+              {
+                "featureType": "road.highway",
+                "elementType": "labels.text.fill",
+                "stylers": [
+                  {
+                    "color": "#FFD700",
+                    "weight": 1.2
+                  }
+                ]
+              },
+              // Administrativo más limpio
+              {
+                "featureType": "administrative",
+                "elementType": "geometry.fill",
+                "stylers": [
+                  {
+                    "color": "#ffffff"
+                  }
+                ]
+              },
+              {
+                "featureType": "administrative",
+                "elementType": "labels.text.fill",
+                "stylers": [
+                  {
                     "color": "#374151"
+                  }
+                ]
+              },
+              {
+                "featureType": "administrative.locality",
+                "elementType": "labels.text.fill",
+                "stylers": [
+                  {
+                    "color": "#1e40af",
+                    "weight": 1.5
+                  }
+                ]
+              },
+              // Tránsito más sutil
+              {
+                "featureType": "transit",
+                "elementType": "geometry.fill",
+                "stylers": [
+                  {
+                    "color": "#f8f9fa"
+                  }
+                ]
+              },
+              {
+                "featureType": "transit.station",
+                "elementType": "geometry.fill",
+                "stylers": [
+                  {
+                    "color": "#FFD700"
+                  }
+                ]
+              },
+              // Ocultar elementos innecesarios para un look más limpio
+              {
+                "featureType": "poi.business",
+                "elementType": "labels",
+                "stylers": [
+                  {
+                    "visibility": "off"
+                  }
+                ]
+              },
+              {
+                "featureType": "poi.attraction",
+                "elementType": "labels",
+                "stylers": [
+                  {
+                    "visibility": "simplified"
                   }
                 ]
               }
@@ -985,42 +1168,221 @@ function MapView({ offers, flashDeals, selectedCategory, onOfferClick, onFlashDe
     markersRef.current = [];
 
     // Agregar nuevos marcadores
-    filteredOffers.forEach((offer, index) => {
+    filteredOffers.forEach((offer) => {
       if (!window.google) return;
       
       // Determinar si es una oferta flash o regular
       const isFlashDeal = flashDeals.some(deal => deal.id === offer.id);
       
-      // Crear marcadores rojos numerados como en la imagen
+      // Crear marcadores profesionales con diseño sofisticado
+      const primaryColor = isFlashDeal ? '#FF6B35' : '#1e40af';
+      const secondaryColor = isFlashDeal ? '#FF8C42' : '#3b82f6';
+      const accentColor = isFlashDeal ? '#FFB366' : '#60a5fa';
+      
       const marker = new window.google.maps.Marker({
         position: { lat: offer.location.lat, lng: offer.location.lng },
         map: mapInstanceRef.current,
         title: offer.name,
         icon: {
           url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
-            <svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="16" cy="16" r="14" fill="#dc2626" stroke="white" stroke-width="2"/>
-              <text x="16" y="20" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="14" font-weight="bold">${index + 1}</text>
+            <svg width="48" height="48" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <filter id="markerShadow" x="-50%" y="-50%" width="200%" height="200%">
+                  <feDropShadow dx="0" dy="3" stdDeviation="3" flood-opacity="0.25" flood-color="#000000"/>
+                </filter>
+                <linearGradient id="markerGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" style="stop-color:${primaryColor};stop-opacity:1" />
+                  <stop offset="100%" style="stop-color:${secondaryColor};stop-opacity:1" />
+                </linearGradient>
+                <linearGradient id="innerGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" style="stop-color:#ffffff;stop-opacity:1" />
+                  <stop offset="100%" style="stop-color:#f8fafc;stop-opacity:1" />
+                </linearGradient>
+              </defs>
+              <!-- Sombra externa para profundidad -->
+              <circle cx="24" cy="24" r="20" fill="rgba(0,0,0,0.1)" transform="translate(2,2)"/>
+              <!-- Círculo principal con gradiente -->
+              <circle cx="24" cy="24" r="20" fill="url(#markerGradient)" stroke="white" stroke-width="3" filter="url(#markerShadow)"/>
+              <!-- Círculo interior con gradiente sutil -->
+              <circle cx="24" cy="24" r="16" fill="url(#innerGradient)" opacity="0.95"/>
+              <!-- Borde interior para definición -->
+              <circle cx="24" cy="24" r="16" fill="none" stroke="${accentColor}" stroke-width="1" opacity="0.3"/>
+              <!-- Icono de categoría -->
+              ${offer.category === 'restaurants' ? 
+                '<path d="M8.1 13.34l2.83-2.83L3.91 3.5c-1.56 1.56-1.56 4.09 0 5.66l4.19 4.18zm6.78-1.81c1.53.71 3.68.21 5.27-1.38 1.91-1.91 2.28-4.65.81-6.12-1.46-1.46-4.2-1.1-6.12.81-1.59 1.59-2.09 3.74-1.38 5.27L3.7 19.87l1.41 1.41L12 14.41l6.88 6.88 1.41-1.41L13.41 13l1.47-1.47z" fill="${primaryColor}" transform="translate(12,12) scale(1.2)"/>' :
+              offer.category === 'bars' ?
+                '<path d="M5 3h14c1.1 0 2 .9 2 2v2c0 .55-.45 1-1 1s-1-.45-1-1V5H5v14h14v-2c0-.55.45-1 1-1s1 .45 1 1v2c0 1.1-.9 2-2 2H5c-1.1 0-2-.9-2-2V5c0-1.1.9-2 2-2z" fill="${primaryColor}" transform="translate(12,12) scale(1.2)"/><path d="M7 7h2v10H7zm4 0h2v6h-2zm4 0h2v8h-2z" fill="${primaryColor}" transform="translate(12,12) scale(1.2)"/>' :
+              offer.category === 'bakeries' ?
+                '<path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.94-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z" fill="${primaryColor}" transform="translate(12,12) scale(1.2)"/>' :
+              offer.category === 'shops' || offer.category === 'clothing' ?
+                '<path d="M7 4V2c0-.55-.45-1-1-1s-1 .45-1 1v2H3c-.55 0-1 .45-1 1v14c0 .55.45 1 1 1h18c.55 0 1-.45 1-1V5c0-.55-.45-1-1-1h-2V2c0-.55-.45-1-1-1s-1 .45-1 1v2H7zm-2 2h14v12H5V6zm2 2v8h2V8H7zm4 0v8h2V8h-2zm4 0v8h2V8h-2z" fill="${primaryColor}" transform="translate(12,12) scale(1.2)"/>' :
+              offer.category === 'beauty' ?
+                '<path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" fill="${primaryColor}" transform="translate(12,12) scale(1.2)"/>' :
+              offer.category === 'fitness' ?
+                '<path d="M20.57 14.86L22 13.43 20.57 12 17 15.57 8.43 7 12 3.43 10.57 2 9.14 3.43 7.71 2 5.57 4.14 4.14 2.71 2.71 4.14l1.43 1.43L2 7.71l1.43 1.43 2.14-2.14 1.43 1.43L4.14 10.57 2.71 12 4.14 13.43 7.71 9.86 16.29 18.43 12.71 22 14.14 23.43 15.57 22 17 23.43 19.14 21.29 20.57 22.71 22 21.29l-1.43-1.43 2.14-2.14L20.57 14.86z" fill="${primaryColor}" transform="translate(12,12) scale(1.2)"/>' :
+              offer.category === 'health' ?
+                '<path d="M19 8h-2v3h-3v2h3v3h2v-3h3v-2h-3V8zM4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-1 9H9V5h10v6z" fill="${primaryColor}" transform="translate(12,12) scale(1.2)"/>' :
+              offer.category === 'entertainment' ?
+                '<path d="M21 3H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h5l-1 1v1h8v-1l-1-1h5c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 12H3V5h18v10zm-10-2h4v2h-4v-2z" fill="${primaryColor}" transform="translate(12,12) scale(1.2)"/>' :
+              offer.category === 'hotels' ?
+                '<path d="M7 13c1.66 0 3-1.34 3-3S8.66 7 7 7s-3 1.34-3 3 1.34 3 3 3zm12-6h-8v7H9V5H4c-1.1 0-2 .9-2 2v11h2v-5h12v5h2v-9c0-1.1-.9-2-2-2z" fill="${primaryColor}" transform="translate(12,12) scale(1.2)"/>' :
+                '<path d="M7 4V2c0-.55-.45-1-1-1s-1 .45-1 1v2H3c-.55 0-1 .45-1 1v14c0 .55.45 1 1 1h18c.55 0 1-.45 1-1V5c0-.55-.45-1-1-1h-2V2c0-.55-.45-1-1-1s-1 .45-1 1v2H7zm-2 2h14v12H5V6zm2 2v8h2V8H7zm4 0v8h2V8h-2zm4 0v8h2V8h-2z" fill="${primaryColor}" transform="translate(12,12) scale(1.2)"/>'
+              }
+              <!-- Indicador de flash deal -->
+              ${isFlashDeal ? '<circle cx="36" cy="12" r="6" fill="#FFD700" stroke="white" stroke-width="2"/><text x="36" y="16" text-anchor="middle" fill="#000" font-size="8" font-weight="bold">⚡</text>' : ''}
             </svg>
           `)}`,
-          scaledSize: new window.google.maps.Size(32, 32),
-          anchor: new window.google.maps.Point(16, 16)
+          scaledSize: new window.google.maps.Size(48, 48),
+          anchor: new window.google.maps.Point(24, 24)
         }
       });
 
-      // Info window con información de la oferta
+      // Info window con información específica del local
       const distanceText = (offer as any).distance ? `📍 ${(offer as any).distance.toFixed(1)} km` : '';
+      const categoryEmoji = {
+        'restaurants': '🍽️',
+        'bars': '🍸', 
+        'bakeries': '🥖',
+        'shops': '🛍️',
+        'beauty': '💄',
+        'fitness': '💪',
+        'health': '💊',
+        'entertainment': '🎬',
+        'clothing': '👔',
+        'hotels': '🏨'
+      }[offer.category] || '🏪';
+      
       const infoWindow = new window.google.maps.InfoWindow({
         content: `
-          <div style="padding: 10px; max-width: 200px;">
-            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 5px;">
-              <h3 style="margin: 0; color: #333;">${offer.name}</h3>
-              ${isFlashDeal ? '<span style="background: #FF6B35; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold;">FLASH</span>' : ''}
+          <div style="
+            padding: 0; 
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+            max-width: 360px; 
+            background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%); 
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15), 0 8px 16px rgba(0,0,0,0.1);
+            border: 1px solid rgba(255,255,255,0.8);
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+          ">
+            <!-- Header con gradiente -->
+            <div style="
+              background: linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 100%);
+              padding: 20px;
+              color: white;
+              position: relative;
+            ">
+              <div style="
+                position: absolute;
+                top: 0;
+                right: 0;
+                width: 80px;
+                height: 80px;
+                background: rgba(255,255,255,0.1);
+                border-radius: 50%;
+                transform: translate(20px, -20px);
+              "></div>
+              <div style="display: flex; align-items: center; position: relative; z-index: 2;">
+                <div style="
+                  width: 50px; 
+                  height: 50px; 
+                  border-radius: 12px; 
+                  background: rgba(255,255,255,0.2);
+                  backdrop-filter: blur(10px);
+                  display: flex; 
+                  align-items: center; 
+                  justify-content: center; 
+                  margin-right: 16px;
+                  font-size: 20px;
+                  border: 1px solid rgba(255,255,255,0.3);
+                ">
+                  ${categoryEmoji}
+                </div>
+                <div style="flex: 1;">
+                  <h3 style="margin: 0 0 6px 0; font-size: 18px; font-weight: 700; color: white; line-height: 1.2;">${offer.name}</h3>
+                  <p style="margin: 0; font-size: 13px; color: rgba(255,255,255,0.9); text-transform: capitalize; font-weight: 500;">${offer.category}</p>
+                  ${isFlashDeal ? '<div style="background: rgba(255,255,255,0.2); color: white; padding: 4px 10px; border-radius: 20px; font-size: 10px; font-weight: 700; margin-top: 6px; display: inline-block; border: 1px solid rgba(255,255,255,0.3); backdrop-filter: blur(10px);">⚡ FLASH DEAL</div>' : ''}
+                </div>
+              </div>
             </div>
-            <p style="margin: 0 0 5px 0; color: #e74c3c; font-weight: bold;">${offer.discount}</p>
-            <p style="margin: 0 0 5px 0; color: #666; font-size: 12px;">${offer.description}</p>
-            <p style="margin: 0; color: #999; font-size: 11px;">⭐ ${offer.rating} • ${offer.location.address}</p>
-            ${distanceText ? `<p style="margin: 5px 0 0 0; color: #4caf50; font-size: 11px; font-weight: bold;">${distanceText}</p>` : ''}
+            
+            <!-- Contenido principal -->
+            <div style="padding: 20px;">
+              <!-- Oferta destacada -->
+              <div style="
+                background: linear-gradient(135deg, ${isFlashDeal ? '#fff5f0' : '#fefce8'} 0%, ${isFlashDeal ? '#ffe8d6' : '#fef3c7'} 100%);
+                padding: 16px; 
+                border-radius: 12px; 
+                margin-bottom: 16px;
+                border: 1px solid ${isFlashDeal ? 'rgba(255,107,53,0.2)' : 'rgba(255,215,0,0.2)'};
+                position: relative;
+              ">
+                <div style="
+                  position: absolute;
+                  top: -1px;
+                  left: -1px;
+                  right: -1px;
+                  height: 3px;
+                  background: linear-gradient(90deg, ${primaryColor} 0%, ${secondaryColor} 100%);
+                  border-radius: 12px 12px 0 0;
+                "></div>
+                <p style="margin: 0 0 8px 0; color: ${primaryColor}; font-weight: 700; font-size: 15px; line-height: 1.3;">${offer.discount}</p>
+                <p style="margin: 0; color: #64748b; font-size: 13px; line-height: 1.5; font-weight: 400;">${offer.description}</p>
+              </div>
+              
+              <!-- Información adicional -->
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding: 12px; background: #f1f5f9; border-radius: 10px;">
+                <div style="display: flex; align-items: center; color: #64748b; font-size: 12px; font-weight: 500;">
+                  <span style="color: #FFD700; margin-right: 6px; font-size: 14px;">⭐</span>
+                  <span style="font-weight: 600; color: #334155;">${offer.rating}</span>
+                  <span style="margin: 0 8px; color: #cbd5e1;">•</span>
+                  <span style="color: #64748b;">${offer.location.address}</span>
+                </div>
+              </div>
+              
+              ${distanceText ? `
+                <div style="
+                  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+                  padding: 12px;
+                  border-radius: 10px;
+                  margin-bottom: 16px;
+                  border: 1px solid rgba(34,197,94,0.2);
+                ">
+                  <p style="margin: 0; color: #16a34a; font-size: 13px; font-weight: 600; display: flex; align-items: center;">
+                    <span style="margin-right: 8px; font-size: 16px;">📍</span>
+                    ${distanceText}
+                  </p>
+                </div>
+              ` : ''}
+              
+              <!-- Botón de acción -->
+              <button onclick="window.scrollToOffer('${offer.id}')" style="
+                width: 100%; 
+                background: linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 100%); 
+                color: white; 
+                border: none; 
+                padding: 14px 20px; 
+                border-radius: 12px; 
+                font-weight: 700; 
+                cursor: pointer; 
+                transition: all 0.3s ease;
+                font-size: 14px;
+                font-family: 'Inter', sans-serif;
+                text-transform: none;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                position: relative;
+                overflow: hidden;
+              " onmouseover="
+                this.style.transform='translateY(-2px)';
+                this.style.boxShadow='0 8px 20px rgba(0,0,0,0.2)';
+              " onmouseout="
+                this.style.transform='translateY(0)';
+                this.style.boxShadow='0 4px 12px rgba(0,0,0,0.15)';
+              ">
+                <span style="margin-right: 8px;">📋</span>
+                Ver en Lista
+              </button>
+            </div>
           </div>
         `
       });
@@ -1050,14 +1412,38 @@ function MapView({ offers, flashDeals, selectedCategory, onOfferClick, onFlashDe
         title: mountain.name,
         icon: {
           url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
-            <svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 2L8 8L12 6L16 8L12 2Z" fill="#16a34a"/>
-              <path d="M8 8L4 16L12 12L20 16L16 8L12 6L8 8Z" fill="#15803d"/>
-              <path d="M4 16L12 20L20 16L12 12L4 16Z" fill="#166534"/>
+            <svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <filter id="mountainShadow" x="-50%" y="-50%" width="200%" height="200%">
+                  <feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity="0.3" flood-color="#000000"/>
+                </filter>
+                <linearGradient id="mountainGradient1" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" style="stop-color:#16a34a;stop-opacity:1" />
+                  <stop offset="100%" style="stop-color:#15803d;stop-opacity:1" />
+                </linearGradient>
+                <linearGradient id="mountainGradient2" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" style="stop-color:#15803d;stop-opacity:1" />
+                  <stop offset="100%" style="stop-color:#166534;stop-opacity:1" />
+                </linearGradient>
+                <linearGradient id="mountainGradient3" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" style="stop-color:#166534;stop-opacity:1" />
+                  <stop offset="100%" style="stop-color:#14532d;stop-opacity:1" />
+                </linearGradient>
+              </defs>
+              <!-- Sombra base -->
+              <ellipse cx="16" cy="28" rx="12" ry="4" fill="rgba(0,0,0,0.1)" opacity="0.3"/>
+              <!-- Picos de montaña con gradientes -->
+              <path d="M16 4L12 12L16 10L20 12L16 4Z" fill="url(#mountainGradient1)" filter="url(#mountainShadow)"/>
+              <path d="M12 12L6 20L16 16L26 20L20 12L16 10L12 12Z" fill="url(#mountainGradient2)" filter="url(#mountainShadow)"/>
+              <path d="M6 20L16 26L26 20L16 16L6 20Z" fill="url(#mountainGradient3)" filter="url(#mountainShadow)"/>
+              <!-- Líneas de contorno para definición -->
+              <path d="M16 4L12 12L16 10L20 12L16 4Z" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="0.5"/>
+              <path d="M12 12L6 20L16 16L26 20L20 12L16 10L12 12Z" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="0.5"/>
+              <path d="M6 20L16 26L26 20L16 16L6 20Z" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="0.5"/>
             </svg>
           `)}`,
-          scaledSize: new window.google.maps.Size(24, 24),
-          anchor: new window.google.maps.Point(12, 12)
+          scaledSize: new window.google.maps.Size(32, 32),
+          anchor: new window.google.maps.Point(16, 26)
         }
       });
       markersRef.current.push(mountainMarker);
@@ -1079,13 +1465,34 @@ function MapView({ offers, flashDeals, selectedCategory, onOfferClick, onFlashDe
         map: mapInstanceRef.current,
         icon: {
           url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
-            <svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="10" cy="10" r="8" fill="#000000" stroke="#fbbf24" stroke-width="2"/>
-              <circle cx="10" cy="10" r="4" fill="#fbbf24"/>
+            <svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <filter id="specialShadow" x="-50%" y="-50%" width="200%" height="200%">
+                  <feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity="0.25" flood-color="#000000"/>
+                </filter>
+                <radialGradient id="specialGradient" cx="50%" cy="50%" r="50%">
+                  <stop offset="0%" style="stop-color:#fbbf24;stop-opacity:1" />
+                  <stop offset="100%" style="stop-color:#f59e0b;stop-opacity:1" />
+                </radialGradient>
+                <radialGradient id="innerGradient" cx="50%" cy="50%" r="50%">
+                  <stop offset="0%" style="stop-color:#ffffff;stop-opacity:1" />
+                  <stop offset="100%" style="stop-color:#fef3c7;stop-opacity:1" />
+                </radialGradient>
+              </defs>
+              <!-- Sombra externa -->
+              <circle cx="12" cy="12" r="10" fill="rgba(0,0,0,0.1)" transform="translate(1,1)"/>
+              <!-- Círculo principal con gradiente dorado -->
+              <circle cx="12" cy="12" r="10" fill="url(#specialGradient)" stroke="white" stroke-width="2" filter="url(#specialShadow)"/>
+              <!-- Círculo interior con gradiente -->
+              <circle cx="12" cy="12" r="6" fill="url(#innerGradient)"/>
+              <!-- Punto central -->
+              <circle cx="12" cy="12" r="3" fill="#f59e0b"/>
+              <!-- Reflejo para efecto de vidrio -->
+              <ellipse cx="10" cy="8" rx="3" ry="2" fill="rgba(255,255,255,0.4)" opacity="0.6"/>
             </svg>
           `)}`,
-          scaledSize: new window.google.maps.Size(20, 20),
-          anchor: new window.google.maps.Point(10, 10)
+          scaledSize: new window.google.maps.Size(24, 24),
+          anchor: new window.google.maps.Point(12, 12)
         }
       });
       markersRef.current.push(specialMarker);
@@ -1375,43 +1782,22 @@ function MapView({ offers, flashDeals, selectedCategory, onOfferClick, onFlashDe
                     transition: 'transform 0.2s'
                   }
                 }}>
-                  {offer.category === 'restaurants' ? '🍽️' : 
-                   offer.category === 'bars' ? '🍷' : '🥖'}
+                  {getCategoryIcon(offer.category, { sx: { fontSize: 20, color: 'white' } })}
                 </Box>
               </Box>
             ))}
           </Box>
         </Box>
       ) : (
-        <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+        <div className="map-container" style={{ position: 'relative', width: '100%', height: '100%' }}>
           <div 
             ref={mapRef} 
             style={{ 
               width: '100%', 
               height: '100%',
-              borderRadius: '8px',
               background: '#ffffff'
             }} 
           />
-          {/* Overlay de instrucciones como en la imagen */}
-          <Box sx={{
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            backgroundColor: 'rgba(0, 0, 0, 0.8)',
-            color: 'white',
-            padding: '12px 20px',
-            borderRadius: '8px',
-            fontSize: '16px',
-            fontWeight: 'bold',
-            textAlign: 'center',
-            zIndex: 1000,
-            pointerEvents: 'none',
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)'
-          }}>
-            Use two fingers to move the map
-          </Box>
         </div>
       )}
 
@@ -2894,7 +3280,7 @@ function App() {
   const [showPartnersModal, setShowPartnersModal] = useState(false);
   const [newPartner, setNewPartner] = useState({
     name: '',
-    icon: '',
+    category: '',
     address: '',
     location: { lat: 46.2306, lng: 7.3590 },
     discount: '20% OFF'
@@ -2997,6 +3383,42 @@ function App() {
   const [startX, setStartX] = useState(0);
   const [currentX, setCurrentX] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [selectedOfferId, setSelectedOfferId] = useState<string | null>(null);
+
+  // Función para navegar a una oferta específica en la lista
+  const scrollToOffer = (offerId: string) => {
+    setSelectedOfferId(offerId);
+    // Cambiar a la pestaña de lista si no está ya ahí
+    if (selectedTab !== 0) {
+      setSelectedTab(0);
+    }
+    // Scroll a la oferta después de un pequeño delay para asegurar que la lista esté renderizada
+    setTimeout(() => {
+      const offerElement = document.getElementById(`offer-${offerId}`);
+      if (offerElement) {
+        offerElement.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'center' 
+        });
+        // Agregar un efecto visual de highlight
+        offerElement.style.backgroundColor = '#FFD700';
+        offerElement.style.transform = 'scale(1.02)';
+        offerElement.style.transition = 'all 0.3s ease';
+        setTimeout(() => {
+          offerElement.style.backgroundColor = '';
+          offerElement.style.transform = '';
+        }, 2000);
+      }
+    }, 300);
+  };
+
+  // Configurar la función en el window object para que sea accesible desde el mapa
+  useEffect(() => {
+    (window as any).scrollToOffer = scrollToOffer;
+    return () => {
+      delete (window as any).scrollToOffer;
+    };
+  }, [selectedTab, selectedOfferId]);
 
   // Función para manejar el inicio del toque
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -5077,7 +5499,7 @@ function App() {
                         return (
                           <ListItem key={activation.offerId + activation.activatedAt.toString()}>
                             <ListItemIcon>
-                              {categories.find(cat => cat.id === offer.category)?.icon}
+                              {getCategoryIcon(offer.category, { sx: { fontSize: 20 } })}
                             </ListItemIcon>
                             <ListItemText 
                               primary={offer.name}
@@ -5659,9 +6081,9 @@ function App() {
                         }}
                       >
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                          <Typography sx={{ fontSize: '1.5rem' }}>
-                            {partner.icon}
-                          </Typography>
+                          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            {getCategoryIcon(partner.category, { sx: { fontSize: 24, color: 'white' } })}
+                          </Box>
                           <Box>
                             <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
                               {partner.name}
@@ -5707,31 +6129,31 @@ function App() {
                     </Typography>
                     <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, maxHeight: 120, overflowY: 'auto' }}>
                       {[
-                        { id: 'restaurant', icon: '🍽️', name: 'Restaurant' },
-                        { id: 'bar', icon: '🍷', name: 'Bar' },
-                        { id: 'shop', icon: '🏪', name: 'Magasin' },
-                        { id: 'hotel', icon: '🏨', name: 'Hôtel' },
-                        { id: 'gas', icon: '⛽', name: 'Station' },
-                        { id: 'bank', icon: '🏦', name: 'Banque' },
-                        { id: 'pharmacy', icon: '💊', name: 'Pharmacie' },
-                        { id: 'gym', icon: '🏋️', name: 'Fitness' },
-                        { id: 'beauty', icon: '💄', name: 'Beauté' },
-                        { id: 'car', icon: '🚗', name: 'Auto' },
-                        { id: 'clothes', icon: '👔', name: 'Mode' },
-                        { id: 'electronics', icon: '📱', name: 'Électronique' }
+                        { id: 'restaurant', name: 'Restaurant', category: 'restaurants' },
+                        { id: 'bar', name: 'Bar', category: 'bars' },
+                        { id: 'shop', name: 'Magasin', category: 'shops' },
+                        { id: 'hotel', name: 'Hôtel', category: 'hotels' },
+                        { id: 'gas', name: 'Station', category: 'shops' },
+                        { id: 'bank', name: 'Banque', category: 'shops' },
+                        { id: 'pharmacy', name: 'Pharmacie', category: 'health' },
+                        { id: 'gym', name: 'Fitness', category: 'fitness' },
+                        { id: 'beauty', name: 'Beauté', category: 'beauty' },
+                        { id: 'car', name: 'Auto', category: 'shops' },
+                        { id: 'clothes', name: 'Mode', category: 'clothing' },
+                        { id: 'electronics', name: 'Électronique', category: 'shops' }
                       ].map((iconOption) => (
                         <Box
                           key={iconOption.id}
-                          onClick={() => setNewPartner({...newPartner, icon: iconOption.icon})}
+                          onClick={() => setNewPartner({...newPartner, category: iconOption.category})}
                           sx={{
                             display: 'flex',
                             flexDirection: 'column',
                             alignItems: 'center',
                             p: 1.5,
-                            border: newPartner.icon === iconOption.icon ? '2px solid #FFD700' : '1px solid rgba(255, 255, 255, 0.2)',
+                            border: newPartner.category === iconOption.category ? '2px solid #FFD700' : '1px solid rgba(255, 255, 255, 0.2)',
                             borderRadius: 2,
                             cursor: 'pointer',
-                            bgcolor: newPartner.icon === iconOption.icon ? 'rgba(255, 215, 0, 0.1)' : 'rgba(255, 255, 255, 0.05)',
+                            bgcolor: newPartner.category === iconOption.category ? 'rgba(255, 215, 0, 0.1)' : 'rgba(255, 255, 255, 0.05)',
                             transition: 'all 0.2s ease',
                             '&:hover': {
                               bgcolor: 'rgba(255, 215, 0, 0.1)',
@@ -5740,9 +6162,9 @@ function App() {
                             minWidth: 60
                           }}
                         >
-                          <Typography sx={{ fontSize: '1.5rem', mb: 0.5 }}>
-                            {iconOption.icon}
-                          </Typography>
+                          <Box sx={{ mb: 0.5, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            {getCategoryIcon(iconOption.category, { sx: { fontSize: 24, color: 'white' } })}
+                          </Box>
                           <Typography variant="caption" sx={{ 
                             fontSize: '0.7rem', 
                             color: 'rgba(255, 255, 255, 0.8)',
@@ -5807,7 +6229,7 @@ function App() {
               </Button>
               <Button 
                 onClick={() => {
-                  if (newPartner.name && newPartner.icon && newPartner.address) {
+                  if (newPartner.name && newPartner.category && newPartner.address) {
                     const partner = {
                       ...newPartner,
                       id: `partner_${Date.now()}`
@@ -5815,7 +6237,7 @@ function App() {
                     setPartners([...partners, partner]);
                     setNewPartner({
                       name: '',
-                      icon: '',
+                      category: '',
                       address: '',
                       location: { lat: 46.2306, lng: 7.3590 },
                       discount: '20% OFF'
@@ -5823,7 +6245,7 @@ function App() {
                   }
                 }}
                 variant="contained"
-                disabled={!newPartner.name || !newPartner.icon || !newPartner.address}
+                disabled={!newPartner.name || !newPartner.category || !newPartner.address}
                 sx={{ bgcolor: '#FFD700', color: '#000', '&:hover': { bgcolor: '#FFA000' } }}
               >
                 Ajouter Partenaire
@@ -6074,6 +6496,7 @@ function App() {
               {offers.map((offer) => (
                 <Box 
                   key={`list-${offer.id}`}
+                  id={`offer-${offer.id}`}
                   sx={{ 
                     minWidth: { xs: 120, sm: 140 },
                     maxWidth: { xs: 120, sm: 140 },
@@ -6104,11 +6527,7 @@ function App() {
                     justifyContent: 'center',
                     fontSize: '1.2rem'
                   }}>
-                    {offer.category === 'restaurants' ? '🍽️' : 
-                     offer.category === 'bars' ? '🍸' : 
-                     offer.category === 'shops' ? '🛍️' : 
-                     offer.category === 'beauty' ? '💄' : 
-                     offer.category === 'fitness' ? '💪' : '🏪'}
+                    {getCategoryIcon(offer.category, { sx: { fontSize: 20, color: '#1a1a1a' } })}
                   </Box>
                   <Typography variant="caption" sx={{ 
                     color: '#fff', 
@@ -6135,6 +6554,7 @@ function App() {
               {flashDeals.map((deal) => (
                 <Box 
                   key={`flash-${deal.id}`}
+                  id={`offer-${deal.id}`}
                   sx={{ 
                     minWidth: { xs: 120, sm: 140 },
                     maxWidth: { xs: 120, sm: 140 },
@@ -6184,11 +6604,7 @@ function App() {
                     justifyContent: 'center',
                     fontSize: '1.2rem'
                   }}>
-                    {deal.category === 'restaurants' ? '🍽️' : 
-                     deal.category === 'bars' ? '🍸' : 
-                     deal.category === 'shops' ? '🛍️' : 
-                     deal.category === 'beauty' ? '💄' : 
-                     deal.category === 'fitness' ? '💪' : '🏪'}
+                    {getCategoryIcon(deal.category, { sx: { fontSize: 20, color: '#1a1a1a' } })}
                   </Box>
                   <Typography variant="caption" sx={{ 
                     color: '#fff', 

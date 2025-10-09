@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useCallback } from 'react';
 import { Box } from '@mui/material';
 
 interface ScrollBlockWrapperProps {
@@ -13,54 +13,67 @@ export const ScrollBlockWrapper: React.FC<ScrollBlockWrapperProps> = ({
   offerId
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const isScrollBlocked = useRef(false);
+
+  // Memoizar las funciones de prevención para evitar recrearlas en cada render
+  const preventScroll = useCallback((e: Event) => {
+    e.preventDefault();
+    e.stopPropagation();
+  }, []);
+
+  const preventWheel = useCallback((e: WheelEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  }, []);
+
+  const preventTouch = useCallback((e: TouchEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  }, []);
+
+  const preventKeyboard = useCallback((e: KeyboardEvent) => {
+    if (['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' '].includes(e.key)) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  }, []);
 
   useEffect(() => {
-    if (!isBlocked || !containerRef.current) return;
+    if (!isBlocked || !containerRef.current) {
+      // Si no está bloqueado, restaurar scroll si estaba bloqueado
+      if (isScrollBlocked.current) {
+        document.body.style.overflow = '';
+        document.body.style.position = '';
+        document.body.style.width = '';
+        document.body.style.height = '';
+        isScrollBlocked.current = false;
+      }
+      return;
+    }
 
     const container = containerRef.current;
     
-    // Prevenir scroll en el contenedor
-    const preventScroll = (e: Event) => {
-      e.preventDefault();
-      e.stopPropagation();
-    };
+    // Solo aplicar bloqueo si no está ya bloqueado
+    if (!isScrollBlocked.current) {
+      // Aplicar estilos para bloquear scroll
+      container.style.overflow = 'hidden';
+      container.style.position = 'relative';
+      container.style.pointerEvents = 'none';
 
-    // Prevenir scroll con rueda del mouse
-    const preventWheel = (e: WheelEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-    };
+      // Bloquear scroll en el body también
+      document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
+      document.body.style.height = '100%';
+      
+      isScrollBlocked.current = true;
+    }
 
-    // Prevenir scroll con touch
-    const preventTouch = (e: TouchEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-    };
-
-    // Prevenir scroll con teclado
-    const preventKeyboard = (e: KeyboardEvent) => {
-      if (['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' '].includes(e.key)) {
-        e.preventDefault();
-        e.stopPropagation();
-      }
-    };
-
-    // Aplicar estilos para bloquear scroll
-    container.style.overflow = 'hidden';
-    container.style.position = 'relative';
-    container.style.pointerEvents = 'none';
-
-    // Agregar event listeners
+    // Agregar event listeners solo una vez
     container.addEventListener('wheel', preventWheel, { passive: false });
     container.addEventListener('touchmove', preventTouch, { passive: false });
     container.addEventListener('keydown', preventKeyboard, { passive: false });
     container.addEventListener('scroll', preventScroll, { passive: false });
-
-    // Bloquear scroll en el body también
-    document.body.style.overflow = 'hidden';
-    document.body.style.position = 'fixed';
-    document.body.style.width = '100%';
-    document.body.style.height = '100%';
 
     return () => {
       // Remover event listeners
@@ -78,8 +91,10 @@ export const ScrollBlockWrapper: React.FC<ScrollBlockWrapperProps> = ({
       document.body.style.position = '';
       document.body.style.width = '';
       document.body.style.height = '';
+      
+      isScrollBlocked.current = false;
     };
-  }, [isBlocked, offerId]);
+  }, [isBlocked, offerId, preventScroll, preventWheel, preventTouch, preventKeyboard]);
 
   return (
     <Box

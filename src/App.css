@@ -15,6 +15,55 @@
   }
 }
 
+/* Optimizaciones de rendimiento para scroll y animaciones */
+* {
+  box-sizing: border-box;
+}
+
+/* Mejorar el rendimiento del scroll */
+html {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* Optimizar las animaciones para mejor rendimiento */
+.MuiCard-root {
+  will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+/* Optimizar las transiciones */
+.MuiCard-root,
+.MuiButton-root,
+.MuiIconButton-root {
+  transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
+}
+
+/* Mejorar el rendimiento de las imágenes */
+img {
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+}
+
+/* Optimizar el scroll en contenedores */
+.MuiBox-root {
+  contain: layout style paint;
+}
+
+/* Reducir el repaint en elementos que cambian frecuentemente */
+.MuiLinearProgress-root {
+  will-change: transform;
+  transform: translateZ(0);
+}
+
 .logo {
   height: 6em;
   padding: 1.5em;
@@ -328,4 +377,120 @@
 .gm-style input::-webkit-input-placeholder,
 .pac-target-input::-webkit-input-placeholder {
   color: #000 !important;
+}
+
+/* ===== ESTILOS PROFESIONALES PARA EL MAPA ===== */
+
+/* Contenedor del mapa con diseño profesional */
+.map-container {
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  touch-action: pan-x pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+/* Estilos profesionales para controles de Google Maps */
+.gm-style .gm-style-mtc,
+.gm-style .gm-style-mtc button,
+.gm-style .gm-style-mtc label {
+  background: rgba(255, 255, 255, 0.95) !important;
+  backdrop-filter: blur(10px) !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  color: #374151 !important;
+  font-family: 'Inter', sans-serif !important;
+  font-weight: 500 !important;
+}
+
+.gm-style .gm-style-mtc button:hover {
+  background: rgba(255, 255, 255, 1) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Controles de zoom profesionales */
+.gm-style .gm-control-active,
+.gm-style .gm-control-active button {
+  background: rgba(255, 255, 255, 0.95) !important;
+  backdrop-filter: blur(10px) !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  color: #374151 !important;
+}
+
+.gm-style .gm-control-active button:hover {
+  background: rgba(255, 255, 255, 1) !important;
+  color: #1e40af !important;
+}
+
+/* Botón de pantalla completa profesional */
+.gm-style .gm-fullscreen-control,
+.gm-style .gm-fullscreen-control button {
+  background: rgba(255, 255, 255, 0.95) !important;
+  backdrop-filter: blur(10px) !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+}
+
+.gm-style .gm-fullscreen-control button:hover {
+  background: rgba(255, 255, 255, 1) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Info windows profesionales */
+.gm-style .gm-style-iw {
+  border-radius: 16px !important;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.15), 0 8px 16px rgba(0,0,0,0.1) !important;
+  border: 1px solid rgba(255,255,255,0.8) !important;
+  overflow: hidden !important;
+}
+
+.gm-style .gm-style-iw-d {
+  overflow: hidden !important;
+  border-radius: 16px !important;
+}
+
+.gm-style .gm-style-iw-c {
+  border-radius: 16px !important;
+  overflow: hidden !important;
+}
+
+/* Flecha del info window */
+.gm-style .gm-style-iw-tc::after {
+  background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%) !important;
+  border: 1px solid rgba(255,255,255,0.8) !important;
+}
+
+/* Mejorar la experiencia de carga del mapa */
+.map-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 400px;
+  background: linear-gradient(145deg, #f8fafc 0%, #e2e8f0 100%);
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.map-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 400px;
+  background: linear-gradient(145deg, #fef2f2 0%, #fee2e2 100%);
+  border-radius: 12px;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  color: #dc2626;
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
 }
