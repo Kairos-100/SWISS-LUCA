@@ -5426,40 +5426,6 @@ function App() {
                         </Typography>
                       </Box>
                       
-                      {/* Dinero ahorrado */}
-                      <Box sx={{ 
-                        textAlign: 'center',
-                        p: 2,
-                        backgroundColor: '#333',
-                        borderRadius: 2,
-                        border: '1px solid #555'
-                      }}>
-                        <Box sx={{
-                          width: { xs: 40, sm: 60 },
-                          height: { xs: 40, sm: 60 },
-                          borderRadius: '50%',
-                          bgcolor: '#4caf50',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          mx: 'auto',
-                          mb: 1
-                        }}>
-                          <AttachMoney sx={{ fontSize: { xs: 20, sm: 30 }, color: 'white' }} />
-                        </Box>
-                        <Typography variant="h5" fontWeight="bold" sx={{ 
-                          fontSize: { xs: '1.5rem', sm: '2rem' },
-                          color: '#4caf50'
-                        }}>
-                          CHF {userProfile.totalSaved.toFixed(2)}
-                        </Typography>
-                        <Typography variant="body2" sx={{ 
-                          fontSize: { xs: '0.7rem', sm: '0.875rem' },
-                          color: 'white'
-                        }}>
-                          Dinero Ahorrado
-                        </Typography>
-                      </Box>
                     </Box>
                     
                     <Divider sx={{ my: 2 }} />
