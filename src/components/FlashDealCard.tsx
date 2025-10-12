@@ -283,7 +283,7 @@ export const FlashDealCard = memo<FlashDealCardProps>(({
               justifyContent: 'center'
             }}>
               <Box sx={{ 
-                background: 'rgba(25, 118, 210, 0.9)',
+                background: '#000000',
                 color: 'white',
                 px: 1.5,
                 py: 0.5,
@@ -299,7 +299,7 @@ export const FlashDealCard = memo<FlashDealCardProps>(({
                 </Typography>
               </Box>
               <Box sx={{ 
-                background: 'rgba(25, 118, 210, 0.9)',
+                background: '#000000',
                 color: 'white',
                 px: 1.5,
                 py: 0.5,
@@ -315,7 +315,7 @@ export const FlashDealCard = memo<FlashDealCardProps>(({
                 </Typography>
               </Box>
               <Box sx={{ 
-                background: 'rgba(25, 118, 210, 0.9)',
+                background: '#000000',
                 color: 'white',
                 px: 1.5,
                 py: 0.5,
@@ -450,7 +450,7 @@ export const FlashDealCard = memo<FlashDealCardProps>(({
             <Box sx={{ mt: 2 }}>
               <SlideToConfirmButton
                 onConfirm={() => onStartCountdown(deal)}
-                text="Desliza para activar"
+                text="← Glisser pour activer"
               />
             </Box>
           )}

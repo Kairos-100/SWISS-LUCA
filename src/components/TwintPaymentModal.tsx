@@ -83,7 +83,7 @@ export const TwintPaymentModal: React.FC<TwintPaymentModalProps> = ({
           onSuccess(paymentId);
         } else if (status.status === 'failed' || status.status === 'cancelled') {
           setPolling(false);
-          setError('El pago fue cancelado o falló');
+          setError('Le paiement a été annulé ou a échoué');
         }
       } catch (err) {
         console.error('Error checking payment status:', err);
@@ -100,7 +100,7 @@ export const TwintPaymentModal: React.FC<TwintPaymentModalProps> = ({
 
   const handleCreatePayment = async () => {
     if (!selectedMethod) {
-      setError('Por favor selecciona un método de pago');
+      setError('Veuillez sélectionner un mode de paiement');
       return;
     }
 
@@ -133,10 +133,10 @@ export const TwintPaymentModal: React.FC<TwintPaymentModalProps> = ({
         // Iniciar polling para verificar estado
         setPolling(true);
       } else {
-        setError(response.error || 'Error al crear el pago');
+        setError(response.error || 'Erreur lors de la création du paiement');
       }
     } catch (err) {
-      setError('Error al procesar el pago');
+      setError('Erreur lors du traitement du paiement');
       console.error('Payment error:', err);
     } finally {
       setLoading(false);
@@ -164,19 +164,19 @@ export const TwintPaymentModal: React.FC<TwintPaymentModalProps> = ({
   };
 
   const getStatusText = () => {
-    if (!paymentStatus) return 'Preparando pago...';
+    if (!paymentStatus) return 'Préparation du paiement...';
     
     switch (paymentStatus.status) {
       case 'pending':
-        return 'Esperando confirmación...';
+        return 'En attente de confirmation...';
       case 'completed':
-        return '¡Pago completado!';
+        return 'Paiement terminé !';
       case 'failed':
-        return 'El pago falló';
+        return 'Le paiement a échoué';
       case 'cancelled':
-        return 'Pago cancelado';
+        return 'Paiement annulé';
       default:
-        return 'Estado desconocido';
+        return 'État inconnu';
     }
   };
 
@@ -204,7 +204,7 @@ export const TwintPaymentModal: React.FC<TwintPaymentModalProps> = ({
         alignItems: 'center'
       }}>
         <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-          💳 Pago con TWINT
+          💳 Paiement avec TWINT
         </Typography>
         <IconButton onClick={onClose} size="small">
           <Close />
@@ -220,19 +220,19 @@ export const TwintPaymentModal: React.FC<TwintPaymentModalProps> = ({
         }}>
           <CardContent>
             <Typography variant="h6" gutterBottom sx={{ color: '#FFD700' }}>
-              Resumen del Pago
+              Résumé du paiement
             </Typography>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-              <Typography>Descripción:</Typography>
+              <Typography>Description :</Typography>
               <Typography>{description}</Typography>
             </Box>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-              <Typography>ID de Pedido:</Typography>
+              <Typography>ID de commande :</Typography>
               <Typography sx={{ fontFamily: 'monospace' }}>{orderId}</Typography>
             </Box>
             <Divider sx={{ my: 1, bgcolor: '#333' }} />
             <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-              <Typography variant="h6" sx={{ color: '#FFD700' }}>Total:</Typography>
+              <Typography variant="h6" sx={{ color: '#FFD700' }}>Total :</Typography>
               <Typography variant="h6" sx={{ color: '#FFD700', fontWeight: 'bold' }}>
                 {amount} {currency}
               </Typography>
@@ -244,7 +244,7 @@ export const TwintPaymentModal: React.FC<TwintPaymentModalProps> = ({
         {!paymentId && (
           <Box>
             <Typography variant="h6" gutterBottom sx={{ color: '#FFD700', mb: 2 }}>
-              Selecciona tu método de pago TWINT
+              Sélectionnez votre mode de paiement TWINT
             </Typography>
             <List>
               {availableMethods.map((method) => (
@@ -300,7 +300,7 @@ export const TwintPaymentModal: React.FC<TwintPaymentModalProps> = ({
               />
             </Box>
             <Typography variant="body2" sx={{ color: '#bbb' }}>
-              Abre la app TWINT y escanea este código QR
+              Ouvrez l'application TWINT et scannez ce code QR
             </Typography>
           </Box>
         )}
@@ -309,7 +309,7 @@ export const TwintPaymentModal: React.FC<TwintPaymentModalProps> = ({
         {redirectUrl && (
           <Box sx={{ textAlign: 'center', mb: 3 }}>
             <Typography variant="h6" gutterBottom sx={{ color: '#FFD700' }}>
-              Pago Web TWINT
+              Paiement Web TWINT
             </Typography>
             <Button
               variant="contained"
@@ -325,7 +325,7 @@ export const TwintPaymentModal: React.FC<TwintPaymentModalProps> = ({
                 }
               }}
             >
-              Abrir TWINT Web
+              Ouvrir TWINT Web
             </Button>
           </Box>
         )}
@@ -366,7 +366,7 @@ export const TwintPaymentModal: React.FC<TwintPaymentModalProps> = ({
             }
           }}
         >
-          Cancelar
+          Annuler
         </Button>
         
         {!paymentId && (
@@ -388,7 +388,7 @@ export const TwintPaymentModal: React.FC<TwintPaymentModalProps> = ({
               }
             }}
           >
-            {loading ? 'Procesando...' : 'Pagar con TWINT'}
+            {loading ? 'Traitement...' : 'Payer avec TWINT'}
           </Button>
         )}
       </DialogActions>

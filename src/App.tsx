@@ -1521,16 +1521,16 @@ function MapView({ offers, flashDeals, selectedCategory, onOfferClick, onFlashDe
       setIsAdmin(true);
       setShowLoginModal(false);
       setLoginCredentials({ username: '', password: '' });
-      alert('¡Bienvenido, Admin!');
+      alert('Bienvenue, Administrateur !');
     } else {
-      alert('Credenciales incorrectas');
+      alert('Identifiants incorrects');
     }
   };
 
   // Función para manejar el logout
   const handleLogout = () => {
     setIsAdmin(false);
-    alert('Sesión cerrada');
+    alert('Session fermée');
   };
 
   // Función para agregar nueva oferta
@@ -2330,7 +2330,7 @@ function OffersList({ offers, selectedCategory, selectedSubCategory, onOfferClic
                   <Box sx={{ mt: 2 }} onClick={(e) => e.stopPropagation()}>
                     <SlideToConfirmButton
                       onConfirm={() => handleSlideToActivate(offer)}
-                      text="Glisse pour activer"
+                      text="← Glisser pour activer"
                     />
                   </Box>
                 )}
@@ -3006,6 +3006,8 @@ function SubscriptionRequiredModal({
   open: boolean, 
   onSubscribe: () => void 
 }) {
+  const { t } = useTranslation();
+  
   return (
     <Dialog 
       open={open} 
@@ -3033,21 +3035,20 @@ function SubscriptionRequiredModal({
           </Typography>
         </Box>
         <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 1 }}>
-          Suscripción Requerida
+          Abonnement requis
         </Typography>
         <Typography variant="body1" sx={{ opacity: 0.9 }}>
-          Necesitas una suscripción activa para acceder a FLASH
+          Vous avez besoin d'un abonnement actif pour accéder à FLASH
         </Typography>
       </DialogTitle>
       
       <DialogContent sx={{ p: 4, textAlign: 'center' }}>
         <Box sx={{ mb: 4 }}>
           <Typography variant="h6" gutterBottom sx={{ color: '#333' }}>
-            ¡Desbloquea todas las ofertas!
+            {t('desbloquearOfertas')}
           </Typography>
           <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-            Con una suscripción activa podrás acceder a cientos de ofertas exclusivas 
-            y ahorrar dinero en tus compras favoritas.
+            {t('subscripcionAcceso')}
           </Typography>
         </Box>
 
@@ -3060,25 +3061,25 @@ function SubscriptionRequiredModal({
         }}>
           <Box sx={{ p: 2, bgcolor: '#f8f9fa', borderRadius: 2 }}>
             <Typography variant="h6" sx={{ color: '#FFD700', mb: 1 }}>💎</Typography>
-            <Typography variant="subtitle2" gutterBottom>Ofertas Exclusivas</Typography>
+            <Typography variant="subtitle2" gutterBottom>{t('ofertasExclusivas')}</Typography>
             <Typography variant="body2" color="text.secondary">
-              Acceso a ofertas únicas no disponibles para usuarios gratuitos
+              {t('accesoUnico')}
             </Typography>
           </Box>
           
           <Box sx={{ p: 2, bgcolor: '#f8f9fa', borderRadius: 2 }}>
             <Typography variant="h6" sx={{ color: '#FFD700', mb: 1 }}>💎</Typography>
-            <Typography variant="subtitle2" gutterBottom>Sin Límites</Typography>
+            <Typography variant="subtitle2" gutterBottom>{t('sinLimites')}</Typography>
             <Typography variant="body2" color="text.secondary">
-              Usa todas las ofertas que quieras sin restricciones
+              {t('usarOfertas')}
             </Typography>
           </Box>
           
           <Box sx={{ p: 2, bgcolor: '#f8f9fa', borderRadius: 2 }}>
             <Typography variant="h6" sx={{ color: '#FFD700', mb: 1 }}>🎯</Typography>
-            <Typography variant="subtitle2" gutterBottom>Ahorro Garantizado</Typography>
+            <Typography variant="subtitle2" gutterBottom>{t('ahorroGarantizado')}</Typography>
             <Typography variant="body2" color="text.secondary">
-              Ahorra dinero real en cada compra con nuestras ofertas
+              {t('ahorrarDinero')}
             </Typography>
           </Box>
         </Box>
@@ -3235,16 +3236,16 @@ function OfferDetail({ offer, open, onClose }: { offer: Offer | null, open: bool
             variant="outlined" 
             fullWidth
             onClick={() => {
-              const shareText = `🎉 ¡Mira esta oferta increíble en FLASH!\n\n${offer.name}\n${offer.discount}\n\nDescarga FLASH: https://t4learningluca.web.app`;
+              const shareText = `🎉 Regardez cette offre incroyable sur FLASH !\n\n${offer.name}\n${offer.discount}\n\nTéléchargez FLASH : https://t4learningluca.web.app`;
               if (navigator.share) {
                 navigator.share({
-                  title: 'Oferta FLASH',
+                  title: 'Offre FLASH',
                   text: shareText,
                   url: 'https://t4learningluca.web.app'
                 });
               } else {
                 navigator.clipboard.writeText(shareText);
-                // addNotification('success', '¡Enlace copiado al portapapeles!');
+                // addNotification('success', t('enlaceCopiado'));
               }
             }}
             sx={{ borderColor: '#FFD700', color: '#FFD700' }}
@@ -3812,12 +3813,12 @@ function App() {
   // Función para manejar el registro de usuario
   const handleSignup = async () => {
     if (signupCredentials.password !== signupCredentials.confirmPassword) {
-      alert('Las contraseñas no coinciden');
+      alert('Les mots de passe ne correspondent pas');
       return;
     }
 
     if (signupCredentials.password.length < 6) {
-      alert('La contraseña debe tener al menos 6 caracteres');
+      alert('Le mot de passe doit contenir au moins 6 caractères');
       return;
     }
 
@@ -3898,7 +3899,7 @@ function App() {
         name: '',
         city: 'FLASH'
       });
-      addNotification('success', 'Account created successfully! Welcome to FLASH!');
+      addNotification('success', t('cuentaCreada'));
     } catch (error: any) {
       console.error('Error en registro:', error);
       const errorMessage = getAuthErrorMessage(error.code);
@@ -3929,7 +3930,7 @@ function App() {
       setIsAuthenticated(true);
       setShowLoginModal(false);
       setLoginCredentials({ email: '', password: '' });
-      addNotification('success', 'Welcome to FLASH!');
+      addNotification('success', t('bienvenidoFlash'));
     } catch (error: any) {
       console.error('Error en login:', error);
       const errorMessage = getAuthErrorMessage(error.code);
@@ -4015,7 +4016,7 @@ function App() {
       setIsAuthenticated(true);
       setShowLoginModal(false);
       setShowSignupModal(false);
-      addNotification('success', 'Welcome to FLASH!');
+      addNotification('success', t('bienvenidoFlash'));
     } catch (error: any) {
       console.error('Google login error:', error);
       if (error.code === 'auth/popup-closed-by-user') {
@@ -4058,13 +4059,13 @@ function App() {
           setIsAdmin(true);
           setShowAdminLoginModal(false);
           setAdminLoginCredentials({ email: '', password: '' });
-          addNotification('success', '¡Bienvenido, Administrador!');
+          addNotification('success', t('bienvenidoAdmin'));
         } else {
-          alert('No tienes permisos de administrador');
+          alert('Vous n\'avez pas les autorisations d\'administrateur');
           await signOut(auth);
         }
       } else {
-        alert('User not found');
+        alert('Utilisateur non trouvé');
         await signOut(auth);
       }
     } catch (error: any) {
@@ -4133,7 +4134,7 @@ function App() {
   // Función para restablecer contraseña
   const handleResetPassword = async () => {
     if (!resetPasswordEmail) {
-      alert('Por favor ingresa tu correo electrónico');
+      alert('Veuillez entrer votre adresse e-mail');
       return;
     }
 
@@ -4142,13 +4143,13 @@ function App() {
       await sendPasswordResetEmail(auth, resetPasswordEmail);
       setShowResetPasswordModal(false);
       setResetPasswordEmail('');
-      addNotification('success', '¡Email de restablecimiento enviado! Revisa tu bandeja de entrada.');
+      addNotification('success', t('emailRestablecimiento'));
     } catch (error: any) {
       console.error('Error al enviar email de restablecimiento:', error);
       if (error.code === 'auth/user-not-found') {
-        alert('No existe una cuenta con este correo electrónico');
+        alert('Il n\'existe pas de compte avec cette adresse e-mail');
       } else if (error.code === 'auth/invalid-email') {
-        alert('El formato del correo electrónico no es válido');
+        alert('Le format de l\'adresse e-mail n\'est pas valide');
       } else {
         alert(`Error: ${error.message}`);
       }
@@ -4166,10 +4167,10 @@ function App() {
       setCurrentUser(null);
       setUserProfile(null);
       setShowLoginModal(true);
-      alert('Sesión cerrada');
+      alert('Session fermée');
     } catch (error) {
       console.error('Error al cerrar sesión:', error);
-      alert('Error al cerrar sesión');
+      alert('Erreur lors de la déconnexion');
     }
   };
 
@@ -4255,7 +4256,7 @@ function App() {
         [dealId]: activationTime
       }));
       
-      addNotification('success', '¡Oferta Flash activada! Tienes 15 minutos para usarla.');
+      addNotification('success', t('ofertaActivada'));
     }, 2000);
     
     // Auto-expirar después de 15 minutos
@@ -4690,7 +4691,7 @@ function App() {
         <DialogContent>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
             <Typography variant="body1" sx={{ mb: 2, textAlign: 'center' }}>
-              Welcome to FLASH - Your deals app in FLASH
+              {t('welcomeFlash')}
             </Typography>
             
             <TextField
@@ -4820,34 +4821,34 @@ function App() {
         <DialogContent>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
             <Typography variant="body1" sx={{ mb: 2, textAlign: 'center' }}>
-              ¡Únete a FLASH y descubre las mejores ofertas en FLASH!
+              {t('uneteFlash')}
             </Typography>
             
             <TextField
-              label="Nombre completo"
+              label={t('nombreCompleto')}
               value={signupCredentials.name}
               onChange={(e) => setSignupCredentials({...signupCredentials, name: e.target.value})}
               fullWidth
               required
-              placeholder="Juan Pérez"
+              placeholder="Jean Dupont"
               error={signupCredentials.name.length > 0 && !validateName(signupCredentials.name).isValid}
               helperText={signupCredentials.name.length > 0 && !validateName(signupCredentials.name).isValid ? validateName(signupCredentials.name).message : ""}
             />
 
             <TextField
-              label="Correo electrónico"
+              label={t('email')}
               type="email"
               value={signupCredentials.email}
               onChange={(e) => setSignupCredentials({...signupCredentials, email: e.target.value})}
               fullWidth
               required
-              placeholder="ejemplo@email.com"
+              placeholder="exemple@email.com"
               error={signupCredentials.email.length > 0 && !validateEmail(signupCredentials.email)}
-              helperText={signupCredentials.email.length > 0 && !validateEmail(signupCredentials.email) ? "Ingresa un correo electrónico válido" : ""}
+              helperText={signupCredentials.email.length > 0 && !validateEmail(signupCredentials.email) ? "Entrez une adresse e-mail valide" : ""}
             />
             
             <TextField
-              label="Password"
+              label={t('motDePasse')}
               type="password"
               value={signupCredentials.password}
               onChange={(e) => setSignupCredentials({...signupCredentials, password: e.target.value})}
@@ -4855,11 +4856,11 @@ function App() {
               required
               placeholder="••••••••"
               error={signupCredentials.password.length > 0 && !validatePassword(signupCredentials.password).isValid}
-              helperText={signupCredentials.password.length > 0 && !validatePassword(signupCredentials.password).isValid ? validatePassword(signupCredentials.password).message : "Mínimo 6 caracteres"}
+              helperText={signupCredentials.password.length > 0 && !validatePassword(signupCredentials.password).isValid ? validatePassword(signupCredentials.password).message : "Minimum 6 caractères"}
             />
 
             <TextField
-              label="Confirmar contraseña"
+              label={t('confirmerMotDePasse')}
               type="password"
               value={signupCredentials.confirmPassword}
               onChange={(e) => setSignupCredentials({...signupCredentials, confirmPassword: e.target.value})}
@@ -4867,11 +4868,11 @@ function App() {
               required
               placeholder="••••••••"
               error={signupCredentials.confirmPassword.length > 0 && signupCredentials.password !== signupCredentials.confirmPassword}
-              helperText={signupCredentials.confirmPassword.length > 0 && signupCredentials.password !== signupCredentials.confirmPassword ? "Las contraseñas no coinciden" : ""}
+              helperText={signupCredentials.confirmPassword.length > 0 && signupCredentials.password !== signupCredentials.confirmPassword ? "Les mots de passe ne correspondent pas" : ""}
             />
 
             <Typography variant="body2" color="text.secondary" align="center" sx={{ mt: 2 }}>
-              ¿Ya tienes una cuenta? 
+              Vous avez déjà un compte ? 
               <Button 
                 color="primary" 
                 onClick={() => {
@@ -4967,17 +4968,17 @@ function App() {
         <DialogContent>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
             <Typography variant="body1" sx={{ mb: 2, textAlign: 'center' }}>
-              Ingresa tu correo electrónico y te enviaremos un enlace para restablecer tu contraseña.
+              Entrez votre adresse e-mail et nous vous enverrons un lien pour réinitialiser votre mot de passe.
             </Typography>
             
             <TextField
-              label="Correo electrónico"
+              label={t('email')}
               type="email"
               value={resetPasswordEmail}
               onChange={(e) => setResetPasswordEmail(e.target.value)}
               fullWidth
               required
-              placeholder="ejemplo@email.com"
+              placeholder="exemple@email.com"
             />
           </Box>
         </DialogContent>
@@ -5029,7 +5030,7 @@ function App() {
               onChange={(e) => setEditProfileData({...editProfileData, name: e.target.value})}
               fullWidth
               required
-              placeholder="Juan Pérez"
+              placeholder="Jean Dupont"
             />
 
             <TextField
@@ -5421,7 +5422,7 @@ function App() {
                           fontSize: { xs: '0.7rem', sm: '0.875rem' },
                           color: 'white'
                         }}>
-                          Ofertas Usadas
+                          {t('ofertasUsadas')}
                         </Typography>
                       </Box>
                       
@@ -5596,7 +5597,7 @@ function App() {
                                 
                                 <Box sx={{ p: 2, bgcolor: 'rgba(255,255,255,0.1)', borderRadius: 2 }}>
                                   <Typography variant="body2" sx={{ opacity: 0.8, mb: 1 }}>
-                                    Ofertas vistas
+                                    {t('ofertasVistas')}
                                   </Typography>
                                   <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
                                     {stats.totalOffersViewed}
@@ -5764,7 +5765,7 @@ function App() {
 
             <Box sx={{ mt: 2, p: 2, bgcolor: '#f5f5f5', borderRadius: 1 }}>
               <Typography variant="body2" color="text.secondary">
-                <strong>Nota:</strong> Solo usuarios con permisos de administrador pueden acceder a esta sección.
+                <strong>Note :</strong> Seuls les utilisateurs avec des permissions d'administrateur peuvent accéder à cette section.
               </Typography>
             </Box>
           </Box>

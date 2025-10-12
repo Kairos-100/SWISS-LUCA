@@ -11,7 +11,7 @@ interface SlideToConfirmButtonProps {
 export const SlideToConfirmButton: React.FC<SlideToConfirmButtonProps> = ({
   onConfirm,
   disabled = false,
-  text = 'Desliza para confirmar'
+  text = '← Glisser pour confirmer'
 }) => {
   const [slideState, setSlideState] = useState({
     translateX: 0,

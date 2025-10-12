@@ -70,7 +70,7 @@ export const SimpleTwintModal: React.FC<SimpleTwintModalProps> = ({
         onSuccess(`twint_${Date.now()}`);
       }, 2000);
     } catch (err) {
-      setError('Error al procesar el pago');
+      setError('Erreur lors du traitement du paiement');
       setStatus('error');
     } finally {
       setLoading(false);
@@ -92,18 +92,18 @@ export const SimpleTwintModal: React.FC<SimpleTwintModalProps> = ({
 
   const getStatusText = () => {
     if (status === 'idle') {
-      return 'Listo para pagar con TWINT';
+      return 'Prêt à payer avec TWINT';
     }
     if (status === 'processing') {
-      return 'Procesando pago...';
+      return 'Traitement du paiement...';
     }
     if (status === 'success') {
-      return '¡Pago completado!';
+      return 'Paiement terminé !';
     }
     if (status === 'error') {
-      return 'Error en el pago';
+      return 'Erreur de paiement';
     }
-    return 'Estado desconocido';
+      return 'État inconnu';
   };
 
   return (
@@ -129,7 +129,7 @@ export const SimpleTwintModal: React.FC<SimpleTwintModalProps> = ({
       }}>
         <Typography variant="h6" sx={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 1 }}>
           <Smartphone />
-          Pago con TWINT
+          Paiement avec TWINT
         </Typography>
         <IconButton onClick={onClose} size="small">
           <Close />
@@ -145,19 +145,19 @@ export const SimpleTwintModal: React.FC<SimpleTwintModalProps> = ({
         }}>
           <CardContent>
             <Typography variant="h6" gutterBottom sx={{ color: '#FFD700' }}>
-              Resumen del Pago
+              Résumé du paiement
             </Typography>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-              <Typography>Descripción:</Typography>
+              <Typography>Description :</Typography>
               <Typography>{description}</Typography>
             </Box>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-              <Typography>ID de Pedido:</Typography>
+              <Typography>ID de commande :</Typography>
               <Typography sx={{ fontFamily: 'monospace' }}>{orderId}</Typography>
             </Box>
             <Divider sx={{ my: 1, bgcolor: '#333' }} />
             <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-              <Typography variant="h6" sx={{ color: '#FFD700' }}>Total:</Typography>
+              <Typography variant="h6" sx={{ color: '#FFD700' }}>Total :</Typography>
               <Typography variant="h6" sx={{ color: '#FFD700', fontWeight: 'bold' }}>
                 {amount} {currency.toUpperCase()}
               </Typography>
@@ -175,12 +175,12 @@ export const SimpleTwintModal: React.FC<SimpleTwintModalProps> = ({
           </Typography>
           {status === 'processing' && (
             <Typography variant="body2" sx={{ color: '#bbb' }}>
-              Por favor espera mientras procesamos tu pago...
+              Veuillez patienter pendant que nous traitons votre paiement...
             </Typography>
           )}
           {status === 'success' && (
             <Typography variant="body2" sx={{ color: '#4caf50' }}>
-              Tu suscripción se ha activado correctamente
+              Votre abonnement a été activé avec succès
             </Typography>
           )}
         </Box>
@@ -201,13 +201,13 @@ export const SimpleTwintModal: React.FC<SimpleTwintModalProps> = ({
           textAlign: 'center'
         }}>
           <Typography variant="body2" sx={{ color: '#FFD700', fontWeight: 'bold', mb: 1 }}>
-            💳 Pago con TWINT
+            💳 Paiement avec TWINT
           </Typography>
           <Typography variant="body2" sx={{ color: '#bbb' }}>
-            {status === 'idle' && 'Haz clic en "Pagar" para procesar tu pago con TWINT'}
-            {status === 'processing' && 'Procesando tu pago de forma segura...'}
-            {status === 'success' && '¡Pago completado exitosamente!'}
-            {status === 'error' && 'Hubo un error al procesar el pago'}
+            {status === 'idle' && 'Cliquez sur "Payer" pour traiter votre paiement avec TWINT'}
+            {status === 'processing' && 'Traitement sécurisé de votre paiement...'}
+            {status === 'success' && 'Paiement effectué avec succès !'}
+            {status === 'error' && 'Une erreur s\'est produite lors du traitement du paiement'}
           </Typography>
         </Box>
       </DialogContent>
@@ -225,7 +225,7 @@ export const SimpleTwintModal: React.FC<SimpleTwintModalProps> = ({
             }
           }}
         >
-          Cancelar
+          Annuler
         </Button>
         
         {status === 'idle' && (
@@ -247,7 +247,7 @@ export const SimpleTwintModal: React.FC<SimpleTwintModalProps> = ({
               }
             }}
           >
-            {loading ? 'Procesando...' : 'Pagar con TWINT'}
+            {loading ? 'Traitement...' : 'Payer avec TWINT'}
           </Button>
         )}
       </DialogActions>

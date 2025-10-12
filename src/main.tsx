@@ -4,7 +4,7 @@ import './index.css'
 import App from './App.tsx'
 
 // Forzar título en runtime para evitar caché de HTML antiguo
-document.title = 'FLASH - Deals Geneva'
+document.title = 'FLASH - Bons Plans Genève'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

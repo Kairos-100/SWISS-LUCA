@@ -95,7 +95,36 @@ const fr = {
     confirmerAnnulation: "Confirmer l'annulation",
     messageAnnulation: "Êtes-vous sûr de vouloir annuler votre abonnement ? Cette action est irréversible.",
     abonnementAnnule: "Abonnement annulé avec succès",
-    erreurAnnulation: "Erreur lors de l'annulation de l'abonnement"
+    erreurAnnulation: "Erreur lors de l'annulation de l'abonnement",
+    
+    // Textos adicionales
+    desbloquearOfertas: "Débloquez toutes les offres !",
+    subscripcionAcceso: "Avec un abonnement actif, vous pouvez accéder à des centaines d'offres exclusives et économiser de l'argent sur vos achats préférés.",
+    ofertasExclusivas: "Offres Exclusives",
+    accesoUnico: "Accès à des offres uniques non disponibles pour les utilisateurs gratuits",
+    sinLimites: "Sans Limites",
+    usarOfertas: "Utilisez toutes les offres que vous voulez sans restrictions",
+    ahorroGarantizado: "Économies Garanties",
+    ahorrarDinero: "Économisez de l'argent réel sur chaque achat avec nos offres",
+    bienvenidoAdmin: "Bienvenue, Administrateur !",
+    compartirOferta: "🎉 Regardez cette offre incroyable sur FLASH !\n\n{name}\n{discount}\n\nTéléchargez FLASH : https://t4learningluca.web.app",
+    enlaceCopiado: "Lien copié dans le presse-papiers !",
+    cuentaCreada: "Compte créé avec succès ! Bienvenue sur FLASH !",
+    bienvenidoFlash: "Bienvenue sur FLASH !",
+    emailRestablecimiento: "Email de réinitialisation envoyé ! Vérifiez votre boîte de réception.",
+    ofertaActivada: "Offre Flash activée ! Vous avez 15 minutes pour l'utiliser.",
+    welcomeFlash: "Bienvenue sur FLASH - Votre application de bons plans",
+    uneteFlash: "Rejoignez FLASH et découvrez les meilleures offres !",
+    nombreCompleto: "Nom complet",
+    ofertaActivadaExclamacion: "Offre Activée !",
+    activandoOferta: "Activation !",
+    preparandoOferta: "Préparation de l'offre",
+    pagoCompletado: "Paiement terminé !",
+    procesandoPago: "Traitement sécurisé de votre paiement...",
+    pagoExitoso: "Paiement effectué avec succès !",
+    errorPago: "Une erreur s'est produite lors du traitement du paiement",
+    ofertasUsadas: "Offres Utilisées",
+    ofertasVistas: "Offres vues"
   }
 };
 

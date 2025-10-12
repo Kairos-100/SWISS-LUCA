@@ -279,7 +279,7 @@ export const BlockedOfferModal: React.FC<BlockedOfferModalProps> = ({
                     }
                   }}
                 >
-                  Cerrar
+                  Fermer
                 </Button>
               </Box>
             </Fade>
@@ -381,10 +381,10 @@ export const BlockedOfferModal: React.FC<BlockedOfferModalProps> = ({
                       fontWeight: 'bold',
                       mb: 1
                     }}>
-                      ¡Oferta Activada!
+                      Offre Activée !
                     </Typography>
                     <Typography variant="body1" sx={{ color: '#bbb', mb: 3 }}>
-                      Muestra esta pantalla al personal para usar tu descuento
+                      Montrez cet écran au personnel pour utiliser votre réduction
                     </Typography>
                   </Box>
                 </Zoom>
@@ -420,7 +420,7 @@ export const BlockedOfferModal: React.FC<BlockedOfferModalProps> = ({
                         onUse();
                       }
                     }}
-                    text="Desliza para usar oferta"
+                    text="← Glisser pour utiliser l'offre"
                   />
                 </Box>
 

@@ -121,7 +121,7 @@ export const ActivationCountdownModal: React.FC<ActivationCountdownModalProps> =
             fontWeight: 'bold', 
             mb: 2
           }}>
-            {showLightning ? '¡Activando!' : 'Preparando Oferta'}
+            {showLightning ? 'Activation !' : 'Préparation de l\'offre'}
           </Typography>
 
           {/* Nombre de la oferta */}
@@ -149,7 +149,7 @@ export const ActivationCountdownModal: React.FC<ActivationCountdownModalProps> =
               color: '#bbb', 
               mb: 3
             }}>
-              {showLightning ? 'Procesando activación...' : 'Tiempo restante para activación'}
+              {showLightning ? 'Traitement de l\'activation...' : 'Temps restant pour l\'activation'}
             </Typography>
 
             {/* Barra de progreso circular */}
@@ -227,7 +227,7 @@ export const ActivationCountdownModal: React.FC<ActivationCountdownModalProps> =
                 color: '#FFD700', 
                 fontWeight: 'bold'
               }}>
-                ¡Oferta Activada!
+                Offre Activée !
               </Typography>
             </Box>
           </Fade>
