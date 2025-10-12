@@ -5339,9 +5339,10 @@ function App() {
                 className="tab-content"
                 sx={{ 
                   p: { xs: 3, sm: 4 },
-                  height: { xs: 'calc(100vh - 120px)', sm: 'auto' },
+                  height: { xs: 'calc(100vh - 120px)', sm: 'calc(100vh - 150px)' },
                   overflow: 'auto',
-                  width: '100%'
+                  width: '100%',
+                  maxHeight: { xs: 'calc(100vh - 120px)', sm: 'calc(100vh - 150px)' }
                 }}
               >
                 {/* Header del perfil */}
