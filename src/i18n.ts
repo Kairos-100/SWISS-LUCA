@@ -124,7 +124,70 @@ const fr = {
     pagoExitoso: "Paiement effectué avec succès !",
     errorPago: "Une erreur s'est produite lors du traitement du paiement",
     ofertasUsadas: "Offres Utilisées",
-    ofertasVistas: "Offres vues"
+    ofertasVistas: "Offres vues",
+    
+    // Subscription status
+    subscriptionValidUntil: "Abonnement valide jusqu'au",
+    subscriptionExpires: "Expire le",
+    membershipActiveUntil: "Membre actif jusqu'au",
+    subscriptionStatus: "Statut d'abonnement",
+    timeRemaining: "Temps restant",
+    expired: "Expiré",
+    expiringSoon: "Expire bientôt - Renouvelez maintenant",
+    refresh: "Actualiser",
+    trial: "Essai",
+    totalPaid: "Total payé",
+    
+    // Estadísticas personales
+    estadisticasPersonales: "Statistiques Personnelles",
+    tuActividadEnFlash: "Votre activité dans FLASH",
+    miembroDesde: "Membre depuis",
+    tusCategoriasFavoritas: "Vos catégories préférées",
+    
+    // Textos adicionales encontrados
+    confirmerAnnulationAbonnement: "Êtes-vous sûr de vouloir annuler votre abonnement ?",
+    nonGarderAbonnement: "Non, garder l'abonnement",
+    annulationEnCours: "Annulation en cours...",
+    ouiAnnuler: "Oui, annuler",
+    
+    // Otros textos encontrados
+    subcategories: "Sous-catégories",
+    all: "Tous",
+    nouveau: "Nouveau",
+    coutPourUtiliser: "Coût pour utiliser cette offre :",
+    coutFactureAutomatiquement: "Ce coût sera facturé automatiquement lors de l'activation de l'offre",
+    appeler: "Appeler",
+    voirSurMap: "Voir sur la carte",
+    addNewOffer: "Ajouter une nouvelle offre",
+    businessName: "Nom de l'entreprise",
+    adresse: "Adresse",
+    categoria: "Catégorie",
+    subcategoria: "Sous-catégorie",
+    reduccionOferta: "Réduction/Offre",
+    descripcion: "Description",
+    calificacion: "Note",
+    precio: "Prix",
+    precioAnterior: "Prix précédent",
+    agregarOferta: "Ajouter l'offre",
+    ofertaAgregadaExitosamente: "Offre ajoutée avec succès !",
+    noSePudoEncontrar: "Impossible de trouver l'adresse. Essayez avec une adresse plus spécifique.",
+    googleMapsNoDisponible: "Google Maps n'est pas disponible. Réessayez plus tard.",
+    errorAgregarOferta: "Erreur lors de l'ajout de l'offre",
+    bloquearOferta: "🔒 Bloquage de l'offre... Attendez 10 minutes pour l'activation.",
+    ofertaFlashExpirado: "Votre offre Flash a expiré.",
+    porFavorCompleta: "Veuillez compléter le nom et l'adresse",
+    testCredentials: "Identifiants de test :",
+    user: "Utilisateur :",
+    password: "Mot de passe :",
+    signIn: "Se connecter",
+    accesLimite: "🔒 Accès limité - Commencez votre essai gratuit de 7 jours",
+    essaiGratuit: "Essai gratuit",
+    essaiGratuitActif: "🎉 Essai gratuit actif - {days} jours restants",
+    monProfil: "Mon Profil",
+    essai: "🎉 Essai",
+    expire: "⚠️ Expiré",
+    active: "Active",
+    resetPassword: "Réinitialiser le mot de passe"
   }
 };
 
@@ -221,7 +284,19 @@ const en = {
     confirmerAnnulation: "Confirm cancellation",
     messageAnnulation: "Are you sure you want to cancel your subscription? This action is irreversible.",
     abonnementAnnule: "Subscription cancelled successfully",
-    erreurAnnulation: "Error cancelling subscription"
+    erreurAnnulation: "Error cancelling subscription",
+    
+    // Subscription status
+    subscriptionValidUntil: "Subscription valid until",
+    subscriptionExpires: "Expires on",
+    membershipActiveUntil: "Active member until",
+    subscriptionStatus: "Subscription status",
+    timeRemaining: "Time remaining",
+    expired: "Expired",
+    expiringSoon: "Expiring soon - Renew now",
+    refresh: "Refresh",
+    trial: "Trial",
+    totalPaid: "Total paid"
   }
 };
 
@@ -318,12 +393,23 @@ const ko = {
     confirmerAnnulation: "취소 확인",
     messageAnnulation: "구독을 취소하시겠습니까? 이 작업은 되돌릴 수 없습니다.",
     abonnementAnnule: "구독이 성공적으로 취소되었습니다",
-    erreurAnnulation: "구독 취소 중 오류"
+    erreurAnnulation: "구독 취소 중 오류",
+    
+    // Subscription status
+    subscriptionValidUntil: "구독 유효 기간",
+    subscriptionExpires: "만료일",
+    membershipActiveUntil: "활성 회원 기간",
+    subscriptionStatus: "구독 상태",
+    timeRemaining: "남은 시간",
+    expired: "만료됨",
+    expiringSoon: "곧 만료 - 지금 갱신하세요",
+    refresh: "새로고침",
+    trial: "체험",
+    totalPaid: "총 결제액"
   }
 };
 
 i18n
-  .use(LanguageDetector)
   .use(initReactI18next)
   .init({
     resources: {
@@ -331,6 +417,7 @@ i18n
       en,
       ko
     },
+    lng: 'fr', // Forzar francés como idioma predeterminado
     fallbackLng: 'fr',
     debug: false,
     interpolation: {
