@@ -1,3 +1,12 @@
+/**
+ * @deprecated Este archivo está DEPRECADO
+ * 
+ * Usar en su lugar: src/services/paymentService.ts
+ * 
+ * Este archivo se mantiene solo por compatibilidad temporal,
+ * pero NO debe usarse en nuevo código.
+ */
+
 // Servicio de integración con Stripe para pagos TWINT
 import { loadStripe, type Stripe, type StripeElements, type StripePaymentElement } from '@stripe/stripe-js';
 

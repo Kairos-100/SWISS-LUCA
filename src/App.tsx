@@ -8,6 +8,8 @@ import LanguageSelector from './components/LanguageSelector';
 import { FlashDealsWithBlocking } from './components/FlashDealsWithBlocking';
 import { SlideToConfirmButton } from './components/SlideToConfirmButton';
 import { BlockedOfferTimer } from './components/BlockedOfferTimer';
+import SubscriptionWidget from './components/SubscriptionWidget';
+import type { UserProfile, Offer, FlashDeal, Payment } from './types';
 import './i18n';
 import { 
   AppBar, 
@@ -113,91 +115,7 @@ const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
 // Prix par utilisation d'offres
 const OFFER_USAGE_PERCENTAGE = 0.05; // 5% del coste de la oferta
 
-// User Profile data type
-interface UserProfile {
-  uid: string;
-  email: string;
-  name: string;
-  city: string;
-  activatedOffers: {
-    offerId: string;
-    activatedAt: Timestamp;
-    savedAmount: number;
-    paidAmount?: number; // Cantidad pagada por usar la oferta
-    offerName?: string; // Nombre de la oferta para historial
-    category?: string; // Categoría de la oferta
-    blockedUntil?: Timestamp; // Tiempo hasta que la oferta se desbloquee
-  }[];
-  totalSaved: number;
-  points: number;
-  level: number;
-  achievements: string[];
-  subscriptionEnd: Timestamp;
-  subscriptionStatus: 'active' | 'expired' | 'cancelled' | 'pending' | 'trial';
-  subscriptionPlan: 'monthly' | 'yearly' | 'none';
-  paymentMethod?: string;
-  lastPaymentDate?: Timestamp;
-  nextPaymentDate?: Timestamp;
-  totalPaid: number;
-  
-  // Nuevos campos para datos individuales más detallados
-  personalStats: {
-    joinDate: Timestamp;
-    lastLoginDate: Timestamp;
-    totalOffersViewed: number;
-    favoriteCategories: string[];
-    preferredLanguage: string;
-    notificationsEnabled: boolean;
-  };
-  
-  financialHistory: {
-    monthlyExpenses: { [month: string]: number }; // "2024-01": 150.50
-    subscriptionHistory: {
-      plan: string;
-      startDate: Timestamp;
-      endDate?: Timestamp;
-      amount: number;
-      status: string;
-    }[];
-    offerPayments: {
-      offerId: string;
-      amount: number;
-      date: Timestamp;
-      offerName: string;
-    }[];
-  };
-  
-  preferences: {
-    favoriteLocations: string[];
-    priceRange: { min: number; max: number };
-    notificationSettings: {
-      newOffers: boolean;
-      flashDeals: boolean;
-      subscriptionReminders: boolean;
-    };
-  };
-  
-  activityLog: {
-    action: string;
-    timestamp: Timestamp;
-    details?: any;
-  }[];
-}
-
-// Payment and Subscription interfaces
-interface Payment {
-  id: string;
-  userId: string;
-  amount: number;
-  currency: string;
-  type: 'subscription' | 'offer_usage';
-  status: 'pending' | 'completed' | 'failed' | 'refunded';
-  date: Timestamp;
-  createdAt: Timestamp;
-  offerId?: string; // Para pagos de ofertas
-  subscriptionPlan?: string; // Para pagos de suscripción
-}
-
+// Subscription Plan interface
 interface SubscriptionPlan {
   id: string;
   name: string;
@@ -205,53 +123,6 @@ interface SubscriptionPlan {
   duration: number; // en días
   type: 'monthly' | 'yearly';
   features: string[];
-}
-
-// Offer data type
-interface Offer {
-  id: string;
-  name: string;
-  image: string;
-  category: string;
-  subCategory: string;
-  discount: string;
-  usagePrice?: number; // Precio por usar la oferta
-  description: string;
-  location: {
-    lat: number;
-    lng: number;
-    address: string;
-  };
-  rating: number;
-  isNew: boolean;
-  price?: string;
-  oldPrice?: string;
-}
-
-// Flash Deal interface
-interface FlashDeal {
-  id: string;
-  name: string;
-  image: string;
-  category: string;
-  subCategory: string;
-  discount: string;
-  description: string;
-  location: {
-    lat: number;
-    lng: number;
-    address: string;
-  };
-  rating: number;
-  price: string;
-  oldPrice: string;
-  originalPrice: number;
-  discountedPrice: number; // Cambiado de flashPrice a discountedPrice
-  startTime: Date;
-  endTime: Date;
-  isActive: boolean;
-  maxQuantity?: number;
-  soldQuantity?: number;
 }
 
 // Category type
@@ -1536,7 +1407,7 @@ function MapView({ offers, flashDeals, selectedCategory, onOfferClick, onFlashDe
   // Función para agregar nueva oferta
   const handleAddOffer = async () => {
     if (!newOffer.name || !newOffer.address) {
-      alert('Por favor completa el nombre y la dirección');
+      alert('Veuillez compléter le nom et l\'adresse');
       return;
     }
 
@@ -1586,7 +1457,7 @@ function MapView({ offers, flashDeals, selectedCategory, onOfferClick, onFlashDe
           // Recargar el mapa con la nueva oferta
           window.location.reload();
     } else {
-          alert('No se pudo encontrar la dirección. Intenta con una dirección más específica.');
+          alert('Impossible de trouver l\'adresse. Essayez avec une adresse plus spécifique.');
         }
       });
     } catch (error) {
@@ -1810,7 +1681,7 @@ function MapView({ offers, flashDeals, selectedCategory, onOfferClick, onFlashDe
       >
         <DialogTitle>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Typography variant="h6">➕ Add New Offer</Typography>
+            <Typography variant="h6">➕ Ajouter une nouvelle offre</Typography>
             <IconButton onClick={() => setShowAddModal(false)}>
               <Close />
             </IconButton>
@@ -1819,7 +1690,7 @@ function MapView({ offers, flashDeals, selectedCategory, onOfferClick, onFlashDe
         <DialogContent>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
             <TextField
-              label="Business name"
+              label="Nom de l'entreprise"
               value={newOffer.name}
               onChange={(e) => setNewOffer({...newOffer, name: e.target.value})}
               fullWidth
@@ -1838,7 +1709,7 @@ function MapView({ offers, flashDeals, selectedCategory, onOfferClick, onFlashDe
             <Box sx={{ display: 'flex', gap: 2 }}>
               <TextField
                 select
-                label="Categoría"
+                label="Catégorie"
                 value={newOffer.category}
                 onChange={(e) => setNewOffer({...newOffer, category: e.target.value})}
                 fullWidth
@@ -1849,7 +1720,7 @@ function MapView({ offers, flashDeals, selectedCategory, onOfferClick, onFlashDe
               </TextField>
 
               <TextField
-                label="Subcategoría"
+                label="Sous-catégorie"
                 value={newOffer.subCategory}
                 onChange={(e) => setNewOffer({...newOffer, subCategory: e.target.value})}
                 fullWidth
@@ -1927,7 +1798,7 @@ function MapView({ offers, flashDeals, selectedCategory, onOfferClick, onFlashDe
         <DialogContent>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
             <TextField
-              label="Username"
+              label="Nom d'utilisateur"
               value={loginCredentials.username}
               onChange={(e) => setLoginCredentials({...loginCredentials, username: e.target.value})}
               fullWidth
@@ -1936,7 +1807,7 @@ function MapView({ offers, flashDeals, selectedCategory, onOfferClick, onFlashDe
             />
             
             <TextField
-              label="Password"
+              label="Mot de passe"
               type="password"
               value={loginCredentials.password}
               onChange={(e) => setLoginCredentials({...loginCredentials, password: e.target.value})}
@@ -1947,9 +1818,9 @@ function MapView({ offers, flashDeals, selectedCategory, onOfferClick, onFlashDe
 
             <Box sx={{ mt: 2, p: 2, bgcolor: '#f5f5f5', borderRadius: 1 }}>
               <Typography variant="body2" color="text.secondary">
-                <strong>Test credentials:</strong><br/>
-                User: <code>admin</code><br/>
-                Password: <code>luca2024</code>
+                <strong>Identifiants de test :</strong><br/>
+                Utilisateur : <code>admin</code><br/>
+                Mot de passe : <code>luca2024</code>
               </Typography>
             </Box>
           </Box>
@@ -1963,7 +1834,7 @@ function MapView({ offers, flashDeals, selectedCategory, onOfferClick, onFlashDe
             variant="contained"
             sx={{ bgcolor: '#FFD700', '&:hover': { bgcolor: '#1565c0' } }}
           >
-            Sign in
+            Se connecter
           </Button>
         </DialogActions>
       </Dialog>
@@ -3686,6 +3557,24 @@ function App() {
 
   const theme = professionalTheme;
 
+  // Función para cargar el perfil del usuario
+  const loadUserProfile = async (userId: string) => {
+    try {
+      const userRef = doc(db, 'users', userId);
+      const userDoc = await getDoc(userRef);
+      
+      if (userDoc.exists()) {
+        const userData = userDoc.data() as UserProfile;
+        setUserProfile(userData);
+        return userData;
+      }
+      return null;
+    } catch (error) {
+      console.error('Error loading user profile:', error);
+      return null;
+    }
+  };
+
   // Función para crear o actualizar el perfil de usuario
   const createOrUpdateUserProfile = async (user: User) => {
     try {
@@ -4177,7 +4066,7 @@ function App() {
   // Función para agregar nueva oferta
   const handleAddOffer = async () => {
     if (!newOffer.name || !newOffer.address) {
-      alert('Por favor completa el nombre y la dirección');
+      alert('Veuillez compléter le nom et l\'adresse');
       return;
     }
 
@@ -4222,13 +4111,13 @@ function App() {
             });
             setShowAddModal(false);
             
-            alert('Oferta agregada exitosamente!');
+            alert('Offre ajoutée avec succès !');
           } else {
-            alert('No se pudo encontrar la dirección. Intenta con una dirección más específica.');
+            alert('Impossible de trouver l\'adresse. Essayez avec une adresse plus spécifique.');
           }
         });
       } else {
-        alert('Google Maps no está disponible. Intenta más tarde.');
+        alert('Google Maps n\'est pas disponible. Réessayez plus tard.');
       }
     } catch (error) {
       console.error('Error adding offer:', error);
@@ -4278,7 +4167,7 @@ function App() {
   // Función para agregar nueva oferta flash
   const handleAddFlashDeal = async () => {
     if (!newFlashDeal.name || !newFlashDeal.address) {
-      alert('Por favor completa el nombre y la dirección');
+      alert('Veuillez compléter le nom et l\'adresse');
       return;
     }
 
@@ -4705,7 +4594,7 @@ function App() {
             />
             
             <TextField
-              label="Password"
+              label="Mot de passe"
               type="password"
               value={loginCredentials.password}
               onChange={(e) => setLoginCredentials({...loginCredentials, password: e.target.value})}
@@ -4753,17 +4642,17 @@ function App() {
             {isLoading ? (
               <>
                 <CircularProgress size={20} sx={{ color: 'white', mr: 1 }} />
-                Signing in...
+                Connexion en cours...
               </>
             ) : (
-              'Sign in'
+              'Se connecter'
             )}
           </Button>
         </DialogActions>
         
         <Box sx={{ px: 2, pb: 2 }}>
           <Divider sx={{ my: 2 }}>
-            <Typography variant="body2" color="text.secondary">or</Typography>
+            <Typography variant="body2" color="text.secondary">ou</Typography>
           </Divider>
           
           <Button
@@ -4959,7 +4848,7 @@ function App() {
       >
         <DialogTitle>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Typography variant="h6">🔑 Reset Password</Typography>
+            <Typography variant="h6">🔑 {t('resetPassword')}</Typography>
             <IconButton onClick={() => setShowResetPasswordModal(false)}>
               <Close />
             </IconButton>
@@ -5045,7 +4934,7 @@ function App() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setShowEditProfileModal(false)}>
-            {t('annuler')}
+            Annuler
           </Button>
           <Button 
             onClick={handleEditProfile}
@@ -5132,14 +5021,14 @@ function App() {
               px: 2
             }}>
               <Typography variant="body2">
-                🔒 Accès limité - Commencez votre essai gratuit de 7 jours
+                {t('accesLimite')}
                 <Button 
                   color="inherit" 
                   size="small" 
                   onClick={() => setShowTrialModal(true)}
                   sx={{ ml: 1, textDecoration: 'underline' }}
                 >
-                  Essai gratuit
+                  {t('essaiGratuit')}
                 </Button>
               </Typography>
             </Box>
@@ -5155,14 +5044,14 @@ function App() {
               px: 2
             }}>
               <Typography variant="body2">
-                🎉 Essai gratuit actif - {getTrialDaysRemaining(userProfile)} jours restants
+                {t('essaiGratuitActif').replace('{days}', getTrialDaysRemaining(userProfile).toString())}
                 <Button 
                   color="inherit" 
                   size="small" 
                   onClick={() => setShowSubscriptionModal(true)}
                   sx={{ ml: 1, textDecoration: 'underline' }}
                 >
-                  S'abonner maintenant
+                  {t('sabonnerMaintenant')}
                 </Button>
               </Typography>
             </Box>
@@ -5252,7 +5141,7 @@ function App() {
             {selectedCategory !== 'all' && currentCategory && (
               <Box sx={{ mb: { xs: 3, sm: 4 } }}>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
-                  Subcategories
+                  {t('subcategories')}
                 </Typography>
                 <Box sx={{ 
                   display: 'flex', 
@@ -5264,7 +5153,7 @@ function App() {
                   scrollbarWidth: 'none'
                 }}>
                   <Chip
-                    label="All"
+                    label={t('all')}
                     onClick={() => setSelectedSubCategory('all')}
                     color={selectedSubCategory === 'all' ? 'primary' : 'default'}
                     size="small"
@@ -5360,7 +5249,7 @@ function App() {
                       color: '#FFD700',
                       fontWeight: 'bold'
                     }}>
-                      Mon Profil
+                      {t('monProfil')}
                     </Typography>
                   </Box>
                   
@@ -5374,15 +5263,22 @@ function App() {
                     fontSize: '0.75rem',
                     fontWeight: 'bold'
                   }}>
-                    {checkTrialStatus(userProfile) ? '🎉 Essai' : checkSubscriptionStatus(userProfile) ? '✅ Actif' : '⚠️ Expiré'}
+                    {checkTrialStatus(userProfile) ? t('essai') : checkSubscriptionStatus(userProfile) ? t('actif') : t('expire')}
                   </Box>
                 </Box>
                 
                 {userProfile ? (
                   <>
-                    <Typography variant="body1" sx={{ mb: { xs: 2, sm: 3 }, fontSize: { xs: '0.8rem', sm: '1rem' } }}>
-                      {t('abonnementValableJusquau')} {userProfile.subscriptionEnd.toDate().toLocaleDateString()}
-                    </Typography>
+                    {/* Widget dinámico de suscripción */}
+                    <SubscriptionWidget 
+                      userProfile={userProfile}
+                      onRefresh={() => {
+                        // Función para refrescar datos del perfil
+                        if (currentUser) {
+                          loadUserProfile(currentUser.uid);
+                        }
+                      }}
+                    />
                     
                     {/* Estadísticas simplificadas */}
                     <Box sx={{ 
@@ -5535,7 +5431,7 @@ function App() {
                     <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                       <AccessTime sx={{ mr: 1, fontSize: { xs: 18, sm: 24 }, color: '#FFD700' }} />
                       <Typography variant="h5" sx={{ fontSize: { xs: '1.1rem', sm: '1.5rem' } }}>
-                        Estadísticas Personales
+                        {t('estadisticasPersonales')}
                       </Typography>
                     </Box>
                     
@@ -5548,13 +5444,13 @@ function App() {
                           return (
                             <>
                               <Typography variant="h6" sx={{ mb: 2, color: '#FFD700' }}>
-                                Tu actividad en FLASH
+                                {t('tuActividadEnFlash')}
                               </Typography>
                               
                               <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)' }, gap: 2 }}>
                                 <Box sx={{ p: 2, bgcolor: 'rgba(255,255,255,0.1)', borderRadius: 2 }}>
                                   <Typography variant="body2" sx={{ opacity: 0.8, mb: 1 }}>
-                                    Miembro desde
+                                    {t('miembroDesde')}
                                   </Typography>
                                   <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
                                     {stats.joinDate.toDate().toLocaleDateString()}
@@ -5575,7 +5471,7 @@ function App() {
                               {stats.favoriteCategories.length > 0 && (
                                 <Box sx={{ mt: 3 }}>
                                   <Typography variant="body2" sx={{ opacity: 0.8, mb: 1 }}>
-                                    Tus categorías favoritas
+                                    {t('tusCategoriasFavoritas')}
                                   </Typography>
                                   <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
                                     {stats.favoriteCategories.slice(0, 5).map((category, index) => (
@@ -5776,7 +5672,7 @@ function App() {
             <DialogContent>
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
                 <TextField
-                  label="Business name"
+                  label="Nom de l'entreprise"
                   value={newOffer.name}
                   onChange={(e) => setNewOffer({...newOffer, name: e.target.value})}
                   fullWidth
@@ -5795,7 +5691,7 @@ function App() {
                 <Box sx={{ display: 'flex', gap: 2 }}>
                   <TextField
                     select
-                    label="Categoría"
+                    label="Catégorie"
                     value={newOffer.category}
                     onChange={(e) => setNewOffer({...newOffer, category: e.target.value})}
                     fullWidth
@@ -5816,7 +5712,7 @@ function App() {
                   </TextField>
 
                   <TextField
-                    label="Subcategoría"
+                    label="Sous-catégorie"
                     value={newOffer.subCategory}
                     onChange={(e) => setNewOffer({...newOffer, subCategory: e.target.value})}
                     fullWidth
@@ -5989,7 +5885,7 @@ function App() {
             </DialogContent>
             <DialogActions>
               <Button onClick={() => setShowAddFlashModal(false)}>
-                {t('annuler')}
+                Annuler
               </Button>
               <Button 
                 onClick={handleAddFlashDeal}

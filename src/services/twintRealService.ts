@@ -1,3 +1,12 @@
+/**
+ * @deprecated Este archivo está DEPRECADO
+ * 
+ * Usar en su lugar: src/services/paymentService.ts
+ * 
+ * Este archivo se mantiene solo por compatibilidad temporal,
+ * pero NO debe usarse en nuevo código.
+ */
+
 // Servicio de integración directa con TWINT
 // Integración real con TWINT a través de Datatrans
 
