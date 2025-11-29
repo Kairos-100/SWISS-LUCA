@@ -5784,7 +5784,7 @@ function App() {
                     <Button
                       variant="outlined"
                       startIcon={<Store sx={{ fontSize: { xs: 18, sm: 20 } }} />}
-                      onClick={() => setShowPartnerLoginModal(true)}
+                      onClick={() => window.location.href = '/partner/login'}
                       sx={{ 
                         borderColor: '#FFD700', 
                         color: '#FFD700',
