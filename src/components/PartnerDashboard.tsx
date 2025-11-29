@@ -1330,15 +1330,49 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
             />
             <Divider sx={{ my: 2 }} />
             <Box>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                 <AccessTime sx={{ color: 'primary.main' }} />
-                <Typography variant="h6">Horarios de Disponibilidad</Typography>
+                <Typography variant="h6">Horarios de Disponibilidad (Opcional)</Typography>
               </Box>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                Selecciona los días y horas en que esta oferta estará disponible
+                Si no seleccionas nada, la oferta estará disponible siempre
               </Typography>
+              
+              {/* Botones rápidos */}
+              <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  onClick={() => setOfferForm(prev => ({ ...prev, availabilityDays: weekDays.map(d => d.value) }))}
+                >
+                  Todos los días
+                </Button>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  onClick={() => setOfferForm(prev => ({ ...prev, availabilityDays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] }))}
+                >
+                  Días laborables
+                </Button>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  onClick={() => setOfferForm(prev => ({ ...prev, availabilityDays: ['saturday', 'sunday'] }))}
+                >
+                  Fines de semana
+                </Button>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  color="error"
+                  onClick={() => setOfferForm(prev => ({ ...prev, availabilityDays: [] }))}
+                >
+                  Limpiar
+                </Button>
+              </Box>
+
               <Box sx={{ mb: 2 }}>
-                <Typography variant="subtitle2" sx={{ mb: 1 }}>Días de la semana:</Typography>
+                <Typography variant="subtitle2" sx={{ mb: 1 }}>Días seleccionados:</Typography>
                 <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
                   {weekDays.map((day) => (
                     <FormControlLabel
@@ -1366,26 +1400,29 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
                   ))}
                 </Box>
               </Box>
-              <Box sx={{ display: 'flex', gap: 2 }}>
-                <TextField
-                  label="Hora de Inicio"
-                  type="time"
-                  value={offerForm.availabilityStartTime}
-                  onChange={(e) => setOfferForm(prev => ({ ...prev, availabilityStartTime: e.target.value }))}
-                  fullWidth
-                  InputLabelProps={{ shrink: true }}
-                  inputProps={{ step: 300 }}
-                />
-                <TextField
-                  label="Hora de Fin"
-                  type="time"
-                  value={offerForm.availabilityEndTime}
-                  onChange={(e) => setOfferForm(prev => ({ ...prev, availabilityEndTime: e.target.value }))}
-                  fullWidth
-                  InputLabelProps={{ shrink: true }}
-                  inputProps={{ step: 300 }}
-                />
-              </Box>
+              
+              {offerForm.availabilityDays.length > 0 && (
+                <Box sx={{ display: 'flex', gap: 2 }}>
+                  <TextField
+                    label="Hora de Inicio"
+                    type="time"
+                    value={offerForm.availabilityStartTime}
+                    onChange={(e) => setOfferForm(prev => ({ ...prev, availabilityStartTime: e.target.value }))}
+                    fullWidth
+                    InputLabelProps={{ shrink: true }}
+                    inputProps={{ step: 300 }}
+                  />
+                  <TextField
+                    label="Hora de Fin"
+                    type="time"
+                    value={offerForm.availabilityEndTime}
+                    onChange={(e) => setOfferForm(prev => ({ ...prev, availabilityEndTime: e.target.value }))}
+                    fullWidth
+                    InputLabelProps={{ shrink: true }}
+                    inputProps={{ step: 300 }}
+                  />
+                </Box>
+              )}
             </Box>
             <Divider sx={{ my: 2 }} />
             <Box>
@@ -1568,15 +1605,49 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
             />
             <Divider sx={{ my: 2 }} />
             <Box>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                 <AccessTime sx={{ color: 'primary.main' }} />
-                <Typography variant="h6">Horarios de Disponibilidad</Typography>
+                <Typography variant="h6">Horarios de Disponibilidad (Opcional)</Typography>
               </Box>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                Selecciona los días y horas en que este flash deal estará disponible
+                Si no seleccionas nada, el flash deal estará disponible siempre
               </Typography>
+              
+              {/* Botones rápidos */}
+              <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  onClick={() => setFlashDealForm(prev => ({ ...prev, availabilityDays: weekDays.map(d => d.value) }))}
+                >
+                  Todos los días
+                </Button>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  onClick={() => setFlashDealForm(prev => ({ ...prev, availabilityDays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] }))}
+                >
+                  Días laborables
+                </Button>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  onClick={() => setFlashDealForm(prev => ({ ...prev, availabilityDays: ['saturday', 'sunday'] }))}
+                >
+                  Fines de semana
+                </Button>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  color="error"
+                  onClick={() => setFlashDealForm(prev => ({ ...prev, availabilityDays: [] }))}
+                >
+                  Limpiar
+                </Button>
+              </Box>
+
               <Box sx={{ mb: 2 }}>
-                <Typography variant="subtitle2" sx={{ mb: 1 }}>Días de la semana:</Typography>
+                <Typography variant="subtitle2" sx={{ mb: 1 }}>Días seleccionados:</Typography>
                 <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
                   {weekDays.map((day) => (
                     <FormControlLabel
@@ -1604,26 +1675,29 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
                   ))}
                 </Box>
               </Box>
-              <Box sx={{ display: 'flex', gap: 2 }}>
-                <TextField
-                  label="Hora de Inicio"
-                  type="time"
-                  value={flashDealForm.availabilityStartTime}
-                  onChange={(e) => setFlashDealForm(prev => ({ ...prev, availabilityStartTime: e.target.value }))}
-                  fullWidth
-                  InputLabelProps={{ shrink: true }}
-                  inputProps={{ step: 300 }}
-                />
-                <TextField
-                  label="Hora de Fin"
-                  type="time"
-                  value={flashDealForm.availabilityEndTime}
-                  onChange={(e) => setFlashDealForm(prev => ({ ...prev, availabilityEndTime: e.target.value }))}
-                  fullWidth
-                  InputLabelProps={{ shrink: true }}
-                  inputProps={{ step: 300 }}
-                />
-              </Box>
+              
+              {flashDealForm.availabilityDays.length > 0 && (
+                <Box sx={{ display: 'flex', gap: 2 }}>
+                  <TextField
+                    label="Hora de Inicio"
+                    type="time"
+                    value={flashDealForm.availabilityStartTime}
+                    onChange={(e) => setFlashDealForm(prev => ({ ...prev, availabilityStartTime: e.target.value }))}
+                    fullWidth
+                    InputLabelProps={{ shrink: true }}
+                    inputProps={{ step: 300 }}
+                  />
+                  <TextField
+                    label="Hora de Fin"
+                    type="time"
+                    value={flashDealForm.availabilityEndTime}
+                    onChange={(e) => setFlashDealForm(prev => ({ ...prev, availabilityEndTime: e.target.value }))}
+                    fullWidth
+                    InputLabelProps={{ shrink: true }}
+                    inputProps={{ step: 300 }}
+                  />
+                </Box>
+              )}
             </Box>
             <Divider sx={{ my: 2 }} />
             <Box>
