@@ -5249,23 +5249,23 @@ function App() {
       </Snackbar>
 
       {/* Contenido principal solo si está autenticado */}
-        {isAuthenticated && (
+      {isAuthenticated && (
         <>
           {/* Contenido normal de la app - Los partners tienen su propia ruta /partner */}
           {!isPartner && (
-          <Box
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
-          className="page-transition touch-optimized"
-          sx={{
-            outline: 'none',
-            position: 'relative',
-            touchAction: 'pan-y',
-            height: '100vh',
-            overflow: 'hidden'
-          }}
-        >
+            <Box
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
+              className="page-transition touch-optimized"
+              sx={{
+                outline: 'none',
+                position: 'relative',
+                touchAction: 'pan-y',
+                height: '100vh',
+                overflow: 'hidden'
+              }}
+            >
           {/* Indicador de swipe */}
           {isDragging && (
             <Box 
@@ -7290,10 +7290,10 @@ function App() {
             iconPosition="top"
           />
         </Tabs>
-      </Box>
+            </Box>
           )}
         </>
-        )}
+      )}
     </ThemeProvider>
   );
 }
