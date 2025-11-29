@@ -389,6 +389,13 @@ class PaymentService {
         icon: '📱',
         supported: true,
       },
+      {
+        id: 'apple_pay',
+        name: 'Apple Pay',
+        description: 'Paiement rapide et sécurisé',
+        icon: '🍎',
+        supported: true,
+      },
     ];
   }
 

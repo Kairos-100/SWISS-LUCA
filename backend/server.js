@@ -30,15 +30,16 @@ app.post('/api/create-payment-intent', async (req, res) => {
       return res.status(400).json({ error: 'Faltan datos requeridos' });
     }
 
-    // Crear Payment Intent con TWINT
+    // Crear Payment Intent con TWINT, Apple Pay y tarjeta
     const paymentIntent = await stripe.paymentIntents.create({
       amount: amount, // Ya viene en centavos desde el frontend
       currency: currency.toLowerCase(),
       description: description,
       metadata: metadata || {},
-      payment_method_types: ['twint'],
+      payment_method_types: ['card', 'twint', 'apple_pay'],
       automatic_payment_methods: {
-        enabled: false, // Deshabilitar métodos automáticos para forzar TWINT
+        enabled: true,
+        allow_redirects: 'never',
       },
       // Configuración específica para Suiza
       shipping_address_collection: {

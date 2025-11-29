@@ -7,6 +7,49 @@ service cloud.firestore {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
     
+    // Reglas para la colección de partners
+    match /partners/{partnerId} {
+      // Partners solo pueden leer/escribir su propio perfil
+      allow read, write: if request.auth != null && request.auth.uid == partnerId;
+      // Admins pueden leer todos los partners
+      allow read: if request.auth != null && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+    }
+    
+    // Reglas para ofertas
+    match /offers/{offerId} {
+      // Todos pueden leer ofertas activas
+      allow read: if true;
+      // Solo el partner/admin que creó la oferta puede editarla
+      allow create: if request.auth != null && (
+        request.resource.data.partnerId == request.auth.uid ||
+        (request.resource.data.adminId == request.auth.uid && 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true)
+      );
+      allow update, delete: if request.auth != null && (
+        resource.data.partnerId == request.auth.uid ||
+        (resource.data.adminId == request.auth.uid && 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true)
+      );
+    }
+    
+    // Reglas para flash deals
+    match /flashDeals/{flashDealId} {
+      // Todos pueden leer flash deals activos
+      allow read: if true;
+      // Solo el partner/admin que creó el flash deal puede editarlo
+      allow create: if request.auth != null && (
+        request.resource.data.partnerId == request.auth.uid ||
+        (request.resource.data.adminId == request.auth.uid && 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true)
+      );
+      allow update, delete: if request.auth != null && (
+        resource.data.partnerId == request.auth.uid ||
+        (resource.data.adminId == request.auth.uid && 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true)
+      );
+    }
+    
     // Reglas generales para desarrollo (temporal)
     match /{document=**} {
       allow read, write: if request.time < timestamp.date(2025, 12, 31);

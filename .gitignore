@@ -12,6 +12,14 @@ dist
 dist-ssr
 *.local
 
+# Environment variables (CRÍTICO - Nunca subir claves)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env*.local
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
@@ -22,3 +30,25 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Build outputs
+build/
+*.tsbuildinfo
+
+# Firebase
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+
+# Android
+android/app/build/
+android/build/
+android/.gradle/
+android/local.properties
+
+# iOS
+ios/Pods/
+ios/build/
+*.xcworkspace
+!default.xcworkspace

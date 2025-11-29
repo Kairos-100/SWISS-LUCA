@@ -1,12 +1,31 @@
 rules_version = '2';
 
-// Craft rules based on data in your Firestore database
-// allow write: if firestore.get(
-//    /databases/(default)/documents/users/$(request.auth.uid)).data.isAdmin;
 service firebase.storage {
   match /b/{bucket}/o {
+    // Reglas para imágenes de partners
+    match /partners/{partnerId}/{imageName} {
+      // Partners solo pueden leer/escribir sus propias imágenes
+      allow read: if true; // Todos pueden leer imágenes públicas
+      allow write: if request.auth != null && request.auth.uid == partnerId;
+    }
+    
+    // Reglas para imágenes de ofertas
+    match /offers/{partnerId}/{imageName} {
+      // Partners solo pueden leer/escribir imágenes de sus ofertas
+      allow read: if true; // Todos pueden leer imágenes públicas
+      allow write: if request.auth != null && request.auth.uid == partnerId;
+    }
+    
+    // Reglas para imágenes de flash deals
+    match /flashDeals/{partnerId}/{imageName} {
+      // Partners solo pueden leer/escribir imágenes de sus flash deals
+      allow read: if true; // Todos pueden leer imágenes públicas
+      allow write: if request.auth != null && request.auth.uid == partnerId;
+    }
+    
+    // Reglas generales para desarrollo (temporal)
     match /{allPaths=**} {
-      allow read, write: if false;
+      allow read, write: if request.time < timestamp.date(2025, 12, 31);
     }
   }
 }

@@ -1,6 +1,7 @@
 import { initializeApp } from "firebase/app";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, sendPasswordResetEmail, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { getFirestore } from 'firebase/firestore';
+import { getStorage } from 'firebase/storage';
 
 const firebaseConfig = {
   apiKey: "AIzaSyC2ktQHVwr8TbV64_wFBbE_aob3haObNgE",
@@ -14,6 +15,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
+const storage = getStorage(app);
 
 // Configuración para desarrollo local (opcional)
 // if (process.env.NODE_ENV === 'development' && window.location.hostname === 'localhost') {
@@ -25,6 +27,7 @@ export {
   app, 
   auth, 
   db,
+  storage,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut,

@@ -1,0 +1,45 @@
+═══════════════════════════════════════════════════════════════
+📋 CONFIGURACIÓN RÁPIDA DE PAGOS - LUCA APP
+═══════════════════════════════════════════════════════════════
+
+📍 DÓNDE CONFIGURAR TODO:
+
+1️⃣ ARCHIVO .env (Raíz del proyecto)
+   └─ /Users/guillermohaya/Desktop/LUCA/.env
+   └─ Ya creado ✅ - Solo necesitas agregar tu clave de Stripe
+
+2️⃣ STRIPE DASHBOARD
+   └─ https://dashboard.stripe.com
+   └─ Necesitas:
+      ✅ Crear cuenta
+      ✅ Obtener claves API
+      ✅ Activar TWINT
+      ✅ Agregar cuenta bancaria
+      ✅ Verificar identidad
+
+3️⃣ FIREBASE FUNCTIONS
+   └─ Configurar claves secretas
+   └─ Desplegar funciones
+
+═══════════════════════════════════════════════════════════════
+🚀 PASOS RÁPIDOS:
+═══════════════════════════════════════════════════════════════
+
+1. Editar .env y agregar tu clave de Stripe:
+   REACT_APP_STRIPE_PUBLISHABLE_KEY=pk_test_TU_CLAVE_AQUI
+
+2. Ir a Stripe Dashboard y obtener claves:
+   https://dashboard.stripe.com/apikeys
+
+3. Configurar Firebase Functions:
+   cd functions
+   firebase functions:config:set stripe.secret_key="sk_test_TU_CLAVE"
+   firebase deploy --only functions
+
+4. Activar métodos de pago en Stripe:
+   Settings → Payment methods → Activar TWINT
+
+5. Agregar cuenta bancaria:
+   Settings → Payouts → Add bank account
+
+═══════════════════════════════════════════════════════════════

@@ -7289,7 +7289,7 @@ function App() {
             label={t('profil')} 
             iconPosition="top"
           />
-        </Tabs>
+            </Tabs>
             </Box>
           )}
         </>

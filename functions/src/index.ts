@@ -4,7 +4,7 @@
  * Funciones para procesar pagos, suscripciones y webhooks de Stripe
  */
 
-import * as functions from 'firebase-functions';
+import * as functions from 'firebase-functions/v1';
 import * as admin from 'firebase-admin';
 import Stripe from 'stripe';
 import * as express from 'express';
@@ -13,14 +13,37 @@ import * as cors from 'cors';
 // Inicializar Firebase Admin
 admin.initializeApp();
 
+// Obtener clave secreta de Stripe desde Secrets
+const getStripeSecretKey = (): string => {
+  // Firebase Secrets están disponibles automáticamente en process.env cuando se despliega
+  if (process.env.STRIPE_SECRET_KEY) {
+    return process.env.STRIPE_SECRET_KEY;
+  }
+  
+  // Fallback: intentar obtener de Firebase Functions Config (deprecated)
+  const config = functions.config();
+  if (config?.stripe?.secret_key) {
+    return config.stripe.secret_key;
+  }
+  
+  console.error('❌ STRIPE_SECRET_KEY no configurada');
+  return '';
+};
+
 // Inicializar Stripe
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-  apiVersion: '2023-10-16',
-});
+const getStripeInstance = (): Stripe => {
+  const secretKey = getStripeSecretKey();
+  if (!secretKey) {
+    throw new Error('Stripe secret key not configured');
+  }
+  return new Stripe(secretKey, {
+    apiVersion: '2025-07-30.basil',
+  });
+};
 
 // Configurar Express app para endpoints HTTP
-const app = express();
-app.use(cors({ origin: true }));
+const app = express.default();
+app.use(cors.default({ origin: true }));
 app.use(express.json());
 
 // ========================================
@@ -29,7 +52,13 @@ app.use(express.json());
 
 export const createPaymentIntent = functions
   .region('europe-west1')
-  .https.onCall(async (data, context) => {
+  .runWith({
+    secrets: ['STRIPE_SECRET_KEY'],
+    timeoutSeconds: 300,
+    memory: '256MB' as const,
+  })
+  .https.onCall(async (data: any, context: functions.https.CallableContext) => {
+    const stripe = getStripeInstance();
     try {
       // Verificar autenticación
       if (!context.auth) {
@@ -58,8 +87,10 @@ export const createPaymentIntent = functions
           userId: context.auth.uid,
           ...metadata,
         },
-        // Habilitar TWINT y otros métodos
-        payment_method_types: ['card', 'twint'],
+        // Habilitar métodos de pago automáticamente
+        automatic_payment_methods: {
+          enabled: true,
+        },
       });
 
       return {
@@ -81,7 +112,13 @@ export const createPaymentIntent = functions
 
 export const createSubscription = functions
   .region('europe-west1')
-  .https.onCall(async (data, context) => {
+  .runWith({
+    secrets: ['STRIPE_SECRET_KEY'],
+    timeoutSeconds: 300,
+    memory: '256MB' as const,
+  })
+  .https.onCall(async (data: any, context: functions.https.CallableContext) => {
+    const stripe = getStripeInstance();
     try {
       // Verificar autenticación
       if (!context.auth) {
@@ -113,7 +150,7 @@ export const createSubscription = functions
       } else {
         // Crear nuevo cliente en Stripe
         const customer = await stripe.customers.create({
-          email: customerEmail || context.auth.token.email,
+          email: customerEmail || (context.auth.token.email as string),
           metadata: {
             userId,
           },
@@ -127,45 +164,61 @@ export const createSubscription = functions
       }
 
       // Determinar precio según plan
-      const prices: { [key: string]: { monthly: number; yearly: number } } = {
+      // IMPORTANTE: Ambos planes se pagan mensualmente
+      const prices: Record<string, { monthly: number; yearly: number }> = {
         standard: {
-          monthly: 9.99,
-          yearly: 99.99,
+          monthly: 9.99,  // Plan mensual: 9.99 CHF/mes
+          yearly: 8.33,   // Plan anual: 8.33 CHF/mes (99.99 / 12 meses)
         },
       };
 
+      const planPrices = prices.standard || { monthly: 9.99, yearly: 8.33 };
       const price = planType === 'monthly' 
-        ? prices.standard.monthly 
-        : prices.standard.yearly;
+        ? planPrices.monthly 
+        : planPrices.yearly;
+
+      // Crear precio en Stripe primero
+      // AMBOS planes se pagan mensualmente (interval: 'month')
+      const priceObj = await stripe.prices.create({
+        currency: 'chf',
+        unit_amount: Math.round(price * 100),
+        recurring: {
+          interval: 'month', // Ambos planes se pagan mensualmente
+        },
+        product_data: {
+          name: `LUCA App - ${planType === 'monthly' ? 'Plan Mensuel' : 'Plan Annuel'}`,
+          description: planType === 'yearly' 
+            ? 'Plan anual con pago mensual (12 meses)' 
+            : 'Plan mensual',
+        },
+      });
 
       // Crear suscripción en Stripe
       const subscription = await stripe.subscriptions.create({
         customer: customerId,
-        items: [
-          {
-            price_data: {
-              currency: 'chf',
-              product_data: {
-                name: `LUCA App - ${planType === 'monthly' ? 'Plan Mensuel' : 'Plan Annuel'}`,
-                description: 'Accès complet à toutes les offres',
-              },
-              unit_amount: Math.round(price * 100), // En centavos
-              recurring: {
-                interval: planType === 'monthly' ? 'month' : 'year',
-              },
-            },
-          },
-        ],
+        items: [{ price: priceObj.id }],
         payment_behavior: 'default_incomplete',
-        payment_settings: {
-          payment_method_types: ['card', 'twint'],
-        },
         expand: ['latest_invoice.payment_intent'],
       });
 
       // Obtener client secret del PaymentIntent
-      const invoice = subscription.latest_invoice as Stripe.Invoice;
-      const paymentIntent = invoice.payment_intent as Stripe.PaymentIntent;
+      // El invoice ya está expandido, pero necesitamos obtener el payment_intent
+      const invoiceId = typeof subscription.latest_invoice === 'string'
+        ? subscription.latest_invoice
+        : subscription.latest_invoice?.id;
+      
+      if (!invoiceId) {
+        throw new Error('No se pudo obtener el invoice');
+      }
+
+      const invoice = await stripe.invoices.retrieve(invoiceId, {
+        expand: ['payment_intent'],
+      });
+
+      const paymentIntent = (invoice as any).payment_intent;
+      if (!paymentIntent || typeof paymentIntent === 'string') {
+        throw new Error('No se pudo obtener el payment intent');
+      }
 
       return {
         subscriptionId: subscription.id,
@@ -186,7 +239,13 @@ export const createSubscription = functions
 
 export const cancelSubscription = functions
   .region('europe-west1')
-  .https.onCall(async (data, context) => {
+  .runWith({
+    secrets: ['STRIPE_SECRET_KEY'],
+    timeoutSeconds: 300,
+    memory: '256MB' as const,
+  })
+  .https.onCall(async (data: any, context: functions.https.CallableContext) => {
+    const stripe = getStripeInstance();
     try {
       // Verificar autenticación
       if (!context.auth) {
@@ -231,21 +290,36 @@ export const cancelSubscription = functions
 
 export const stripeWebhook = functions
   .region('europe-west1')
-  .https.onRequest(async (req, res) => {
+  .runWith({
+    secrets: ['STRIPE_SECRET_KEY'],
+    timeoutSeconds: 300,
+    memory: '256MB' as const,
+  })
+  .https.onRequest(async (req: any, res: any) => {
+    const stripe = getStripeInstance();
     const sig = req.headers['stripe-signature'];
 
-    if (!sig) {
+    if (!sig || typeof sig !== 'string') {
       res.status(400).send('No signature');
       return;
     }
 
     let event: Stripe.Event;
 
+    // Obtener webhook secret
+    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || '';
+    
+    if (!webhookSecret) {
+      console.error('❌ STRIPE_WEBHOOK_SECRET no configurada');
+      res.status(500).send('Webhook secret not configured');
+      return;
+    }
+
     try {
       event = stripe.webhooks.constructEvent(
-        req.rawBody,
+        req.body,
         sig,
-        process.env.STRIPE_WEBHOOK_SECRET || ''
+        webhookSecret
       );
     } catch (err: any) {
       console.error('Webhook signature verification failed:', err.message);
@@ -349,8 +423,23 @@ async function handlePaymentIntentFailed(paymentIntent: Stripe.PaymentIntent) {
 async function handleInvoicePaid(invoice: Stripe.Invoice) {
   console.log('Invoice paid:', invoice.id);
   
-  const customerId = invoice.customer as string;
-  const subscriptionId = invoice.subscription as string;
+  const customerId = typeof invoice.customer === 'string' 
+    ? invoice.customer 
+    : invoice.customer?.id || '';
+  
+  // Obtener subscriptionId desde el invoice, puede estar expandido o ser un string
+  let subscriptionId = '';
+  const invoiceSubscription = (invoice as any).subscription;
+  if (invoiceSubscription) {
+    subscriptionId = typeof invoiceSubscription === 'string' 
+      ? invoiceSubscription 
+      : invoiceSubscription.id || '';
+  }
+
+  if (!customerId || !subscriptionId) {
+    console.error('Missing customerId or subscriptionId in invoice');
+    return;
+  }
 
   // Buscar usuario por customerId
   const usersRef = admin.firestore().collection('users');
@@ -362,11 +451,14 @@ async function handleInvoicePaid(invoice: Stripe.Invoice) {
   }
 
   const userDoc = snapshot.docs[0];
+  if (!userDoc) return;
+
   const userId = userDoc.id;
 
-  // Obtener detalles de la suscripción
+  // Obtener detalles de la suscripción desde Stripe
+  const stripe = getStripeInstance();
   const subscription = await stripe.subscriptions.retrieve(subscriptionId);
-  const currentPeriodEnd = new Date(subscription.current_period_end * 1000);
+  const currentPeriodEnd = new Date((subscription as any).current_period_end * 1000);
 
   // Actualizar suscripción en Firestore
   await admin.firestore().collection('users').doc(userId).update({
@@ -381,7 +473,11 @@ async function handleInvoicePaid(invoice: Stripe.Invoice) {
 async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
   console.log('Invoice payment failed:', invoice.id);
   
-  const customerId = invoice.customer as string;
+  const customerId = typeof invoice.customer === 'string' 
+    ? invoice.customer 
+    : invoice.customer?.id || '';
+
+  if (!customerId) return;
 
   // Buscar usuario
   const usersRef = admin.firestore().collection('users');
@@ -390,6 +486,8 @@ async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
   if (snapshot.empty) return;
 
   const userDoc = snapshot.docs[0];
+  if (!userDoc) return;
+
   const userId = userDoc.id;
 
   // Actualizar estado (período de gracia)
@@ -402,7 +500,11 @@ async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
 async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
   console.log('Subscription updated:', subscription.id);
   
-  const customerId = subscription.customer as string;
+  const customerId = typeof subscription.customer === 'string'
+    ? subscription.customer
+    : subscription.customer?.id || '';
+
+  if (!customerId) return;
 
   const usersRef = admin.firestore().collection('users');
   const snapshot = await usersRef.where('stripeCustomerId', '==', customerId).get();
@@ -410,9 +512,11 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
   if (snapshot.empty) return;
 
   const userDoc = snapshot.docs[0];
+  if (!userDoc) return;
+
   const userId = userDoc.id;
 
-  const currentPeriodEnd = new Date(subscription.current_period_end * 1000);
+  const currentPeriodEnd = new Date((subscription as any).current_period_end * 1000);
 
   await admin.firestore().collection('users').doc(userId).update({
     subscriptionStatus: subscription.status === 'active' ? 'active' : subscription.status,
@@ -423,7 +527,11 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
 async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
   console.log('Subscription deleted:', subscription.id);
   
-  const customerId = subscription.customer as string;
+  const customerId = typeof subscription.customer === 'string'
+    ? subscription.customer
+    : subscription.customer?.id || '';
+
+  if (!customerId) return;
 
   const usersRef = admin.firestore().collection('users');
   const snapshot = await usersRef.where('stripeCustomerId', '==', customerId).get();
@@ -431,6 +539,8 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
   if (snapshot.empty) return;
 
   const userDoc = snapshot.docs[0];
+  if (!userDoc) return;
+
   const userId = userDoc.id;
 
   await admin.firestore().collection('users').doc(userId).update({
@@ -483,14 +593,17 @@ export const checkExpiredSubscriptions = functions
 // ENDPOINT HTTP ALTERNATIVO (opcional)
 // ========================================
 
-app.post('/create-payment-intent', async (req, res) => {
+app.post('/create-payment-intent', async (req: express.Request, res: express.Response) => {
   try {
     const { amount, currency = 'chf', metadata } = req.body;
+    const stripe = getStripeInstance();
 
     const paymentIntent = await stripe.paymentIntents.create({
       amount: Math.round(amount),
       currency: currency.toLowerCase(),
-      payment_method_types: ['card', 'twint'],
+      automatic_payment_methods: {
+        enabled: true,
+      },
       metadata,
     });
 
@@ -506,4 +619,9 @@ app.post('/create-payment-intent', async (req, res) => {
 
 export const api = functions
   .region('europe-west1')
+  .runWith({
+    secrets: ['STRIPE_SECRET_KEY'],
+    timeoutSeconds: 300,
+    memory: '256MB' as const,
+  })
   .https.onRequest(app);
