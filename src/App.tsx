@@ -4217,11 +4217,8 @@ function App() {
 
   // Función para manejar el login exitoso de partner
   const handlePartnerLoginSuccess = (partnerId: string) => {
-    setIsPartner(true);
-    setCurrentPartnerId(partnerId);
-    setIsAuthenticated(true);
-    setShowPartnerLoginModal(false);
-    addNotification('success', 'Bienvenido al panel de partners');
+    // Redirigir a la página de partner dashboard
+    window.location.href = `/partner/dashboard/${partnerId}`;
   };
 
   // Función para cerrar sesión de partner
@@ -5254,15 +5251,7 @@ function App() {
       {/* Contenido principal solo si está autenticado */}
         {isAuthenticated && (
         <>
-          {/* Dashboard de Partner - Mostrar si es partner */}
-          {isPartner && currentPartnerId && (
-            <PartnerDashboard
-              partnerId={currentPartnerId}
-              onLogout={handlePartnerLogout}
-            />
-          )}
-          
-          {/* Contenido normal de la app - Mostrar si NO es partner */}
+          {/* Contenido normal de la app - Los partners tienen su propia ruta /partner */}
           {!isPartner && (
           <Box
           onTouchStart={handleTouchStart}
