@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { auth, db, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, sendPasswordResetEmail, GoogleAuthProvider, signInWithPopup } from './firebase';
 import type { User } from 'firebase/auth';
-import { doc, setDoc, getDoc, updateDoc, arrayUnion, Timestamp } from 'firebase/firestore';
+import { doc, setDoc, getDoc, updateDoc, arrayUnion, Timestamp, collection, addDoc, getDocs, query, where } from 'firebase/firestore';
 import { getAuthErrorMessage, validateEmail, validatePassword, validateName } from './utils/authUtils';
 import { useTranslation } from 'react-i18next';
 import LanguageSelector from './components/LanguageSelector';
@@ -9,7 +9,11 @@ import { FlashDealsWithBlocking } from './components/FlashDealsWithBlocking';
 import { SlideToConfirmButton } from './components/SlideToConfirmButton';
 import { BlockedOfferTimer } from './components/BlockedOfferTimer';
 import SubscriptionWidget from './components/SubscriptionWidget';
-import type { UserProfile, Offer, FlashDeal, Payment } from './types';
+import { StripePaymentModal } from './components/StripePaymentModal';
+import { PartnerLoginModal } from './components/PartnerLoginModal';
+import { PartnerDashboard } from './components/PartnerDashboard';
+import { UserManagementModal } from './components/UserManagementModal';
+import type { UserProfile, Offer, FlashDeal, Payment, Partner } from './types';
 import './i18n';
 import { 
   AppBar, 
@@ -38,7 +42,9 @@ import {
   CircularProgress,
   MenuItem,
   Snackbar,
-  Alert
+  Alert,
+  FormControlLabel,
+  Checkbox
 } from '@mui/material';
 import { ThemeProvider } from '@mui/material/styles';
 import { 
@@ -93,6 +99,7 @@ declare global {
 const GOOGLE_MAPS_API_KEY = 'AIzaSyBbnCxckdR0XrhYorXJHXPlIx-58MPcva0';
 
 // Plans d'abonnement
+// IMPORTANTE: Ambos planes se pagan mensualmente
 const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
   {
     id: 'monthly',
@@ -105,15 +112,15 @@ const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
   {
     id: 'yearly',
     name: 'Plan Annuel',
-    price: 99.99,
+    price: 8.33, // Precio mensual del plan anual (99.99 / 12 meses)
     duration: 365,
     type: 'yearly',
-    features: ['Accès complet à l\'app', 'Offres illimitées', 'Support prioritaire', '2 mois gratuits']
+    features: ['Accès complet à l\'app', 'Offres illimitées', 'Support prioritaire', 'Économie: 1.66 CHF/mois']
   }
 ];
 
-// Prix par utilisation d'offres
-const OFFER_USAGE_PERCENTAGE = 0.05; // 5% del coste de la oferta
+// Prix par utilisation d'offres - Se paga el precio completo de la oferta
+const OFFER_USAGE_PERCENTAGE = 1.0; // 100% - Precio completo de la oferta
 
 // Subscription Plan interface
 interface SubscriptionPlan {
@@ -132,6 +139,17 @@ interface Category {
   icon: React.ReactNode;
   subCategories: string[];
 }
+
+// Días de la semana
+const weekDays = [
+  { value: 'monday', label: 'Lunes' },
+  { value: 'tuesday', label: 'Martes' },
+  { value: 'wednesday', label: 'Miércoles' },
+  { value: 'thursday', label: 'Jueves' },
+  { value: 'friday', label: 'Viernes' },
+  { value: 'saturday', label: 'Sábado' },
+  { value: 'sunday', label: 'Domingo' }
+];
 
 const categories: Category[] = [
   {
@@ -490,31 +508,14 @@ const calculateNextPaymentDate = (planType: 'monthly' | 'yearly'): Date => {
   }
 };
 
-const processSubscriptionPayment = async (userId: string, planId: string): Promise<boolean> => {
+// Esta función ahora solo actualiza el estado después de que el pago se complete
+// El pago real se maneja a través del StripePaymentModal
+const updateSubscriptionAfterPayment = async (userId: string, planId: string): Promise<boolean> => {
   try {
     const plan = SUBSCRIPTION_PLANS.find(p => p.id === planId);
     if (!plan) return false;
 
-    // Simular procesamiento de pago (aquí integrarías con Stripe, PayPal, etc.)
-    const paymentId = `pay_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    
-    // Crear registro de pago
-    const paymentRef = doc(db, 'payments', paymentId);
-    const payment: Payment = {
-      id: paymentId,
-      userId,
-      amount: plan.price,
-      currency: 'CHF',
-      type: 'subscription',
-      status: 'completed',
-      date: Timestamp.now(),
-      createdAt: Timestamp.now(),
-      subscriptionPlan: planId
-    };
-    
-    await setDoc(paymentRef, payment);
-    
-    // Actualizar perfil del usuario
+    // Actualizar perfil del usuario después de pago exitoso
     const userRef = doc(db, 'users', userId);
     const nextPaymentDate = calculateNextPaymentDate(plan.type);
     
@@ -524,54 +525,33 @@ const processSubscriptionPayment = async (userId: string, planId: string): Promi
       subscriptionEnd: Timestamp.fromDate(nextPaymentDate),
       lastPaymentDate: Timestamp.now(),
       nextPaymentDate: Timestamp.fromDate(nextPaymentDate),
-      totalPaid: plan.price
     });
     
     return true;
   } catch (error) {
-    console.error('Error procesando pago de suscripción:', error);
+    console.error('Error actualizando suscripción:', error);
     return false;
   }
 };
 
 
-const processOfferPayment = async (userId: string, offerId: string, offerPrice: number): Promise<boolean> => {
+// Esta función ahora solo actualiza el estado después de que el pago se complete
+// El pago real se maneja a través del StripePaymentModal
+const updateOfferPaymentAfterSuccess = async (userId: string, offerId: string, usagePrice: number): Promise<boolean> => {
   try {
-    // Calcular el precio basado en el coste de la oferta
-    const usagePrice = offerPrice * OFFER_USAGE_PERCENTAGE;
-    
-    // Simular procesamiento de pago por uso de oferta
-    const paymentId = `offer_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    
-    // Crear registro de pago
-    const paymentRef = doc(db, 'payments', paymentId);
-    const payment: Payment = {
-      id: paymentId,
-      userId,
-      amount: usagePrice,
-      currency: 'CHF',
-      type: 'offer_usage',
-      status: 'completed',
-      date: Timestamp.now(),
-      createdAt: Timestamp.now(),
-      offerId
-    };
-    
-    await setDoc(paymentRef, payment);
-    
-    // Actualizar perfil del usuario
+    // Actualizar perfil del usuario después de pago exitoso
     const userRef = doc(db, 'users', userId);
     const userDoc = await getDoc(userRef);
     if (userDoc.exists()) {
       const currentProfile = userDoc.data() as UserProfile;
       await updateDoc(userRef, {
-        totalPaid: currentProfile.totalPaid + usagePrice
+        totalPaid: (currentProfile.totalPaid || 0) + usagePrice
       });
     }
     
     return true;
   } catch (error) {
-    console.error('Error procesando pago de oferta:', error);
+    console.error('Error actualizando pago de oferta:', error);
     return false;
   }
 };
@@ -645,7 +625,11 @@ function MapView({ offers, flashDeals, selectedCategory, onOfferClick, onFlashDe
     address: '',
     rating: 4.5,
     price: '',
-    oldPrice: ''
+    oldPrice: '',
+    image: null as File | null,
+    availabilityDays: [] as string[],
+    availabilityStartTime: '09:00',
+    availabilityEndTime: '18:00'
   });
 
   // Location state for UI
@@ -1434,7 +1418,12 @@ function MapView({ offers, flashDeals, selectedCategory, onOfferClick, onFlashDe
             rating: newOffer.rating,
             isNew: true,
             price: newOffer.price,
-            oldPrice: newOffer.oldPrice
+            oldPrice: newOffer.oldPrice,
+            availabilitySchedule: newOffer.availabilityDays.length > 0 ? {
+              days: newOffer.availabilityDays,
+              startTime: newOffer.availabilityStartTime,
+              endTime: newOffer.availabilityEndTime
+            } : undefined
           };
 
           // Aquí guardaríamos en Firebase
@@ -1764,6 +1753,66 @@ function MapView({ offers, flashDeals, selectedCategory, onOfferClick, onFlashDe
               inputProps={{ min: 0, max: 5, step: 0.1 }}
               fullWidth
             />
+
+            <Divider sx={{ my: 2 }} />
+            <Box>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                <AccessTime sx={{ color: '#FFD700' }} />
+                <Typography variant="h6">Horarios de Disponibilidad</Typography>
+              </Box>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                Selecciona los días y horas en que esta oferta estará disponible
+              </Typography>
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="subtitle2" sx={{ mb: 1 }}>Días de la semana:</Typography>
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                  {weekDays.map((day) => (
+                    <FormControlLabel
+                      key={day.value}
+                      control={
+                        <Checkbox
+                          checked={newOffer.availabilityDays.includes(day.value)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setNewOffer(prev => ({
+                                ...prev,
+                                availabilityDays: [...prev.availabilityDays, day.value]
+                              }));
+                            } else {
+                              setNewOffer(prev => ({
+                                ...prev,
+                                availabilityDays: prev.availabilityDays.filter(d => d !== day.value)
+                              }));
+                            }
+                          }}
+                        />
+                      }
+                      label={day.label}
+                    />
+                  ))}
+                </Box>
+              </Box>
+              <Box sx={{ display: 'flex', gap: 2 }}>
+                <TextField
+                  label="Hora de Inicio"
+                  type="time"
+                  value={newOffer.availabilityStartTime}
+                  onChange={(e) => setNewOffer(prev => ({ ...prev, availabilityStartTime: e.target.value }))}
+                  fullWidth
+                  InputLabelProps={{ shrink: true }}
+                  inputProps={{ step: 300 }}
+                />
+                <TextField
+                  label="Hora de Fin"
+                  type="time"
+                  value={newOffer.availabilityEndTime}
+                  onChange={(e) => setNewOffer(prev => ({ ...prev, availabilityEndTime: e.target.value }))}
+                  fullWidth
+                  InputLabelProps={{ shrink: true }}
+                  inputProps={{ step: 300 }}
+                />
+              </Box>
+            </Box>
           </Box>
         </DialogContent>
         <DialogActions>
@@ -1915,9 +1964,36 @@ function OffersList({ offers, selectedCategory, selectedSubCategory, onOfferClic
       navigator.vibrate([100, 50, 100]);
     }
     
-    // Show activation countdown modal
-    setSelectedOffer(offer);
-    setShowActivationModal(true);
+    // Si la oferta tiene precio, abrir modal de pago primero
+    if (offer.price && currentUser) {
+      const offerPrice = parseFloat(offer.price.replace('CHF ', '').replace(',', '.'));
+      const usagePrice = offerPrice * OFFER_USAGE_PERCENTAGE;
+      
+      // Guardar la oferta para después del pago
+      setSelectedOffer(offer);
+      
+      // Abrir modal de pago directamente
+      setPaymentModalConfig({
+        type: 'payment',
+        amount: usagePrice,
+        description: `Utilisation de l'offre: ${offer.name}`,
+        orderId: `offer_${offer.id}_${Date.now()}`,
+      });
+      setShowPaymentModal(true);
+      
+      // Guardar información para después del pago (mostrar countdown)
+      (window as any).pendingOfferPayment = {
+        offerId: offer.id,
+        offerName: offer.name,
+        usagePrice: usagePrice,
+        offerData: offer,
+        shouldShowCountdown: true // Marcar que debe mostrar countdown después del pago
+      };
+    } else {
+      // Si no tiene precio, mostrar countdown directamente
+      setSelectedOffer(offer);
+      setShowActivationModal(true);
+    }
   };
 
   const handleActivationComplete = async () => {
@@ -1925,6 +2001,61 @@ function OffersList({ offers, selectedCategory, selectedSubCategory, onOfferClic
     
     const offerId = selectedOffer.id;
     
+    // Si hay una activación pendiente (después del pago), activarla
+    const pendingActivation = (window as any).pendingActivation;
+    if (pendingActivation && pendingActivation.offerId === offerId) {
+      const offer = pendingActivation.offerData;
+      if (offer.price && offer.oldPrice && userProfile) {
+        const savedAmount = parseFloat(offer.oldPrice.replace('CHF ', '').replace(',', '.')) - parseFloat(offer.price.replace('CHF ', '').replace(',', '.'));
+        try {
+          const userRef = doc(db, 'users', currentUser!.uid);
+          const blockedUntil = new Date();
+          blockedUntil.setMinutes(blockedUntil.getMinutes() + 15);
+          
+          const newActivation = {
+            offerId: offerId,
+            activatedAt: Timestamp.now(),
+            savedAmount,
+            blockedUntil: Timestamp.fromDate(blockedUntil)
+          };
+
+          const pointsEarned = 10 + Math.floor(savedAmount);
+          const newPoints = userProfile.points + pointsEarned;
+          const newLevel = Math.floor(newPoints / 100) + 1;
+          
+          await updateDoc(userRef, {
+            activatedOffers: arrayUnion(newActivation),
+            totalSaved: userProfile.totalSaved + savedAmount,
+            points: newPoints,
+            level: newLevel
+          });
+
+          setUserProfile(prev => {
+            if (!prev) return prev;
+            return {
+              ...prev,
+              activatedOffers: [...prev.activatedOffers, newActivation],
+              totalSaved: prev.totalSaved + savedAmount,
+              points: newPoints,
+              level: newLevel
+            };
+          });
+          
+          // Marcar como activada en swipedOffers
+          setSwipedOffers(prev => new Set([...prev, offerId]));
+          
+          addNotification('success', `Offre activée • Économie: ${savedAmount.toFixed(2)} CHF`);
+          
+          // Limpiar activación pendiente
+          delete (window as any).pendingActivation;
+        } catch (error) {
+          console.error('Error activating offer after countdown:', error);
+          addNotification('warning', 'Erreur lors de l\'activation de l\'offre');
+        }
+      }
+    }
+    
+    // Si no tiene precio, activar normalmente
     // Trigger global flash effect (only once)
     if (!showGlobalFlash) {
       setShowGlobalFlash(true);
@@ -2642,54 +2773,44 @@ function SubscriptionModal({
   onClose, 
   userProfile, 
   setUserProfile, 
-  currentUser
+  currentUser,
+  onOpenPaymentModal
 }: { 
   open: boolean, 
   onClose: () => void, 
   userProfile: UserProfile | null,
   setUserProfile: React.Dispatch<React.SetStateAction<UserProfile | null>>,
-  currentUser: User | null
+  currentUser: User | null,
+  onOpenPaymentModal: (config: {
+    type: 'payment' | 'subscription';
+    amount: number;
+    description: string;
+    orderId: string;
+    planType?: 'monthly' | 'yearly';
+    planId?: string;
+  }) => void
 }) {
   const { t } = useTranslation();
   const [selectedPlan, setSelectedPlan] = useState<string>('monthly');
   const [isProcessing, setIsProcessing] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
 
-  const handleSubscribe = async () => {
+  const handleSubscribe = () => {
     if (!currentUser) return;
     
-    setIsProcessing(true);
-    try {
-      const success = await processSubscriptionPayment(currentUser.uid, selectedPlan);
-      if (success) {
-        const planPrice = SUBSCRIPTION_PLANS.find(p => p.id === selectedPlan)?.price || 0;
-        
-        // Registrar la suscripción
-        // await recordSubscription(selectedPlan, planPrice); // TODO: Mover esta función al scope correcto
-        
-        // Actualizar el perfil local
-        const updatedProfile = userProfile ? {
-          ...userProfile,
-          subscriptionStatus: 'active' as const,
-          subscriptionPlan: selectedPlan as 'monthly' | 'yearly',
-          subscriptionEnd: Timestamp.fromDate(calculateNextPaymentDate(selectedPlan as 'monthly' | 'yearly')),
-          lastPaymentDate: Timestamp.now(),
-          nextPaymentDate: Timestamp.fromDate(calculateNextPaymentDate(selectedPlan as 'monthly' | 'yearly')),
-          totalPaid: userProfile.totalPaid + planPrice
-        } : null;
-        
-        setUserProfile(updatedProfile);
-        onClose();
-        alert('Abonnement activé avec succès !');
-      } else {
-        alert('Erreur lors du traitement du paiement. Réessayez.');
-      }
-    } catch (error) {
-      console.error('Error en suscripción:', error);
-      alert('Erreur lors du traitement de l\'abonnement.');
-    } finally {
-      setIsProcessing(false);
-    }
+    const plan = SUBSCRIPTION_PLANS.find(p => p.id === selectedPlan);
+    if (!plan) return;
+
+    // Cerrar este modal y abrir el modal de pago
+    onClose();
+    onOpenPaymentModal({
+      type: 'subscription',
+      amount: plan.price,
+      description: `${plan.name} - LUCA App`,
+      orderId: `sub_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      planType: plan.type,
+      planId: plan.id,
+    });
   };
 
   const handleCancelSubscription = async () => {
@@ -2797,7 +2918,7 @@ function SubscriptionModal({
                       CHF {plan.price}
                     </Typography>
                     <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                      {plan.type === 'monthly' ? 'par mois' : 'par an'}
+                      par mois {plan.type === 'yearly' && '(plan annuel - 12 mois)'}
                     </Typography>
                     
                     <List dense>
@@ -2976,7 +3097,7 @@ function SubscriptionRequiredModal({
         </Typography>
         
         <Typography variant="body2" color="text.secondary" sx={{ mb: 3, fontStyle: 'italic' }}>
-          💰 <strong>Pago por oferta:</strong> 5% del coste de cada oferta utilizada
+          💰 <strong>Pago por oferta:</strong> Precio completo de la oferta
         </Typography>
       </DialogContent>
       
@@ -3145,6 +3266,8 @@ function App() {
   const [detailOpen, setDetailOpen] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isPartner, setIsPartner] = useState(false);
+  const [currentPartnerId, setCurrentPartnerId] = useState<string | null>(null);
   const [showLoginModal, setShowLoginModal] = useState(true);
 
   const [showAddModal, setShowAddModal] = useState(false);
@@ -3166,10 +3289,21 @@ function App() {
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
   const [showResetPasswordModal, setShowResetPasswordModal] = useState(false);
   const [showAdminLoginModal, setShowAdminLoginModal] = useState(false);
+  const [showPartnerLoginModal, setShowPartnerLoginModal] = useState(false);
+  const [showUserManagementModal, setShowUserManagementModal] = useState(false);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const [showSubscriptionRequiredModal, setShowSubscriptionRequiredModal] = useState(false);
   const [showSubscriptionOverlay, setShowSubscriptionOverlay] = useState(false);
   const [showTrialModal, setShowTrialModal] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentModalConfig, setPaymentModalConfig] = useState<{
+    type: 'payment' | 'subscription';
+    amount: number;
+    description: string;
+    orderId: string;
+    planType?: 'monthly' | 'yearly';
+    planId?: string;
+  } | null>(null);
   const [signupCredentials, setSignupCredentials] = useState({
     email: '',
     password: '',
@@ -3514,11 +3648,21 @@ function App() {
   useEffect(() => {
     if (isAuthenticated && userProfile) {
       const isSubscriptionActive = checkSubscriptionStatus(userProfile);
+      const isTrialActive = checkTrialStatus(userProfile);
       
-      if (!isSubscriptionActive) {
-        // Ya no mostramos el modal automáticamente - el usuario puede navegar libremente
-        // Solo ocultamos el overlay si existe
-        setShowSubscriptionOverlay(false);
+      // Si el trial expiró o la suscripción expiró, abrir modal de suscripción
+      if (!isSubscriptionActive && !isTrialActive) {
+        const now = new Date();
+        const subscriptionEnd = userProfile.subscriptionEnd.toDate();
+        
+        // Solo abrir si expiró hace menos de 1 hora (para no abrir constantemente)
+        const timeSinceExpiry = now.getTime() - subscriptionEnd.getTime();
+        const oneHour = 60 * 60 * 1000;
+        
+        if (timeSinceExpiry > 0 && timeSinceExpiry < oneHour) {
+          // Abrir modal de suscripción automáticamente
+          setShowSubscriptionModal(true);
+        }
       } else {
         // Ocultar modal si tiene suscripción activa
         setShowSubscriptionOverlay(false);
@@ -3535,7 +3679,10 @@ function App() {
     address: '',
     rating: 4.5,
     price: '',
-    oldPrice: ''
+    oldPrice: '',
+    availabilityDays: [] as string[],
+    availabilityStartTime: '09:00',
+    availabilityEndTime: '18:00'
   });
 
   const [newFlashDeal, setNewFlashDeal] = useState({
@@ -3552,7 +3699,10 @@ function App() {
     discountedPrice: 0,
     duration: 2, // horas
     maxQuantity: 20,
-    image: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?auto=format&fit=crop&w=400&q=80'
+    image: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?auto=format&fit=crop&w=400&q=80',
+    availabilityDays: [] as string[],
+    availabilityStartTime: '09:00',
+    availabilityEndTime: '18:00'
   });
 
   const theme = professionalTheme;
@@ -4053,6 +4203,8 @@ function App() {
       await signOut(auth);
       setIsAuthenticated(false);
       setIsAdmin(false);
+      setIsPartner(false);
+      setCurrentPartnerId(null);
       setCurrentUser(null);
       setUserProfile(null);
       setShowLoginModal(true);
@@ -4060,6 +4212,30 @@ function App() {
     } catch (error) {
       console.error('Error al cerrar sesión:', error);
       alert('Erreur lors de la déconnexion');
+    }
+  };
+
+  // Función para manejar el login exitoso de partner
+  const handlePartnerLoginSuccess = (partnerId: string) => {
+    setIsPartner(true);
+    setCurrentPartnerId(partnerId);
+    setIsAuthenticated(true);
+    setShowPartnerLoginModal(false);
+    addNotification('success', 'Bienvenido al panel de partners');
+  };
+
+  // Función para cerrar sesión de partner
+  const handlePartnerLogout = async () => {
+    try {
+      await signOut(auth);
+      setIsPartner(false);
+      setCurrentPartnerId(null);
+      setIsAuthenticated(false);
+      setCurrentUser(null);
+      setUserProfile(null);
+      setShowLoginModal(true);
+    } catch (error) {
+      console.error('Error al cerrar sesión de partner:', error);
     }
   };
 
@@ -4071,16 +4247,29 @@ function App() {
     }
 
     try {
+      // Subir imagen si existe
+      let imageUrl = '/api/placeholder/150/150';
+      if (newOffer.image) {
+        try {
+          // Aquí se subiría la imagen a Firebase Storage
+          // Por ahora, simulamos con una URL placeholder
+          imageUrl = `/images/offers/${Date.now()}_${newOffer.image.name}`;
+          console.log('Imagen seleccionada:', newOffer.image.name);
+        } catch (error) {
+          console.error('Error al subir imagen:', error);
+          alert('Error al subir la imagen, se usará una imagen por defecto');
+        }
+      }
+
       if (window.google) {
         const geocoder = new window.google.maps.Geocoder();
         geocoder.geocode({ address: newOffer.address + ', Valais, Switzerland' }, (results: any, status: any) => {
           if (status === 'OK' && results && results[0]) {
             const location = results[0].geometry.location;
             
-            const offer = {
-              id: Date.now().toString(),
+            const offerData = {
               name: newOffer.name,
-              image: '/api/placeholder/150/150',
+              image: imageUrl,
               category: newOffer.category,
               subCategory: newOffer.subCategory,
               discount: newOffer.discount,
@@ -4093,10 +4282,31 @@ function App() {
               rating: newOffer.rating,
               isNew: true,
               price: newOffer.price,
-              oldPrice: newOffer.oldPrice
+              oldPrice: newOffer.oldPrice,
+              // Agregar información de quién creó la oferta
+              createdBy: isPartner ? 'partner' : 'admin',
+              partnerId: isPartner ? currentPartnerId : null,
+              adminId: isAdmin && currentUser ? currentUser.uid : null,
+              createdAt: Timestamp.now(),
+              updatedAt: Timestamp.now(),
+              // Horarios de disponibilidad
+              availabilitySchedule: newOffer.availabilityDays.length > 0 ? {
+                days: newOffer.availabilityDays,
+                startTime: newOffer.availabilityStartTime,
+                endTime: newOffer.availabilityEndTime
+              } : undefined
             };
 
-            console.log('Nueva oferta:', offer);
+            // Guardar en Firestore
+            const offersRef = collection(db, 'offers');
+            const docRef = await addDoc(offersRef, offerData);
+            
+            const offer = {
+              id: docRef.id,
+              ...offerData
+            };
+
+            console.log('Nueva oferta guardada:', offer);
             
             setNewOffer({
               name: '',
@@ -4107,7 +4317,11 @@ function App() {
               address: '',
               rating: 4.5,
               price: '',
-              oldPrice: ''
+              oldPrice: '',
+              image: null,
+              availabilityDays: [],
+              availabilityStartTime: '09:00',
+              availabilityEndTime: '18:00'
             });
             setShowAddModal(false);
             
@@ -4130,6 +4344,33 @@ function App() {
     const deal = flashDeals.find(d => d.id === dealId);
     if (!deal) return;
 
+    // Si la oferta tiene precio, abrir modal de pago primero
+    if (deal.price && currentUser) {
+      const offerPrice = parseFloat(deal.price.replace('CHF ', '').replace(',', '.'));
+      const usagePrice = offerPrice * OFFER_USAGE_PERCENTAGE;
+      
+      // Abrir modal de pago
+      setPaymentModalConfig({
+        type: 'payment',
+        amount: usagePrice,
+        description: `Utilisation de l'offre flash: ${deal.name}`,
+        orderId: `flash_${dealId}_${Date.now()}`,
+      });
+      setShowPaymentModal(true);
+      
+      // Guardar información de la oferta para después del pago
+      (window as any).pendingOfferPayment = {
+        offerId: dealId,
+        offerName: deal.name,
+        usagePrice: usagePrice,
+        offerData: deal,
+        shouldActivate: true // Marcar que debe activarse después del pago
+      };
+      
+      return; // Salir aquí, la activación se hará después del pago
+    }
+
+    // Si no tiene precio, activar normalmente
     // Simular el proceso de bloqueo con lightning
     addNotification('info', '🔒 Bloqueando oferta... Espera 10 minutos para la activación.');
     
@@ -4178,9 +4419,8 @@ function App() {
       // Calcular el descuento automáticamente
       const discountPercentage = Math.round(((newFlashDeal.originalPrice - newFlashDeal.discountedPrice) / newFlashDeal.originalPrice) * 100);
       
-      const flashDealData: FlashDeal = {
+      const flashDealData = {
         ...newFlashDeal,
-        id: `flash_${Date.now()}`,
         discount: `${discountPercentage}% OFF`,
         price: `CHF ${newFlashDeal.discountedPrice}`,
         oldPrice: `CHF ${newFlashDeal.originalPrice}`,
@@ -4189,17 +4429,39 @@ function App() {
           lng: 7.3590,
           address: newFlashDeal.address
         },
-        startTime: now,
-        endTime: endTime,
+        startTime: Timestamp.fromDate(now),
+        endTime: Timestamp.fromDate(endTime),
         isActive: true,
-        soldQuantity: 0
+        soldQuantity: 0,
+        // Agregar información de quién creó el flash deal
+        createdBy: isPartner ? 'partner' : 'admin',
+        partnerId: isPartner ? currentPartnerId : null,
+        adminId: isAdmin && currentUser ? currentUser.uid : null,
+        createdAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
+        // Horarios de disponibilidad
+        availabilitySchedule: newFlashDeal.availabilityDays.length > 0 ? {
+          days: newFlashDeal.availabilityDays,
+          startTime: newFlashDeal.availabilityStartTime,
+          endTime: newFlashDeal.availabilityEndTime
+        } : undefined
       };
 
-      // Aquí podrías agregar la lógica para guardar en Firebase
-      console.log('Nueva oferta flash:', flashDealData);
+      // Guardar en Firestore
+      const flashDealsRef = collection(db, 'flashDeals');
+      const docRef = await addDoc(flashDealsRef, flashDealData);
       
-      // Agregar a la lista local (en producción esto vendría de Firebase)
-      setFlashDeals(prev => [...prev, flashDealData]);
+      const flashDeal: FlashDeal = {
+        id: docRef.id,
+        ...flashDealData,
+        startTime: now,
+        endTime: endTime
+      };
+
+      console.log('Nueva oferta flash guardada:', flashDeal);
+      
+      // Agregar a la lista local
+      setFlashDeals(prev => [...prev, flashDeal]);
       
       setNewFlashDeal({
         name: '',
@@ -4215,7 +4477,10 @@ function App() {
         discountedPrice: 0,
         duration: 2,
         maxQuantity: 20,
-        image: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?auto=format&fit=crop&w=400&q=80'
+        image: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?auto=format&fit=crop&w=400&q=80',
+        availabilityDays: [],
+        availabilityStartTime: '09:00',
+        availabilityEndTime: '18:00'
       });
       
       setShowAddFlashModal(false);
@@ -4541,22 +4806,32 @@ function App() {
       usagePrice: offer.price ? parseFloat(offer.price) * OFFER_USAGE_PERCENTAGE : 0
     };
     
-    // Procesar pago por uso de oferta
+    // Si la oferta tiene precio, abrir modal de pago
     if (currentUser && offer.price) {
       const offerPrice = parseFloat(offer.price);
       const usagePrice = offerPrice * OFFER_USAGE_PERCENTAGE;
-      const paymentSuccess = await processOfferPayment(currentUser.uid, offer.id, offerPrice);
-      if (!paymentSuccess) {
-        alert('Erreur lors du traitement du paiement. Réessayez.');
-        return;
-      }
       
-      // Registrar el pago de la oferta
-      await recordOfferPayment(offer.id, offer.name, usagePrice);
+      // Abrir modal de pago con Stripe/Twint
+      setPaymentModalConfig({
+        type: 'payment',
+        amount: usagePrice,
+        description: `Utilisation de l'offre: ${offer.name}`,
+        orderId: `offer_${offer.id}_${Date.now()}`,
+      });
+      setShowPaymentModal(true);
+      
+      // Guardar información de la oferta para después del pago
+      (window as any).pendingOfferPayment = {
+        offerId: offer.id,
+        offerName: offer.name,
+        usagePrice: usagePrice,
+        offerData: offerData
+      };
+    } else {
+      // Si no hay precio, mostrar directamente
+      setSelectedOffer(offerData);
+      setDetailOpen(true);
     }
-    
-    setSelectedOffer(offerData);
-    setDetailOpen(true);
   };
 
   const currentCategory = categories.find(cat => cat.id === selectedCategory);
@@ -4978,7 +5253,18 @@ function App() {
 
       {/* Contenido principal solo si está autenticado */}
         {isAuthenticated && (
-        <Box
+        <>
+          {/* Dashboard de Partner - Mostrar si es partner */}
+          {isPartner && currentPartnerId && (
+            <PartnerDashboard
+              partnerId={currentPartnerId}
+              onLogout={handlePartnerLogout}
+            />
+          )}
+          
+          {/* Contenido normal de la app - Mostrar si NO es partner */}
+          {!isPartner && (
+          <Box
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
@@ -5502,6 +5788,33 @@ function App() {
                   </Box>
                 )}
 
+                {/* Sección de Partner Login - Visible para todos los usuarios autenticados */}
+                {!isAdmin && !isPartner && isAuthenticated && (
+                  <>
+                    <Divider sx={{ my: { xs: 2, sm: 3 } }} />
+                    <Button
+                      variant="outlined"
+                      startIcon={<Store sx={{ fontSize: { xs: 18, sm: 20 } }} />}
+                      onClick={() => setShowPartnerLoginModal(true)}
+                      sx={{ 
+                        borderColor: '#FFD700', 
+                        color: '#FFD700',
+                        '&:hover': { 
+                          borderColor: '#fbc02d', 
+                          bgcolor: 'rgba(255, 215, 0, 0.1)' 
+                        },
+                        py: { xs: 2, sm: 1.5 },
+                        px: { xs: 3, sm: 2 },
+                        fontSize: { xs: '0.875rem', sm: '1rem' },
+                        minHeight: { xs: 48, sm: 40 },
+                        width: '100%'
+                      }}
+                    >
+                      Acceso Partner
+                    </Button>
+                  </>
+                )}
+
                 {/* Sección de Admin - Solo visible si es admin */}
                 {isAdmin && (
                   <>
@@ -5559,6 +5872,23 @@ function App() {
                       </Button>
                       
                       <Button
+                        variant="contained"
+                        startIcon={<Person sx={{ fontSize: { xs: 18, sm: 20 } }} />}
+                        onClick={() => setShowUserManagementModal(true)}
+                        sx={{ 
+                          bgcolor: '#FFD700', 
+                          color: '#000',
+                          '&:hover': { bgcolor: '#FFA000' },
+                          py: { xs: 2, sm: 1.5 },
+                          px: { xs: 3, sm: 2 },
+                          fontSize: { xs: '0.875rem', sm: '1rem' },
+                          minHeight: { xs: 48, sm: 40 }
+                        }}
+                      >
+                        Gestionar Usuarios
+                      </Button>
+                      
+                      <Button
                         variant="outlined"
                         startIcon={<Close sx={{ fontSize: { xs: 18, sm: 20 } }} />}
                         onClick={() => setIsAdmin(false)}
@@ -5593,7 +5923,7 @@ function App() {
       >
                     <DialogTitle>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Typography variant="h6">🔐 Admin Access</Typography>
+            <Typography variant="h6">🔐 Accès administrateur</Typography>
             <IconButton onClick={() => setShowAdminLoginModal(false)}>
               <Close />
             </IconButton>
@@ -5602,11 +5932,11 @@ function App() {
         <DialogContent>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
             <Typography variant="body1" sx={{ mb: 2, textAlign: 'center' }}>
-              Ingresa tus credenciales de administrador para acceder al panel de control.
+              Saisissez vos identifiants administrateur pour accéder au panneau de contrôle.
             </Typography>
             
             <TextField
-              label="Admin email"
+              label="Email administrateur"
               type="email"
               value={adminLoginCredentials.email}
               onChange={(e) => setAdminLoginCredentials({...adminLoginCredentials, email: e.target.value})}
@@ -5616,7 +5946,7 @@ function App() {
             />
             
             <TextField
-              label="Admin password"
+              label="Mot de passe administrateur"
               type="password"
               value={adminLoginCredentials.password}
               onChange={(e) => setAdminLoginCredentials({...adminLoginCredentials, password: e.target.value})}
@@ -5645,14 +5975,28 @@ function App() {
             {isLoading ? (
               <>
                 <CircularProgress size={20} sx={{ color: 'white', mr: 1 }} />
-                Verificando...
+                Vérification...
               </>
             ) : (
-              'Acceder como Admin'
+              'Accéder en tant qu\'admin'
             )}
           </Button>
         </DialogActions>
           </Dialog>
+
+          {/* Partner Login Modal */}
+          <PartnerLoginModal
+            open={showPartnerLoginModal}
+            onClose={() => setShowPartnerLoginModal(false)}
+            onLoginSuccess={handlePartnerLoginSuccess}
+          />
+
+          {/* Modal de Gestión de Usuarios (Solo Admin) */}
+          <UserManagementModal
+            open={showUserManagementModal}
+            onClose={() => setShowUserManagementModal(false)}
+            currentAdminId={currentUser?.uid || ''}
+          />
 
           {/* Modal para agregar nueva oferta */}
           <Dialog 
@@ -5756,6 +6100,98 @@ function App() {
                   inputProps={{ min: 0, max: 5, step: 0.1 }}
                   fullWidth
                 />
+
+                <Divider sx={{ my: 2 }} />
+                <Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                    <AccessTime sx={{ color: '#FFD700' }} />
+                    <Typography variant="h6">Horarios de Disponibilidad</Typography>
+                  </Box>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                    Selecciona los días y horas en que esta oferta estará disponible
+                  </Typography>
+                  <Box sx={{ mb: 2 }}>
+                    <Typography variant="subtitle2" sx={{ mb: 1 }}>Días de la semana:</Typography>
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                      {weekDays.map((day) => (
+                        <FormControlLabel
+                          key={day.value}
+                          control={
+                            <Checkbox
+                              checked={newOffer.availabilityDays.includes(day.value)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setNewOffer(prev => ({
+                                    ...prev,
+                                    availabilityDays: [...prev.availabilityDays, day.value]
+                                  }));
+                                } else {
+                                  setNewOffer(prev => ({
+                                    ...prev,
+                                    availabilityDays: prev.availabilityDays.filter(d => d !== day.value)
+                                  }));
+                                }
+                              }}
+                            />
+                          }
+                          label={day.label}
+                        />
+                      ))}
+                    </Box>
+                  </Box>
+                  <Box sx={{ display: 'flex', gap: 2 }}>
+                    <TextField
+                      label="Hora de Inicio"
+                      type="time"
+                      value={newOffer.availabilityStartTime}
+                      onChange={(e) => setNewOffer(prev => ({ ...prev, availabilityStartTime: e.target.value }))}
+                      fullWidth
+                      InputLabelProps={{ shrink: true }}
+                      inputProps={{ step: 300 }}
+                    />
+                    <TextField
+                      label="Hora de Fin"
+                      type="time"
+                      value={newOffer.availabilityEndTime}
+                      onChange={(e) => setNewOffer(prev => ({ ...prev, availabilityEndTime: e.target.value }))}
+                      fullWidth
+                      InputLabelProps={{ shrink: true }}
+                      inputProps={{ step: 300 }}
+                    />
+                  </Box>
+                </Box>
+                <Divider sx={{ my: 2 }} />
+
+                {/* Campo de carga de imagen */}
+                <Box sx={{ mt: 2 }}>
+                  <Typography variant="body2" sx={{ mb: 1, fontWeight: 'bold' }}>
+                    Photo du local (optionnel)
+                  </Typography>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        setNewOffer({...newOffer, image: file});
+                      }
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '8px',
+                      border: '1px solid #ccc',
+                      borderRadius: '4px',
+                      backgroundColor: '#f5f5f5'
+                    }}
+                  />
+                  {newOffer.image && (
+                    <Box sx={{ mt: 2, textAlign: 'center' }}>
+                      <Typography variant="body2" color="success.main">
+                        ✅ {newOffer.image.name}
+                      </Typography>
+                    </Box>
+                  )}
+                </Box>
               </Box>
             </DialogContent>
             <DialogActions>
@@ -5881,6 +6317,66 @@ function App() {
                   onChange={(e) => setNewFlashDeal({...newFlashDeal, rating: parseFloat(e.target.value) || 4.5})}
                   inputProps={{ min: 1, max: 5, step: 0.1 }}
                 />
+
+                <Divider sx={{ my: 2 }} />
+                <Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                    <AccessTime sx={{ color: '#FFD700' }} />
+                    <Typography variant="h6">Horarios de Disponibilidad</Typography>
+                  </Box>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                    Selecciona los días y horas en que este flash deal estará disponible
+                  </Typography>
+                  <Box sx={{ mb: 2 }}>
+                    <Typography variant="subtitle2" sx={{ mb: 1 }}>Días de la semana:</Typography>
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                      {weekDays.map((day) => (
+                        <FormControlLabel
+                          key={day.value}
+                          control={
+                            <Checkbox
+                              checked={newFlashDeal.availabilityDays.includes(day.value)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setNewFlashDeal(prev => ({
+                                    ...prev,
+                                    availabilityDays: [...prev.availabilityDays, day.value]
+                                  }));
+                                } else {
+                                  setNewFlashDeal(prev => ({
+                                    ...prev,
+                                    availabilityDays: prev.availabilityDays.filter(d => d !== day.value)
+                                  }));
+                                }
+                              }}
+                            />
+                          }
+                          label={day.label}
+                        />
+                      ))}
+                    </Box>
+                  </Box>
+                  <Box sx={{ display: 'flex', gap: 2 }}>
+                    <TextField
+                      label="Hora de Inicio"
+                      type="time"
+                      value={newFlashDeal.availabilityStartTime}
+                      onChange={(e) => setNewFlashDeal(prev => ({ ...prev, availabilityStartTime: e.target.value }))}
+                      fullWidth
+                      InputLabelProps={{ shrink: true }}
+                      inputProps={{ step: 300 }}
+                    />
+                    <TextField
+                      label="Hora de Fin"
+                      type="time"
+                      value={newFlashDeal.availabilityEndTime}
+                      onChange={(e) => setNewFlashDeal(prev => ({ ...prev, availabilityEndTime: e.target.value }))}
+                      fullWidth
+                      InputLabelProps={{ shrink: true }}
+                      inputProps={{ step: 300 }}
+                    />
+                  </Box>
+                </Box>
               </Box>
             </DialogContent>
             <DialogActions>
@@ -6131,7 +6627,150 @@ function App() {
             userProfile={userProfile}
             setUserProfile={setUserProfile}
             currentUser={currentUser}
+            onOpenPaymentModal={(config) => {
+              setPaymentModalConfig(config);
+              setShowPaymentModal(true);
+            }}
           />
+          
+          {/* Modal de Pago con Stripe/Twint */}
+          {paymentModalConfig && currentUser && (
+            <StripePaymentModal
+              open={showPaymentModal}
+              onClose={() => {
+                setShowPaymentModal(false);
+                setPaymentModalConfig(null);
+              }}
+              onSuccess={async (paymentId: string) => {
+                console.log('Pago exitoso:', paymentId);
+                
+                // Si es suscripción, actualizar el perfil
+                if (paymentModalConfig.type === 'subscription' && paymentModalConfig.planId) {
+                  const success = await updateSubscriptionAfterPayment(
+                    currentUser.uid,
+                    paymentModalConfig.planId
+                  );
+                  if (success) {
+                    // Recargar perfil del usuario
+                    const userRef = doc(db, 'users', currentUser.uid);
+                    const userDoc = await getDoc(userRef);
+                    if (userDoc.exists()) {
+                      setUserProfile(userDoc.data() as UserProfile);
+                    }
+                    setSnackbar({
+                      open: true,
+                      type: 'success',
+                      message: 'Abonnement activé avec succès !'
+                    });
+                  }
+                }
+                
+                // Si es pago de oferta
+                if (paymentModalConfig.type === 'payment') {
+                  const pending = (window as any).pendingOfferPayment;
+                  if (pending) {
+                    const success = await updateOfferPaymentAfterSuccess(
+                      currentUser.uid,
+                      pending.offerId,
+                      pending.usagePrice
+                    );
+                    if (success) {
+                      await recordOfferPayment(pending.offerId, pending.offerName, pending.usagePrice);
+                      
+                      // Si debe mostrar countdown después del pago (swipe), mostrar countdown
+                      if (pending.shouldShowCountdown) {
+                        // Cerrar modal de pago
+                        setShowPaymentModal(false);
+                        setPaymentModalConfig(null);
+                        
+                        // Mostrar modal de countdown
+                        setSelectedOffer(pending.offerData);
+                        setShowActivationModal(true);
+                        
+                        // Guardar información para después del countdown
+                        (window as any).pendingActivation = {
+                          offerId: pending.offerId,
+                          offerData: pending.offerData,
+                          usagePrice: pending.usagePrice
+                        };
+                      } else if (pending.shouldActivate) {
+                        // Si debe activarse directamente (sin countdown)
+                        const offer = pending.offerData;
+                        if (offer.price && offer.oldPrice && userProfile) {
+                          const savedAmount = parseFloat(offer.oldPrice.replace('CHF ', '').replace(',', '.')) - parseFloat(offer.price.replace('CHF ', '').replace(',', '.'));
+                          try {
+                            const userRef = doc(db, 'users', currentUser.uid);
+                            const blockedUntil = new Date();
+                            blockedUntil.setMinutes(blockedUntil.getMinutes() + 15);
+                            
+                            const newActivation = {
+                              offerId: pending.offerId,
+                              activatedAt: Timestamp.now(),
+                              savedAmount,
+                              blockedUntil: Timestamp.fromDate(blockedUntil)
+                            };
+
+                            const pointsEarned = 10 + Math.floor(savedAmount);
+                            const newPoints = userProfile.points + pointsEarned;
+                            const newLevel = Math.floor(newPoints / 100) + 1;
+                            
+                            await updateDoc(userRef, {
+                              activatedOffers: arrayUnion(newActivation),
+                              totalSaved: userProfile.totalSaved + savedAmount,
+                              points: newPoints,
+                              level: newLevel
+                            });
+
+                            setUserProfile(prev => {
+                              if (!prev) return prev;
+                              return {
+                                ...prev,
+                                activatedOffers: [...prev.activatedOffers, newActivation],
+                                totalSaved: prev.totalSaved + savedAmount,
+                                points: newPoints,
+                                level: newLevel
+                              };
+                            });
+                            
+                            // Marcar como activada en swipedOffers
+                            setSwipedOffers(prev => new Set([...prev, pending.offerId]));
+                            
+                            addNotification('success', `Offre activée • Économie: ${savedAmount.toFixed(2)} CHF`);
+                          } catch (error) {
+                            console.error('Error activating offer after payment:', error);
+                            addNotification('warning', 'Paiement réussi mais erreur lors de l\'activation de l\'offre');
+                          }
+                        }
+                      } else {
+                        // Si no es swipe, mostrar detalles normalmente
+                        setSelectedOffer(pending.offerData);
+                        setDetailOpen(true);
+                      }
+                      
+                      setSnackbar({
+                        open: true,
+                        type: 'success',
+                        message: 'Paiement réussi !'
+                      });
+                    }
+                    delete (window as any).pendingOfferPayment;
+                  }
+                }
+                
+                setShowPaymentModal(false);
+                setPaymentModalConfig(null);
+              }}
+              amount={paymentModalConfig.amount}
+              currency="CHF"
+              description={paymentModalConfig.description}
+              orderId={paymentModalConfig.orderId}
+              userId={currentUser.uid}
+              customerEmail={currentUser.email || undefined}
+              type={paymentModalConfig.type}
+              planType={paymentModalConfig.planType}
+              planId={paymentModalConfig.planId}
+            />
+          )}
 
           {/* Modal de Prueba Gratuita */}
           <TrialModal 
@@ -6180,7 +6819,7 @@ function App() {
               </Typography>
               
               <Typography variant="body2" sx={{ mb: 3, color: 'text.secondary', fontStyle: 'italic' }}>
-                💡 Paiement par offre : 5% du coût de l'offre utilisée
+                💡 Paiement par offre : Prix complet de l'offre
               </Typography>
               
               <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap' }}>
@@ -6589,6 +7228,9 @@ function App() {
           />
         </Tabs>
       </Box>
+          )}
+        </>
+        )}
     </ThemeProvider>
   );
 }

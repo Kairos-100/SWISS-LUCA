@@ -88,6 +88,18 @@ export interface Offer {
   isNew: boolean;
   price?: string;
   oldPrice?: string;
+  // Control de publicación
+  partnerId?: string;
+  adminId?: string;
+  createdBy: 'partner' | 'admin';
+  createdAt?: any;
+  updatedAt?: any;
+  // Horarios de disponibilidad
+  availabilitySchedule?: {
+    days: string[]; // ['monday', 'tuesday', etc.]
+    startTime: string; // 'HH:mm' formato
+    endTime: string; // 'HH:mm' formato
+  };
 }
 
 export interface FlashDeal {
@@ -113,6 +125,18 @@ export interface FlashDeal {
   isActive: boolean;
   maxQuantity?: number;
   soldQuantity?: number;
+  // Control de publicación
+  partnerId?: string;
+  adminId?: string;
+  createdBy: 'partner' | 'admin';
+  createdAt?: any;
+  updatedAt?: any;
+  // Horarios de disponibilidad
+  availabilitySchedule?: {
+    days: string[]; // ['monday', 'tuesday', etc.]
+    startTime: string; // 'HH:mm' formato
+    endTime: string; // 'HH:mm' formato
+  };
 }
 
 export interface Payment {
@@ -126,4 +150,27 @@ export interface Payment {
   createdAt: any;
   offerId?: string;
   subscriptionPlan?: string;
+}
+
+export interface Partner {
+  id: string;
+  uid: string; // Firebase Auth UID
+  email: string;
+  name: string;
+  businessName: string;
+  address: string;
+  location: {
+    lat: number;
+    lng: number;
+  };
+  rating: number;
+  picture: string;
+  googleMapsLink?: string;
+  phone?: string;
+  website?: string;
+  description?: string;
+  categories: string[];
+  isActive: boolean;
+  createdAt: any;
+  updatedAt: any;
 }
