@@ -1332,96 +1332,177 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
             <Box>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                 <AccessTime sx={{ color: 'primary.main' }} />
-                <Typography variant="h6">Horarios de Disponibilidad (Opcional)</Typography>
+                <Typography variant="h6">📅 Calendario y Horarios de Disponibilidad</Typography>
               </Box>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                Si no seleccionas nada, la oferta estará disponible siempre
-              </Typography>
+              
+              {/* Información explicativa */}
+              <Alert severity="info" sx={{ mb: 2 }}>
+                <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 0.5 }}>
+                  ¿Cómo funciona el calendario?
+                </Typography>
+                <Typography variant="body2">
+                  • <strong>Sin selección:</strong> La oferta estará disponible 24/7, todos los días<br/>
+                  • <strong>Con días seleccionados:</strong> La oferta solo será visible y activable en los días y horarios que configures<br/>
+                  • <strong>Horarios:</strong> Define el rango de horas en que la oferta estará disponible cada día seleccionado
+                </Typography>
+              </Alert>
               
               {/* Botones rápidos */}
-              <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
-                <Button
-                  size="small"
-                  variant="outlined"
-                  onClick={() => setOfferForm(prev => ({ ...prev, availabilityDays: weekDays.map(d => d.value) }))}
-                >
-                  Todos los días
-                </Button>
-                <Button
-                  size="small"
-                  variant="outlined"
-                  onClick={() => setOfferForm(prev => ({ ...prev, availabilityDays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] }))}
-                >
-                  Días laborables
-                </Button>
-                <Button
-                  size="small"
-                  variant="outlined"
-                  onClick={() => setOfferForm(prev => ({ ...prev, availabilityDays: ['saturday', 'sunday'] }))}
-                >
-                  Fines de semana
-                </Button>
-                <Button
-                  size="small"
-                  variant="outlined"
-                  color="error"
-                  onClick={() => setOfferForm(prev => ({ ...prev, availabilityDays: [] }))}
-                >
-                  Limpiar
-                </Button>
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>
+                  Selección rápida:
+                </Typography>
+                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    onClick={() => {
+                      setOfferForm(prev => ({ 
+                        ...prev, 
+                        availabilityDays: weekDays.map(d => d.value),
+                        availabilityStartTime: '00:00',
+                        availabilityEndTime: '23:59'
+                      }));
+                    }}
+                  >
+                    📆 Todos los días (24h)
+                  </Button>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    onClick={() => {
+                      setOfferForm(prev => ({ 
+                        ...prev, 
+                        availabilityDays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
+                        availabilityStartTime: '09:00',
+                        availabilityEndTime: '18:00'
+                      }));
+                    }}
+                  >
+                    💼 Días laborables (9:00-18:00)
+                  </Button>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    onClick={() => {
+                      setOfferForm(prev => ({ 
+                        ...prev, 
+                        availabilityDays: ['saturday', 'sunday'],
+                        availabilityStartTime: '10:00',
+                        availabilityEndTime: '20:00'
+                      }));
+                    }}
+                  >
+                    🎉 Fines de semana (10:00-20:00)
+                  </Button>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    color="error"
+                    onClick={() => setOfferForm(prev => ({ ...prev, availabilityDays: [] }))}
+                  >
+                    🗑️ Limpiar todo
+                  </Button>
+                </Box>
               </Box>
 
+              {/* Selección manual de días */}
               <Box sx={{ mb: 2 }}>
-                <Typography variant="subtitle2" sx={{ mb: 1 }}>Días seleccionados:</Typography>
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>
+                  Selecciona los días de la semana:
+                </Typography>
+                <Box sx={{ 
+                  display: 'grid', 
+                  gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(4, 1fr)' },
+                  gap: 1 
+                }}>
                   {weekDays.map((day) => (
-                    <FormControlLabel
+                    <Chip
                       key={day.value}
-                      control={
-                        <Checkbox
-                          checked={offerForm.availabilityDays.includes(day.value)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setOfferForm(prev => ({
-                                ...prev,
-                                availabilityDays: [...prev.availabilityDays, day.value]
-                              }));
-                            } else {
-                              setOfferForm(prev => ({
-                                ...prev,
-                                availabilityDays: prev.availabilityDays.filter(d => d !== day.value)
-                              }));
-                            }
-                          }}
-                        />
-                      }
                       label={day.label}
+                      onClick={() => {
+                        if (offerForm.availabilityDays.includes(day.value)) {
+                          setOfferForm(prev => ({
+                            ...prev,
+                            availabilityDays: prev.availabilityDays.filter(d => d !== day.value)
+                          }));
+                        } else {
+                          setOfferForm(prev => ({
+                            ...prev,
+                            availabilityDays: [...prev.availabilityDays, day.value]
+                          }));
+                        }
+                      }}
+                      color={offerForm.availabilityDays.includes(day.value) ? 'primary' : 'default'}
+                      variant={offerForm.availabilityDays.includes(day.value) ? 'filled' : 'outlined'}
+                      sx={{ 
+                        cursor: 'pointer',
+                        fontWeight: offerForm.availabilityDays.includes(day.value) ? 'bold' : 'normal'
+                      }}
                     />
                   ))}
                 </Box>
+                {offerForm.availabilityDays.length > 0 && (
+                  <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                    ✓ {offerForm.availabilityDays.length} día(s) seleccionado(s)
+                  </Typography>
+                )}
               </Box>
               
-              {offerForm.availabilityDays.length > 0 && (
-                <Box sx={{ display: 'flex', gap: 2 }}>
-                  <TextField
-                    label="Hora de Inicio"
-                    type="time"
-                    value={offerForm.availabilityStartTime}
-                    onChange={(e) => setOfferForm(prev => ({ ...prev, availabilityStartTime: e.target.value }))}
-                    fullWidth
-                    InputLabelProps={{ shrink: true }}
-                    inputProps={{ step: 300 }}
-                  />
-                  <TextField
-                    label="Hora de Fin"
-                    type="time"
-                    value={offerForm.availabilityEndTime}
-                    onChange={(e) => setOfferForm(prev => ({ ...prev, availabilityEndTime: e.target.value }))}
-                    fullWidth
-                    InputLabelProps={{ shrink: true }}
-                    inputProps={{ step: 300 }}
-                  />
+              {/* Horarios */}
+              {offerForm.availabilityDays.length > 0 ? (
+                <Box>
+                  <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>
+                    ⏰ Horario de disponibilidad:
+                  </Typography>
+                  <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+                    <TextField
+                      label="Hora de Inicio"
+                      type="time"
+                      value={offerForm.availabilityStartTime}
+                      onChange={(e) => setOfferForm(prev => ({ ...prev, availabilityStartTime: e.target.value }))}
+                      fullWidth
+                      InputLabelProps={{ shrink: true }}
+                      inputProps={{ step: 300 }}
+                      helperText="Hora desde la que la oferta estará disponible"
+                    />
+                    <TextField
+                      label="Hora de Fin"
+                      type="time"
+                      value={offerForm.availabilityEndTime}
+                      onChange={(e) => setOfferForm(prev => ({ ...prev, availabilityEndTime: e.target.value }))}
+                      fullWidth
+                      InputLabelProps={{ shrink: true }}
+                      inputProps={{ step: 300 }}
+                      helperText="Hora hasta la que la oferta estará disponible"
+                    />
+                  </Box>
+                  
+                  {/* Resumen visual */}
+                  <Paper sx={{ p: 2, bgcolor: 'action.hover', mt: 2 }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1 }}>
+                      📋 Resumen de disponibilidad:
+                    </Typography>
+                    <Typography variant="body2">
+                      <strong>Días:</strong> {
+                        offerForm.availabilityDays.length === 0 
+                          ? 'Siempre disponible (24/7)'
+                          : offerForm.availabilityDays.map(d => weekDays.find(w => w.value === d)?.label).join(', ')
+                      }
+                    </Typography>
+                    {offerForm.availabilityDays.length > 0 && (
+                      <Typography variant="body2" sx={{ mt: 0.5 }}>
+                        <strong>Horario:</strong> {offerForm.availabilityStartTime} - {offerForm.availabilityEndTime}
+                      </Typography>
+                    )}
+                  </Paper>
                 </Box>
+              ) : (
+                <Paper sx={{ p: 2, bgcolor: 'action.hover', textAlign: 'center' }}>
+                  <Typography variant="body2" color="text.secondary">
+                    ℹ️ No has seleccionado días específicos. La oferta estará disponible siempre (24/7).
+                  </Typography>
+                </Paper>
               )}
             </Box>
             <Divider sx={{ my: 2 }} />
@@ -1607,96 +1688,177 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
             <Box>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                 <AccessTime sx={{ color: 'primary.main' }} />
-                <Typography variant="h6">Horarios de Disponibilidad (Opcional)</Typography>
+                <Typography variant="h6">📅 Calendario y Horarios de Disponibilidad</Typography>
               </Box>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                Si no seleccionas nada, el flash deal estará disponible siempre
-              </Typography>
+              
+              {/* Información explicativa */}
+              <Alert severity="info" sx={{ mb: 2 }}>
+                <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 0.5 }}>
+                  ¿Cómo funciona el calendario?
+                </Typography>
+                <Typography variant="body2">
+                  • <strong>Sin selección:</strong> El flash deal estará disponible 24/7, todos los días<br/>
+                  • <strong>Con días seleccionados:</strong> El flash deal solo será visible y activable en los días y horarios que configures<br/>
+                  • <strong>Horarios:</strong> Define el rango de horas en que el flash deal estará disponible cada día seleccionado
+                </Typography>
+              </Alert>
               
               {/* Botones rápidos */}
-              <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
-                <Button
-                  size="small"
-                  variant="outlined"
-                  onClick={() => setFlashDealForm(prev => ({ ...prev, availabilityDays: weekDays.map(d => d.value) }))}
-                >
-                  Todos los días
-                </Button>
-                <Button
-                  size="small"
-                  variant="outlined"
-                  onClick={() => setFlashDealForm(prev => ({ ...prev, availabilityDays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] }))}
-                >
-                  Días laborables
-                </Button>
-                <Button
-                  size="small"
-                  variant="outlined"
-                  onClick={() => setFlashDealForm(prev => ({ ...prev, availabilityDays: ['saturday', 'sunday'] }))}
-                >
-                  Fines de semana
-                </Button>
-                <Button
-                  size="small"
-                  variant="outlined"
-                  color="error"
-                  onClick={() => setFlashDealForm(prev => ({ ...prev, availabilityDays: [] }))}
-                >
-                  Limpiar
-                </Button>
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>
+                  Selección rápida:
+                </Typography>
+                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    onClick={() => {
+                      setFlashDealForm(prev => ({ 
+                        ...prev, 
+                        availabilityDays: weekDays.map(d => d.value),
+                        availabilityStartTime: '00:00',
+                        availabilityEndTime: '23:59'
+                      }));
+                    }}
+                  >
+                    📆 Todos los días (24h)
+                  </Button>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    onClick={() => {
+                      setFlashDealForm(prev => ({ 
+                        ...prev, 
+                        availabilityDays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
+                        availabilityStartTime: '09:00',
+                        availabilityEndTime: '18:00'
+                      }));
+                    }}
+                  >
+                    💼 Días laborables (9:00-18:00)
+                  </Button>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    onClick={() => {
+                      setFlashDealForm(prev => ({ 
+                        ...prev, 
+                        availabilityDays: ['saturday', 'sunday'],
+                        availabilityStartTime: '10:00',
+                        availabilityEndTime: '20:00'
+                      }));
+                    }}
+                  >
+                    🎉 Fines de semana (10:00-20:00)
+                  </Button>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    color="error"
+                    onClick={() => setFlashDealForm(prev => ({ ...prev, availabilityDays: [] }))}
+                  >
+                    🗑️ Limpiar todo
+                  </Button>
+                </Box>
               </Box>
 
+              {/* Selección manual de días */}
               <Box sx={{ mb: 2 }}>
-                <Typography variant="subtitle2" sx={{ mb: 1 }}>Días seleccionados:</Typography>
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>
+                  Selecciona los días de la semana:
+                </Typography>
+                <Box sx={{ 
+                  display: 'grid', 
+                  gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(4, 1fr)' },
+                  gap: 1 
+                }}>
                   {weekDays.map((day) => (
-                    <FormControlLabel
+                    <Chip
                       key={day.value}
-                      control={
-                        <Checkbox
-                          checked={flashDealForm.availabilityDays.includes(day.value)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setFlashDealForm(prev => ({
-                                ...prev,
-                                availabilityDays: [...prev.availabilityDays, day.value]
-                              }));
-                            } else {
-                              setFlashDealForm(prev => ({
-                                ...prev,
-                                availabilityDays: prev.availabilityDays.filter(d => d !== day.value)
-                              }));
-                            }
-                          }}
-                        />
-                      }
                       label={day.label}
+                      onClick={() => {
+                        if (flashDealForm.availabilityDays.includes(day.value)) {
+                          setFlashDealForm(prev => ({
+                            ...prev,
+                            availabilityDays: prev.availabilityDays.filter(d => d !== day.value)
+                          }));
+                        } else {
+                          setFlashDealForm(prev => ({
+                            ...prev,
+                            availabilityDays: [...prev.availabilityDays, day.value]
+                          }));
+                        }
+                      }}
+                      color={flashDealForm.availabilityDays.includes(day.value) ? 'primary' : 'default'}
+                      variant={flashDealForm.availabilityDays.includes(day.value) ? 'filled' : 'outlined'}
+                      sx={{ 
+                        cursor: 'pointer',
+                        fontWeight: flashDealForm.availabilityDays.includes(day.value) ? 'bold' : 'normal'
+                      }}
                     />
                   ))}
                 </Box>
+                {flashDealForm.availabilityDays.length > 0 && (
+                  <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                    ✓ {flashDealForm.availabilityDays.length} día(s) seleccionado(s)
+                  </Typography>
+                )}
               </Box>
               
-              {flashDealForm.availabilityDays.length > 0 && (
-                <Box sx={{ display: 'flex', gap: 2 }}>
-                  <TextField
-                    label="Hora de Inicio"
-                    type="time"
-                    value={flashDealForm.availabilityStartTime}
-                    onChange={(e) => setFlashDealForm(prev => ({ ...prev, availabilityStartTime: e.target.value }))}
-                    fullWidth
-                    InputLabelProps={{ shrink: true }}
-                    inputProps={{ step: 300 }}
-                  />
-                  <TextField
-                    label="Hora de Fin"
-                    type="time"
-                    value={flashDealForm.availabilityEndTime}
-                    onChange={(e) => setFlashDealForm(prev => ({ ...prev, availabilityEndTime: e.target.value }))}
-                    fullWidth
-                    InputLabelProps={{ shrink: true }}
-                    inputProps={{ step: 300 }}
-                  />
+              {/* Horarios */}
+              {flashDealForm.availabilityDays.length > 0 ? (
+                <Box>
+                  <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>
+                    ⏰ Horario de disponibilidad:
+                  </Typography>
+                  <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+                    <TextField
+                      label="Hora de Inicio"
+                      type="time"
+                      value={flashDealForm.availabilityStartTime}
+                      onChange={(e) => setFlashDealForm(prev => ({ ...prev, availabilityStartTime: e.target.value }))}
+                      fullWidth
+                      InputLabelProps={{ shrink: true }}
+                      inputProps={{ step: 300 }}
+                      helperText="Hora desde la que el flash deal estará disponible"
+                    />
+                    <TextField
+                      label="Hora de Fin"
+                      type="time"
+                      value={flashDealForm.availabilityEndTime}
+                      onChange={(e) => setFlashDealForm(prev => ({ ...prev, availabilityEndTime: e.target.value }))}
+                      fullWidth
+                      InputLabelProps={{ shrink: true }}
+                      inputProps={{ step: 300 }}
+                      helperText="Hora hasta la que el flash deal estará disponible"
+                    />
+                  </Box>
+                  
+                  {/* Resumen visual */}
+                  <Paper sx={{ p: 2, bgcolor: 'action.hover', mt: 2 }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1 }}>
+                      📋 Resumen de disponibilidad:
+                    </Typography>
+                    <Typography variant="body2">
+                      <strong>Días:</strong> {
+                        flashDealForm.availabilityDays.length === 0 
+                          ? 'Siempre disponible (24/7)'
+                          : flashDealForm.availabilityDays.map(d => weekDays.find(w => w.value === d)?.label).join(', ')
+                      }
+                    </Typography>
+                    {flashDealForm.availabilityDays.length > 0 && (
+                      <Typography variant="body2" sx={{ mt: 0.5 }}>
+                        <strong>Horario:</strong> {flashDealForm.availabilityStartTime} - {flashDealForm.availabilityEndTime}
+                      </Typography>
+                    )}
+                  </Paper>
                 </Box>
+              ) : (
+                <Paper sx={{ p: 2, bgcolor: 'action.hover', textAlign: 'center' }}>
+                  <Typography variant="body2" color="text.secondary">
+                    ℹ️ No has seleccionado días específicos. El flash deal estará disponible siempre (24/7).
+                  </Typography>
+                </Paper>
               )}
             </Box>
             <Divider sx={{ my: 2 }} />

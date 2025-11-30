@@ -84,6 +84,7 @@ import {
   LockIcon
 } from './components/ProfessionalIcons';
 import { getCategoryIcon } from './utils/iconUtils';
+import { isOfferAvailable, getAvailabilityText } from './utils/availabilityUtils';
 import professionalTheme from './theme/professionalTheme';
 import './styles/professionalStyles.css';
 import './App.css';
@@ -662,7 +663,8 @@ function MapView({ offers, flashDeals, selectedCategory, onOfferClick, onFlashDe
       isNew: true, // Las ofertas flash siempre son nuevas
       price: `CHF ${deal.discountedPrice}`,
       oldPrice: `CHF ${deal.originalPrice}`,
-      usagePrice: deal.discountedPrice
+      usagePrice: deal.discountedPrice,
+      availabilitySchedule: deal.availabilitySchedule // Incluir horarios
     }));
 
     // Combinar ofertas regulares y flash
@@ -671,6 +673,9 @@ function MapView({ offers, flashDeals, selectedCategory, onOfferClick, onFlashDe
     let filtered = selectedCategory === 'all' 
       ? allOffers 
       : allOffers.filter(offer => offer.category === selectedCategory);
+
+    // Filtrar por disponibilidad según calendario y horario
+    filtered = filtered.filter(offer => isOfferAvailable(offer));
 
     // Sort by distance if user location is available
     if (userLocation) {
@@ -1900,6 +1905,8 @@ function OffersList({ offers, selectedCategory, selectedSubCategory, onOfferClic
     let filtered = offers.filter(offer => {
       if (selectedCategory !== 'all' && offer.category !== selectedCategory) return false;
       if (selectedSubCategory !== 'all' && offer.subCategory !== selectedSubCategory) return false;
+      // Filtrar por disponibilidad según calendario y horario
+      if (!isOfferAvailable(offer)) return false;
       return true;
     });
 
@@ -2246,6 +2253,24 @@ function OffersList({ offers, selectedCategory, selectedSubCategory, onOfferClic
                   <Star sx={{ fontSize: 16, color: '#FFD700' }} />
                   <Typography variant="body2">{offer.rating}</Typography>
                 </Box>
+                {/* Chip de disponibilidad */}
+                {offer.availabilitySchedule && offer.availabilitySchedule.days && offer.availabilitySchedule.days.length > 0 && (
+                  <Chip
+                    icon={<AccessTime sx={{ fontSize: 14 }} />}
+                    label={isOfferAvailable(offer) ? 'Disponible ahora' : 'Fuera de horario'}
+                    size="small"
+                    color={isOfferAvailable(offer) ? 'success' : 'default'}
+                    sx={{
+                      position: 'absolute',
+                      bottom: 8,
+                      right: 8,
+                      bgcolor: isOfferAvailable(offer) ? 'rgba(76, 175, 80, 0.9)' : 'rgba(158, 158, 158, 0.9)',
+                      color: 'white',
+                      fontWeight: 'bold',
+                      fontSize: '0.7rem'
+                    }}
+                  />
+                )}
               </Box>
               
               <CardContent sx={{ p: { xs: 2, sm: 2 } }}>
@@ -2266,7 +2291,7 @@ function OffersList({ offers, selectedCategory, selectedSubCategory, onOfferClic
                   {offer.description}
                 </Typography>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexWrap: 'wrap' }}>
                     <LocationIcon sx={{ fontSize: '1rem', color: '#888' }} />
                     <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}>
                       {offer.location.address}
@@ -2279,6 +2304,23 @@ function OffersList({ offers, selectedCategory, selectedSubCategory, onOfferClic
                       }}>
                         📍 {(offer as any).distance.toFixed(1)} km
                       </Typography>
+                    )}
+                    {/* Información de horario */}
+                    {offer.availabilitySchedule && offer.availabilitySchedule.days && offer.availabilitySchedule.days.length > 0 && (
+                      <Chip
+                        icon={<AccessTime sx={{ fontSize: 12 }} />}
+                        label={getAvailabilityText(offer)}
+                        size="small"
+                        variant="outlined"
+                        sx={{
+                          fontSize: { xs: '0.65rem', sm: '0.75rem' },
+                          height: 'auto',
+                          py: 0.25,
+                          '& .MuiChip-label': {
+                            padding: '0 6px'
+                          }
+                        }}
+                      />
                     )}
                   </Box>
                   {offer.price && offer.oldPrice && (
@@ -3218,7 +3260,7 @@ function OfferDetail({ offer, open, onClose }: { offer: Offer | null, open: bool
 
 function App() {
   const { t } = useTranslation();
-  const [offers] = useState<Offer[]>(initialOffers);
+  const [offers, setOffers] = useState<Offer[]>(initialOffers);
   const [selectedTab, setSelectedTab] = useState(1);
   const [flashDeals, setFlashDeals] = useState<FlashDeal[]>(initialFlashDeals);
   const [activatedFlashDeals, setActivatedFlashDeals] = useState<Set<string>>(new Set());
@@ -3588,6 +3630,44 @@ function App() {
       };
     }
   }, [isDragging, isTransitioning, startX, currentX]);
+
+  // Cargar ofertas y flash deals desde Firestore
+  useEffect(() => {
+    const loadOffersFromFirestore = async () => {
+      try {
+        // Cargar ofertas
+        const offersRef = collection(db, 'offers');
+        const offersSnapshot = await getDocs(offersRef);
+        const offersData = offersSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        })) as Offer[];
+        
+        // Combinar con ofertas iniciales (por si hay ofertas hardcodeadas)
+        setOffers([...initialOffers, ...offersData]);
+
+        // Cargar flash deals
+        const flashDealsRef = collection(db, 'flashDeals');
+        const flashDealsSnapshot = await getDocs(flashDealsRef);
+        const flashDealsData = flashDealsSnapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            ...data,
+            startTime: data.startTime?.toDate() || new Date(),
+            endTime: data.endTime?.toDate() || new Date()
+          };
+        }) as FlashDeal[];
+        
+        // Combinar con flash deals iniciales
+        setFlashDeals([...initialFlashDeals, ...flashDealsData]);
+      } catch (error) {
+        console.error('Error cargando ofertas/flash deals desde Firestore:', error);
+      }
+    };
+
+    loadOffersFromFirestore();
+  }, []);
 
   // Listener de autenticación
   useEffect(() => {

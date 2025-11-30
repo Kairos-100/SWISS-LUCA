@@ -5,15 +5,18 @@ import {
   Card,
   CardContent,
   Button,
-  LinearProgress
+  LinearProgress,
+  Chip
 } from '@mui/material';
 import {
   Star,
-  CheckCircle
+  CheckCircle,
+  AccessTime
 } from '@mui/icons-material';
 import { LocationIcon, LockIcon, TimeIcon } from './ProfessionalIcons';
 import { ScrollBlockWrapper } from './ScrollBlockWrapper';
 import { SlideToConfirmButton } from './SlideToConfirmButton';
+import { isOfferAvailable, getAvailabilityText } from '../utils/availabilityUtils';
 
 interface FlashDeal {
   id: string;
@@ -38,6 +41,11 @@ interface FlashDeal {
   isActive: boolean;
   maxQuantity?: number;
   soldQuantity?: number;
+  availabilitySchedule?: {
+    days: string[];
+    startTime: string;
+    endTime: string;
+  };
 }
 
 interface FlashDealCardProps {
@@ -123,6 +131,26 @@ export const FlashDealCard = memo<FlashDealCardProps>(({
         }}>
           {deal.discount}
         </Box>
+
+        {/* Chip de disponibilidad */}
+        {deal.availabilitySchedule && deal.availabilitySchedule.days && deal.availabilitySchedule.days.length > 0 && (
+          <Chip
+            icon={<AccessTime sx={{ fontSize: 14 }} />}
+            label={isOfferAvailable(deal) ? 'Disponible ahora' : 'Fuera de horario'}
+            size="small"
+            color={isOfferAvailable(deal) ? 'success' : 'default'}
+            sx={{
+              position: 'absolute',
+              top: 12,
+              left: 12,
+              bgcolor: isOfferAvailable(deal) ? 'rgba(76, 175, 80, 0.9)' : 'rgba(158, 158, 158, 0.9)',
+              color: 'white',
+              fontWeight: 'bold',
+              fontSize: '0.7rem',
+              zIndex: 2
+            }}
+          />
+        )}
 
         {/* Indicador de estado */}
         {offerStatus === 'blocked' && !canScroll && (
@@ -401,7 +429,7 @@ export const FlashDealCard = memo<FlashDealCardProps>(({
           )}
 
           {/* Rating y ubicación */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 2, flexWrap: 'wrap' }}>
             <Star sx={{ color: '#FFD700', fontSize: '1rem' }} />
             <Typography variant="body2" sx={{ color: '#bbb' }}>
               {deal.rating}
@@ -410,6 +438,26 @@ export const FlashDealCard = memo<FlashDealCardProps>(({
             <Typography variant="body2" sx={{ color: '#888' }}>
               {deal.location.address}
             </Typography>
+            {/* Información de horario */}
+            {deal.availabilitySchedule && deal.availabilitySchedule.days && deal.availabilitySchedule.days.length > 0 && (
+              <Chip
+                icon={<AccessTime sx={{ fontSize: 12 }} />}
+                label={getAvailabilityText(deal)}
+                size="small"
+                variant="outlined"
+                sx={{
+                  fontSize: '0.65rem',
+                  height: 'auto',
+                  py: 0.25,
+                  ml: 1,
+                  borderColor: '#888',
+                  color: '#888',
+                  '& .MuiChip-label': {
+                    padding: '0 6px'
+                  }
+                }}
+              />
+            )}
           </Box>
 
           {/* Barra de progreso de ventas */}

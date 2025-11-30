@@ -4,6 +4,7 @@ import { ActivationCountdownModal } from './ActivationCountdownModal';
 import { BlockedOfferModal } from './BlockedOfferModal';
 import { FlashDealCard } from './FlashDealCard';
 import { useBlockedOffers } from '../hooks/useBlockedOffers';
+import { isOfferAvailable } from '../utils/availabilityUtils';
 
 interface FlashDeal {
   id: string;
@@ -114,7 +115,9 @@ export const FlashDealsWithBlocking: React.FC<FlashDealsWithBlockingProps> = ({
         }, 
         gap: 3 
       }}>
-        {flashDeals.map((deal) => {
+        {flashDeals
+          .filter(deal => isOfferAvailable(deal)) // Filtrar por disponibilidad según calendario y horario
+          .map((deal) => {
           // Memoizar cálculos costosos para evitar re-renderizados innecesarios
           const dealData = useMemo(() => {
             const timeRemaining = getTimeRemaining(deal.endTime);
