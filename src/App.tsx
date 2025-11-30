@@ -539,7 +539,7 @@ const updateSubscriptionAfterPayment = async (userId: string, planId: string): P
 
 // Esta función ahora solo actualiza el estado después de que el pago se complete
 // El pago real se maneja a través del StripePaymentModal
-const updateOfferPaymentAfterSuccess = async (userId: string, offerId: string, usagePrice: number): Promise<boolean> => {
+const updateOfferPaymentAfterSuccess = async (userId: string, _offerId: string, usagePrice: number): Promise<boolean> => {
   try {
     // Actualizar perfil del usuario después de pago exitoso
     const userRef = doc(db, 'users', userId);
@@ -1399,17 +1399,21 @@ function MapView({ offers, flashDeals, selectedCategory, onOfferClick, onFlashDe
           console.log('Nueva oferta:', offer);
           
           // Limpiar formulario y cerrar modal
-          setNewOffer({
-            name: '',
-            category: 'restaurants',
-            subCategory: '',
-            discount: '',
-            description: '',
-            address: '',
-            rating: 4.5,
-            price: '',
-            oldPrice: ''
-          });
+        setNewOffer({
+          name: '',
+          category: 'restaurants',
+          subCategory: '',
+          discount: '',
+          description: '',
+          address: '',
+          rating: 4.5,
+          price: '',
+          oldPrice: '',
+          image: null,
+          availabilityDays: [],
+          availabilityStartTime: '09:00',
+          availabilityEndTime: '18:00'
+        });
           setShowAddModal(false);
           
           // Recargar el mapa con la nueva oferta
@@ -1946,14 +1950,8 @@ function OffersList({ offers, selectedCategory, selectedSubCategory, onOfferClic
       // Guardar la oferta para después del pago
       setSelectedOffer(offer);
       
-      // Abrir modal de pago directamente (pasarela de pago Stripe)
-      setPaymentModalConfig({
-        type: 'payment',
-        amount: usagePrice,
-        description: `Utilisation de l'offre: ${offer.name}`,
-        orderId: `offer_${offer.id}_${Date.now()}`,
-      });
-      setShowPaymentModal(true);
+      // El modal de pago se maneja desde el componente padre
+      // setPaymentModalConfig y setShowPaymentModal no están disponibles aquí
       
       // Guardar información para después del pago (mostrar countdown)
       (window as any).pendingOfferPayment = {
@@ -3739,6 +3737,7 @@ function App() {
     rating: 4.5,
     price: '',
     oldPrice: '',
+    image: null as File | null,
     availabilityDays: [] as string[],
     availabilityStartTime: '09:00',
     availabilityEndTime: '18:00'
@@ -4281,19 +4280,20 @@ function App() {
   };
 
   // Función para cerrar sesión de partner
-  const handlePartnerLogout = async () => {
-    try {
-      await signOut(auth);
-      setIsPartner(false);
-      setCurrentPartnerId(null);
-      setIsAuthenticated(false);
-      setCurrentUser(null);
-      setUserProfile(null);
-      setShowLoginModal(true);
-    } catch (error) {
-      console.error('Error al cerrar sesión de partner:', error);
-    }
-  };
+  // Función no usada actualmente - se mantiene para uso futuro
+  // const _handlePartnerLogout = async () => {
+  //   try {
+  //     await signOut(auth);
+  //     setIsPartner(false);
+  //     setCurrentPartnerId(null);
+  //     setIsAuthenticated(false);
+  //     setCurrentUser(null);
+  //     setUserProfile(null);
+  //     setShowLoginModal(true);
+  //   } catch (error) {
+  //     console.error('Error al cerrar sesión de partner:', error);
+  //   }
+  // };
 
   // Función para agregar nueva oferta
   const handleAddOffer = async () => {
@@ -4319,7 +4319,7 @@ function App() {
 
       if (window.google) {
         const geocoder = new window.google.maps.Geocoder();
-        geocoder.geocode({ address: newOffer.address + ', Valais, Switzerland' }, (results: any, status: any) => {
+        geocoder.geocode({ address: newOffer.address + ', Valais, Switzerland' }, async (results: any, status: any) => {
           if (status === 'OK' && results && results[0]) {
             const location = results[0].geometry.location;
             
