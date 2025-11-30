@@ -299,122 +299,12 @@ const en = {
   }
 };
 
-// Traducciones en coreano
-const ko = {
-  translation: {
-    // Navigation
-    carte: "지도",
-    liste: "목록", 
-    flash: "플래시",
-    profil: "프로필",
-    argent: "돈",
-    
-    // Filters
-    filtros: "필터:",
-    restaurants: "레스토랑",
-    bars: "바",
-    shops: "상점",
-    
-    // Offers
-    offres: "제안",
-    offresFlash: "플래시 제안",
-    offresLimitees: "놀라운 할인과 함께하는 한정 제안! 놓치지 마세요!",
-    tempsRestant: "남은 시간:",
-    voirOffre: "제안 보기",
-    activer: "지금 활성화",
-    glisserPourActiver: "← 활성화하려면 스와이프",
-    activee: "✅ 활성화됨!",
-    
-    // Subscription
-    abonnementExpire: "구독이 만료되었습니다. 모든 제안에 액세스하려면 구독하세요.",
-    periodeEssai: "평판 기간 활성",
-    joursRestants: "일 남음",
-    sabonnerMaintenant: "지금 구독",
-    
-    // Profile
-    offresUtilisees: "사용된 제안",
-    totalEpargne: "총 절약",
-    points: "포인트",
-    niveau: "레벨",
-    
-    // Money
-    historiqueTransactions: "거래 내역",
-    exporterCSV: "CSV 내보내기",
-    
-    // General
-    bienvenue: "환영합니다",
-    connexion: "로그인",
-    inscription: "회원가입",
-    deconnexion: "로그아웃",
-    email: "이메일",
-    motDePasse: "비밀번호",
-    confirmerMotDePasse: "비밀번호 확인",
-    nom: "이름",
-    prenom: "이름",
-    seConnecter: "로그인",
-    sinscrire: "회원가입",
-    motDePasseOublie: "비밀번호를 잊으셨나요?",
-    pasDeCompte: "계정이 없으신가요?",
-    dejaUnCompte: "이미 계정이 있으신가요?",
-    fermer: "닫기",
-    sauvegarder: "저장",
-    annuler: "취소",
-    oui: "예",
-    non: "아니오",
-    erreur: "오류",
-    succes: "성공",
-    chargement: "로딩 중...",
-    valider: "확인",
-    
-    // Subscription modal
-    gestionAbonnement: "구독 관리",
-    activerAbonnement: "구독 활성화",
-    abonnementActif: "활성 구독",
-    planMensuel: "월간 플랜",
-    planAnnuel: "연간 플랜",
-    accesComplet: "전체 앱 액세스",
-    offresIllimitees: "무제한 혜택",
-    supportPrioritaire: "우선 지원",
-    deuxMoisGratuits: "2개월 무료",
-    
-    // Personal information
-    informationsPersonnelles: "개인 정보",
-    modifier: "수정",
-    ville: "도시",
-    dernieresOffresActivees: "최근 활성화된 혜택",
-    tableauBordFinancier: "금융 대시보드",
-    resumeFinancier: "금융 요약",
-    totalEconomise: "총 절약액",
-    abonnement: "구독",
-    actif: "활성",
-    inactif: "비활성",
-    annulerAbonnement: "구독 취소",
-    confirmerAnnulation: "취소 확인",
-    messageAnnulation: "구독을 취소하시겠습니까? 이 작업은 되돌릴 수 없습니다.",
-    abonnementAnnule: "구독이 성공적으로 취소되었습니다",
-    erreurAnnulation: "구독 취소 중 오류",
-    
-    // Subscription status
-    subscriptionValidUntil: "구독 유효 기간",
-    subscriptionExpires: "만료일",
-    membershipActiveUntil: "활성 회원 기간",
-    subscriptionStatus: "구독 상태",
-    timeRemaining: "남은 시간",
-    expired: "만료됨",
-    expiringSoon: "곧 만료 - 지금 갱신하세요",
-    refresh: "새로고침",
-    trial: "체험",
-    totalPaid: "총 결제액"
-  }
-};
-
 i18n
   .use(initReactI18next)
   .init({
     resources: {
       fr,
-      en,
-      ko
+      en
     },
     lng: 'fr', // Forzar francés como idioma predeterminado
     fallbackLng: 'fr',

@@ -13,8 +13,7 @@ import { ExpandMore } from '@mui/icons-material';
 
 const languages = [
   { code: 'fr', name: 'Français', flag: '🇫🇷' },
-  { code: 'en', name: 'English', flag: '🇺🇸' },
-  { code: 'ko', name: '한국어', flag: '🇰🇷' }
+  { code: 'en', name: 'English', flag: '🇺🇸' }
 ];
 
 const LanguageSelector: React.FC = () => {

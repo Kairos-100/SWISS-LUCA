@@ -18,7 +18,6 @@ import {
   Close,
   Payment,
   CheckCircle,
-  Error,
 } from '@mui/icons-material';
 import { paymentService } from '../services/paymentService';
 import { getFunctions, httpsCallable } from 'firebase/functions';
@@ -348,5 +347,3 @@ export const StripePaymentModal: React.FC<StripePaymentModalProps> = ({
     </Dialog>
   );
 };
-
-

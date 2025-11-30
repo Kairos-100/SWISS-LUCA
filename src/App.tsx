@@ -13,7 +13,7 @@ import { StripePaymentModal } from './components/StripePaymentModal';
 import { PartnerLoginModal } from './components/PartnerLoginModal';
 import { PartnerDashboard } from './components/PartnerDashboard';
 import { UserManagementModal } from './components/UserManagementModal';
-import type { UserProfile, Offer, FlashDeal, Payment, Partner } from './types';
+import type { UserProfile, Offer, FlashDeal, Partner } from './types';
 import './i18n';
 import { 
   AppBar, 
@@ -556,43 +556,6 @@ const updateOfferPaymentAfterSuccess = async (userId: string, offerId: string, u
   }
 };
 
-// Datos de socios (como amigos en Snap) - Ya no se usa, ahora es dinámico
-/*
-const partnersData = [
-  {
-    id: 'mcdonalds',
-    name: 'McDonald\'s',
-    category: 'restaurants',
-    location: { lat: 46.2306, lng: 7.3590 },
-    address: 'Rue du Simplon, Sion',
-    discount: '20% OFF'
-  },
-  {
-    id: 'burger_king',
-    name: 'Burger King',
-    category: 'restaurants',
-    location: { lat: 46.2310, lng: 7.3600 },
-    address: 'Avenue de la Gare, Sion',
-    discount: '15% OFF'
-  },
-  {
-    id: 'kfc',
-    name: 'KFC',
-    category: 'restaurants',
-    location: { lat: 46.2320, lng: 7.3610 },
-    address: 'Rue du Rhône, Sion',
-    discount: '25% OFF'
-  },
-  {
-    id: 'subway',
-    name: 'Subway',
-    category: 'restaurants',
-    location: { lat: 46.2330, lng: 7.3620 },
-    address: 'Place de la Planta, Sion',
-    discount: '30% OFF'
-  }
-];
-*/
 
 function MapView({ offers, flashDeals, selectedCategory, onOfferClick, onFlashDealClick, userLocation, getUserLocation, calculateDistance }: { 
   offers: Offer[], 
@@ -1964,15 +1927,18 @@ function OffersList({ offers, selectedCategory, selectedSubCategory, onOfferClic
       navigator.vibrate([100, 50, 100]);
     }
     
-    // Si la oferta tiene precio, abrir modal de pago primero
+    // Si la oferta tiene precio, SIEMPRE abrir modal de pago primero (pasarela de pago)
     if (offer.price && currentUser) {
-      const offerPrice = parseFloat(offer.price.replace('CHF ', '').replace(',', '.'));
+      // Parsear el precio correctamente (manejar formato "CHF 20,00" o "CHF 20.00")
+      const offerPrice = typeof offer.price === 'string' 
+        ? parseFloat(offer.price.replace('CHF ', '').replace(',', '.'))
+        : parseFloat(offer.price.toString());
       const usagePrice = offerPrice * OFFER_USAGE_PERCENTAGE;
       
       // Guardar la oferta para después del pago
       setSelectedOffer(offer);
       
-      // Abrir modal de pago directamente
+      // Abrir modal de pago directamente (pasarela de pago Stripe)
       setPaymentModalConfig({
         type: 'payment',
         amount: usagePrice,
@@ -3644,13 +3610,13 @@ function App() {
     return () => unsubscribe();
   }, []);
 
-  // Mostrar modal de suscripción cuando el usuario no tenga suscripción activa
+  // Mostrar modal de pago cuando el usuario no tenga suscripción activa
   useEffect(() => {
-    if (isAuthenticated && userProfile) {
+    if (isAuthenticated && userProfile && currentUser) {
       const isSubscriptionActive = checkSubscriptionStatus(userProfile);
       const isTrialActive = checkTrialStatus(userProfile);
       
-      // Si el trial expiró o la suscripción expiró, abrir modal de suscripción
+      // Si el trial expiró o la suscripción expiró, abrir modal de pago directamente
       if (!isSubscriptionActive && !isTrialActive) {
         const now = new Date();
         const subscriptionEnd = userProfile.subscriptionEnd.toDate();
@@ -3660,15 +3626,27 @@ function App() {
         const oneHour = 60 * 60 * 1000;
         
         if (timeSinceExpiry > 0 && timeSinceExpiry < oneHour) {
-          // Abrir modal de suscripción automáticamente
-          setShowSubscriptionModal(true);
+          // Usar el último plan del usuario si está disponible, sino usar mensual por defecto
+          const lastPlanType = userProfile.subscriptionPlan === 'yearly' ? 'yearly' : 'monthly';
+          const plan = SUBSCRIPTION_PLANS.find(p => p.type === lastPlanType) || SUBSCRIPTION_PLANS[0];
+          
+          // Abrir modal de pago directamente con la suscripción
+          setPaymentModalConfig({
+            type: 'subscription',
+            amount: plan.price,
+            description: `${plan.name} - LUCA App`,
+            orderId: `sub_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            planType: plan.type,
+            planId: plan.id,
+          });
+          setShowPaymentModal(true);
         }
       } else {
         // Ocultar modal si tiene suscripción activa
         setShowSubscriptionOverlay(false);
       }
     }
-  }, [isAuthenticated, userProfile]);
+  }, [isAuthenticated, userProfile, currentUser]);
 
   const [newOffer, setNewOffer] = useState({
     name: '',
@@ -4757,25 +4735,49 @@ function App() {
     // Registrar que el usuario vio esta oferta
     await updateOffersViewed(deal.id, deal.category);
 
-    // Las ofertas flash se procesan directamente
-    
-    // Procesar pago por uso de oferta
+    // Si la oferta flash tiene precio, abrir modal de pago directamente (pasarela de pago)
     if (currentUser && deal.price) {
-      const offerPrice = parseFloat(deal.price);
-      const usageCost = offerPrice * OFFER_USAGE_PERCENTAGE;
+      // Parsear el precio correctamente
+      const offerPrice = typeof deal.price === 'string' 
+        ? parseFloat(deal.price.replace('CHF ', '').replace(',', '.'))
+        : parseFloat(deal.price.toString());
+      const usagePrice = offerPrice * OFFER_USAGE_PERCENTAGE;
       
-      try {
-        // Actualizar el perfil del usuario con el costo
-        await updateDoc(doc(db, 'users', currentUser.uid), {
-          totalSpent: arrayUnion(usageCost),
-          lastOfferUsed: Timestamp.now()
-        });
-        
-        addNotification('success', `Oferta flash utilizada! Costo: CHF ${usageCost.toFixed(2)}`);
-      } catch (error) {
-        console.error('Error updating user profile:', error);
-        addNotification('warning', 'Error al procesar el uso de la oferta');
-      }
+      // Convertir FlashDeal a Offer para el modal
+      const offerData: Offer = {
+        id: deal.id,
+        name: deal.name,
+        image: deal.image,
+        category: deal.category,
+        subCategory: deal.subCategory,
+        discount: deal.discount,
+        description: deal.description,
+        location: deal.location,
+        rating: deal.rating,
+        isNew: true,
+        price: deal.price,
+        oldPrice: deal.oldPrice,
+        usagePrice: usagePrice
+      };
+      
+      // Abrir modal de pago con Stripe/Twint directamente
+      setPaymentModalConfig({
+        type: 'payment',
+        amount: usagePrice,
+        description: `Utilisation de l'offre flash: ${deal.name}`,
+        orderId: `flash_${deal.id}_${Date.now()}`,
+      });
+      setShowPaymentModal(true);
+      
+      // Guardar información de la oferta flash para después del pago
+      (window as any).pendingOfferPayment = {
+        offerId: deal.id,
+        offerName: deal.name,
+        usagePrice: usagePrice,
+        offerData: offerData,
+        shouldActivate: true, // Activar directamente después del pago
+        shouldShowCountdown: false
+      };
     }
   };
 
@@ -4803,12 +4805,15 @@ function App() {
       usagePrice: offer.price ? parseFloat(offer.price) * OFFER_USAGE_PERCENTAGE : 0
     };
     
-    // Si la oferta tiene precio, abrir modal de pago
+    // Si la oferta tiene precio, abrir modal de pago directamente
     if (currentUser && offer.price) {
-      const offerPrice = parseFloat(offer.price);
+      // Parsear el precio correctamente (manejar formato "CHF 20,00" o "CHF 20.00")
+      const offerPrice = typeof offer.price === 'string' 
+        ? parseFloat(offer.price.replace('CHF ', '').replace(',', '.'))
+        : parseFloat(offer.price.toString());
       const usagePrice = offerPrice * OFFER_USAGE_PERCENTAGE;
       
-      // Abrir modal de pago con Stripe/Twint
+      // Abrir modal de pago con Stripe/Twint directamente
       setPaymentModalConfig({
         type: 'payment',
         amount: usagePrice,
@@ -4822,7 +4827,8 @@ function App() {
         offerId: offer.id,
         offerName: offer.name,
         usagePrice: usagePrice,
-        offerData: offerData
+        offerData: offerData,
+        shouldShowCountdown: false // No mostrar countdown en clic, solo en slide
       };
     } else {
       // Si no hay precio, mostrar directamente
@@ -5383,8 +5389,23 @@ function App() {
                     minHeight: 40,
                     bgcolor: isAdmin ? 'rgba(255,255,255,0.2)' : 'transparent'
                   }}
+                  title="Accès administrateur"
                 >
                   <Person sx={{ fontSize: 18 }} />
+                </IconButton>
+
+                <IconButton 
+                  color="inherit" 
+                  onClick={() => setShowPartnerLoginModal(true)}
+                  size="small"
+                  sx={{ 
+                    minWidth: 40,
+                    minHeight: 40,
+                    bgcolor: isPartner ? 'rgba(255,255,255,0.2)' : 'transparent'
+                  }}
+                  title="Accès partner"
+                >
+                  <Store sx={{ fontSize: 18 }} />
                 </IconButton>
                 
                 <IconButton 
@@ -6849,8 +6870,19 @@ function App() {
           <SubscriptionRequiredModal 
             open={showSubscriptionRequiredModal} 
             onSubscribe={() => {
-              setShowSubscriptionRequiredModal(false);
-              setShowSubscriptionModal(true);
+              if (currentUser) {
+                const plan = SUBSCRIPTION_PLANS[0]; // Plan mensual por defecto
+                setShowSubscriptionRequiredModal(false);
+                setPaymentModalConfig({
+                  type: 'subscription',
+                  amount: plan.price,
+                  description: `${plan.name} - LUCA App`,
+                  orderId: `sub_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                  planType: plan.type,
+                  planId: plan.id,
+                });
+                setShowPaymentModal(true);
+              }
             }}
           />
 
@@ -6890,14 +6922,41 @@ function App() {
                   variant="contained"
                   size="large"
                   onClick={() => {
-                    setShowSubscriptionOverlay(false);
-                    setShowSubscriptionModal(true);
+                    if (currentUser) {
+                      const plan = SUBSCRIPTION_PLANS[0]; // Plan mensual por defecto
+                      setShowSubscriptionOverlay(false);
+                      setPaymentModalConfig({
+                        type: 'subscription',
+                        amount: plan.price,
+                        description: `${plan.name} - LUCA App`,
+                        orderId: `sub_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                        planType: plan.type,
+                        planId: plan.id,
+                      });
+                      setShowPaymentModal(true);
+                    }
                   }}
                   sx={{
                     px: 4,
                     py: 1.5,
                     fontSize: '1.1rem',
                     fontWeight: 'bold'
+                  }}
+                >
+                  💳 Payer Maintenant
+                </Button>
+                
+                <Button
+                  variant="outlined"
+                  size="large"
+                  onClick={() => {
+                    setShowSubscriptionOverlay(false);
+                    setShowSubscriptionModal(true);
+                  }}
+                  sx={{
+                    px: 4,
+                    py: 1.5,
+                    fontSize: '1.1rem'
                   }}
                 >
                   Voir les Plans
@@ -7197,7 +7256,7 @@ function App() {
         )}
 
         {/* Tabs de navegación */}
-        <Tabs 
+        <Tabs
           value={selectedTab} 
           onChange={(_, newValue) => setSelectedTab(newValue)}
           variant="fullWidth"
@@ -7239,7 +7298,7 @@ function App() {
             }
           }}
         >
-          <Tab 
+          <Tab
             icon={<MapIcon sx={{ color: '#ffeb3b !important' }} />} 
             label={t('carte')} 
             iconPosition="top"
@@ -7289,7 +7348,7 @@ function App() {
             label={t('profil')} 
             iconPosition="top"
           />
-            </Tabs>
+        </Tabs>
             </Box>
           )}
         </>
