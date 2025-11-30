@@ -82,7 +82,7 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
       setUsers(usersData);
     } catch (error) {
       console.error('Error cargando usuarios:', error);
-      showSnackbar('Error al cargar usuarios', 'error');
+      showSnackbar('Erreur lors du chargement des utilisateurs', 'error');
     } finally {
       setIsLoading(false);
     }
@@ -104,7 +104,7 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
 
   const handleAssignRole = async () => {
     if (!selectedUserEmail) {
-      showSnackbar('Por favor ingresa un email', 'error');
+      showSnackbar('Veuillez entrer un email', 'error');
       return;
     }
 
@@ -115,12 +115,12 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
       const user = users.find(u => u.email.toLowerCase() === selectedUserEmail.toLowerCase());
       
       if (!user) {
-        showSnackbar('Usuario no encontrado', 'error');
+        showSnackbar('Utilisateur introuvable', 'error');
         return;
       }
 
       if (user.uid === currentAdminId) {
-        showSnackbar('No puedes modificar tus propios permisos', 'error');
+        showSnackbar('Vous ne pouvez pas modifier vos propres permissions', 'error');
         return;
       }
 
@@ -177,7 +177,7 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
           isAdmin: false,
           isPartner: false
         });
-        showSnackbar(`Roles removidos de ${user.email}`, 'success');
+        showSnackbar(`Rôles retirés de ${user.email}`, 'success');
       }
 
       setSelectedUserEmail('');
@@ -185,8 +185,8 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
       await loadUsers();
       await loadPartners();
     } catch (error) {
-      console.error('Error asignando rol:', error);
-      showSnackbar('Error al asignar rol', 'error');
+      console.error('Erreur lors de l\'attribution du rôle:', error);
+      showSnackbar('Erreur lors de l\'attribution du rôle', 'error');
     } finally {
       setIsLoading(false);
     }
