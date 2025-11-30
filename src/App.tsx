@@ -1424,7 +1424,7 @@ function MapView({ offers, flashDeals, selectedCategory, onOfferClick, onFlashDe
       });
     } catch (error) {
       console.error('Error adding offer:', error);
-      alert('Error al agregar la oferta');
+      alert('Erreur lors de l\'ajout de l\'offre');
     }
   };
 
@@ -4391,7 +4391,7 @@ function App() {
       }
     } catch (error) {
       console.error('Error adding offer:', error);
-      alert('Error al agregar la oferta');
+      alert('Erreur lors de l\'ajout de l\'offre');
     }
   };
 
