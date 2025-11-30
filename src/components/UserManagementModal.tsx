@@ -198,7 +198,7 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
       return;
     }
 
-    if (!window.confirm(`¿Estás seguro de remover el rol de ${role} de este usuario?`)) {
+    if (!window.confirm(`Êtes-vous sûr de retirer le rôle de ${role} de cet utilisateur ?`)) {
       return;
     }
 
@@ -216,12 +216,12 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
         });
       }
       
-      showSnackbar('Rol removido correctamente', 'success');
+      showSnackbar('Rôle retiré avec succès', 'success');
       await loadUsers();
       await loadPartners();
     } catch (error) {
       console.error('Error removiendo rol:', error);
-      showSnackbar('Error al remover rol', 'error');
+      showSnackbar('Erreur lors de la suppression du rôle', 'error');
     } finally {
       setIsLoading(false);
     }
@@ -268,7 +268,7 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent'
             }}>
-              Gestión de Usuarios
+              Gestion des Utilisateurs
             </Typography>
             <IconButton 
               onClick={onClose}
@@ -317,15 +317,15 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
               boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)'
             }}>
               <Typography variant="h6" gutterBottom sx={{ color: '#FFD700', fontWeight: 600 }}>
-                Crear/Asignar Roles
+                Créer/Attribuer des Rôles
               </Typography>
               <Typography variant="body2" sx={{ mb: 2, color: '#B0B0B0' }}>
-                Busca un usuario por email y asígnale el rol de <strong style={{ color: '#FFD700' }}>Administrador</strong> o <strong style={{ color: '#FFD700' }}>Partner</strong>.
-                Al asignar Partner, se crea automáticamente su perfil de partner.
+                Recherchez un utilisateur par email et attribuez-lui le rôle d'<strong style={{ color: '#FFD700' }}>Administrateur</strong> ou de <strong style={{ color: '#FFD700' }}>Partenaire</strong>.
+                En attribuant Partenaire, son profil de partenaire est créé automatiquement.
               </Typography>
               <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'flex-end' }}>
                 <TextField
-                  label="Email del Usuario"
+                  label="Email de l'utilisateur"
                   value={selectedUserEmail}
                   onChange={(e) => setSelectedUserEmail(e.target.value)}
                   placeholder="usuario@ejemplo.com"
