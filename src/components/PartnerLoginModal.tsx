@@ -34,7 +34,7 @@ export const PartnerLoginModal: React.FC<PartnerLoginModalProps> = ({
 
   const handleLogin = async () => {
     if (!email || !password) {
-      setError('Por favor completa todos los campos');
+      setError('Veuillez remplir tous les champs');
       return;
     }
 
@@ -62,15 +62,15 @@ export const PartnerLoginModal: React.FC<PartnerLoginModalProps> = ({
             setEmail('');
             setPassword('');
           } else {
-            setError('Perfil de partner no encontrado. Contacta al administrador.');
+            setError('Profil partenaire introuvable. Contactez l\'administrateur.');
             await auth.signOut();
           }
         } else {
-          setError('No tienes permisos de partner');
+          setError('Vous n\'avez pas les permissions de partenaire');
           await auth.signOut();
         }
       } else {
-        setError('Usuario no encontrado');
+        setError('Utilisateur introuvable');
         await auth.signOut();
       }
     } catch (error: any) {
@@ -92,10 +92,10 @@ export const PartnerLoginModal: React.FC<PartnerLoginModalProps> = ({
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle>
         <Typography variant="h5" component="div" sx={{ fontWeight: 600 }}>
-          Acceso Partner
+          Accès Partenaire
         </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-          Gestiona tus ofertas y perfil
+          Gérez vos offres et votre profil
         </Typography>
       </DialogTitle>
       <DialogContent>
@@ -118,7 +118,7 @@ export const PartnerLoginModal: React.FC<PartnerLoginModalProps> = ({
           />
           <TextField
             fullWidth
-            label="Contraseña"
+            label="Mot de passe"
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
@@ -131,7 +131,7 @@ export const PartnerLoginModal: React.FC<PartnerLoginModalProps> = ({
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2 }}>
         <Button onClick={onClose} disabled={isLoading}>
-          Cancelar
+          Annuler
         </Button>
         <Button
           onClick={handleLogin}
@@ -139,7 +139,7 @@ export const PartnerLoginModal: React.FC<PartnerLoginModalProps> = ({
           disabled={isLoading}
           startIcon={isLoading ? <CircularProgress size={20} /> : null}
         >
-          {isLoading ? 'Iniciando sesión...' : 'Iniciar sesión'}
+          {isLoading ? 'Connexion...' : 'Se connecter'}
         </Button>
       </DialogActions>
     </Dialog>

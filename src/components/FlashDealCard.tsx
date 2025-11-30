@@ -107,7 +107,7 @@ export const FlashDealCard = memo<FlashDealCardProps>(({
         {deal.availabilitySchedule && deal.availabilitySchedule.days && deal.availabilitySchedule.days.length > 0 && (
           <Chip
             icon={<AccessTime sx={{ fontSize: 14 }} />}
-            label={isOfferAvailable(deal) ? 'Disponible ahora' : 'Fuera de horario'}
+            label={isOfferAvailable(deal) ? 'Disponible maintenant' : 'Hors horaire'}
             size="small"
             color={isOfferAvailable(deal) ? 'success' : 'default'}
             sx={{

@@ -34,13 +34,13 @@ export const getAvailabilityText = (offer: Offer | FlashDeal): string => {
   }
 
   const dayNames: { [key: string]: string } = {
-    monday: 'Lunes',
-    tuesday: 'Martes',
-    wednesday: 'Miércoles',
-    thursday: 'Jueves',
-    friday: 'Viernes',
-    saturday: 'Sábado',
-    sunday: 'Domingo'
+    monday: 'Lundi',
+    tuesday: 'Mardi',
+    wednesday: 'Mercredi',
+    thursday: 'Jeudi',
+    friday: 'Vendredi',
+    saturday: 'Samedi',
+    sunday: 'Dimanche'
   };
 
   const days = offer.availabilitySchedule.days.map(d => dayNames[d] || d).join(', ');

@@ -37,13 +37,6 @@
     ],
     "rewrites": [
       {
-        "source": "/api/**",
-        "function": {
-          "functionId": "api",
-          "region": "europe-west4"
-        }
-      },
-      {
         "source": "**",
         "destination": "/index.html"
       }

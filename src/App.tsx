@@ -142,13 +142,13 @@ interface Category {
 
 // Días de la semana
 const weekDays = [
-  { value: 'monday', label: 'Lunes' },
-  { value: 'tuesday', label: 'Martes' },
-  { value: 'wednesday', label: 'Miércoles' },
-  { value: 'thursday', label: 'Jueves' },
-  { value: 'friday', label: 'Viernes' },
-  { value: 'saturday', label: 'Sábado' },
-  { value: 'sunday', label: 'Domingo' }
+  { value: 'monday', label: 'Lundi' },
+  { value: 'tuesday', label: 'Mardi' },
+  { value: 'wednesday', label: 'Mercredi' },
+  { value: 'thursday', label: 'Jeudi' },
+  { value: 'friday', label: 'Vendredi' },
+  { value: 'saturday', label: 'Samedi' },
+  { value: 'sunday', label: 'Dimanche' }
 ];
 
 const categories: Category[] = [
@@ -1767,7 +1767,7 @@ function MapView({ offers, flashDeals, selectedCategory, onOfferClick, onFlashDe
               </Box>
               <Box sx={{ display: 'flex', gap: 2 }}>
                 <TextField
-                  label="Hora de Inicio"
+                  label="Heure de début"
                   type="time"
                   value={newOffer.availabilityStartTime}
                   onChange={(e) => setNewOffer(prev => ({ ...prev, availabilityStartTime: e.target.value }))}
@@ -1776,7 +1776,7 @@ function MapView({ offers, flashDeals, selectedCategory, onOfferClick, onFlashDe
                   inputProps={{ step: 300 }}
                 />
                 <TextField
-                  label="Hora de Fin"
+                  label="Heure de fin"
                   type="time"
                   value={newOffer.availabilityEndTime}
                   onChange={(e) => setNewOffer(prev => ({ ...prev, availabilityEndTime: e.target.value }))}
@@ -2256,7 +2256,7 @@ function OffersList({ offers, selectedCategory, selectedSubCategory, onOfferClic
                 {offer.availabilitySchedule && offer.availabilitySchedule.days && offer.availabilitySchedule.days.length > 0 && (
                   <Chip
                     icon={<AccessTime sx={{ fontSize: 14 }} />}
-                    label={isOfferAvailable(offer) ? 'Disponible ahora' : 'Fuera de horario'}
+                    label={isOfferAvailable(offer) ? 'Disponible maintenant' : 'Hors horaire'}
                     size="small"
                     color={isOfferAvailable(offer) ? 'success' : 'default'}
                     sx={{
@@ -4009,7 +4009,7 @@ function App() {
   // Función para manejar el login de usuario
   const handleUserLogin = async () => {
     if (!loginCredentials.email || !loginCredentials.password) {
-      alert('Por favor completa todos los campos');
+      alert('Veuillez remplir tous les champs');
       return;
     }
 
@@ -4131,7 +4131,7 @@ function App() {
   // Función para manejar el login de admin
   const handleAdminLogin = async () => {
     if (!adminLoginCredentials.email || !adminLoginCredentials.password) {
-      alert('Por favor completa todos los campos');
+      alert('Veuillez remplir tous les champs');
       return;
     }
 
@@ -4199,7 +4199,7 @@ function App() {
       addNotification('success', 'Perfil actualizado exitosamente!');
     } catch (error) {
       console.error('Error al actualizar perfil:', error);
-      alert('Error al actualizar el perfil');
+          alert('Erreur lors de la mise à jour du profil');
     }
   };
 
@@ -4228,7 +4228,7 @@ function App() {
     }
   };
 
-  // Función para restablecer contraseña
+  // Fonction pour réinitialiser le mot de passe
   const handleResetPassword = async () => {
     if (!resetPasswordEmail) {
       alert('Veuillez entrer votre adresse e-mail');
@@ -4313,7 +4313,7 @@ function App() {
           console.log('Imagen seleccionada:', newOffer.image.name);
         } catch (error) {
           console.error('Error al subir imagen:', error);
-          alert('Error al subir la imagen, se usará una imagen por defecto');
+          alert('Erreur lors du téléchargement de l\'image, une image par défaut sera utilisée');
         }
       }
 
@@ -5903,7 +5903,7 @@ function App() {
                         width: '100%'
                       }}
                     >
-                      Acceso Partner
+                      Accès Partenaire
                     </Button>
                   </>
                 )}
@@ -5978,7 +5978,7 @@ function App() {
                           minHeight: { xs: 48, sm: 40 }
                         }}
                       >
-                        Gestionar Usuarios
+                        Gérer les Utilisateurs
                       </Button>
                       
                       <Button
@@ -6084,7 +6084,7 @@ function App() {
             onLoginSuccess={handlePartnerLoginSuccess}
           />
 
-          {/* Modal de Gestión de Usuarios (Solo Admin) */}
+          {/* Modal de Gestion des Utilisateurs (Admin uniquement) */}
           <UserManagementModal
             open={showUserManagementModal}
             onClose={() => setShowUserManagementModal(false)}
@@ -6198,10 +6198,10 @@ function App() {
                 <Box>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                     <AccessTime sx={{ color: '#FFD700' }} />
-                    <Typography variant="h6">Horarios de Disponibilidad (Opcional)</Typography>
+                    <Typography variant="h6">Horaires de Disponibilité (Optionnel)</Typography>
                   </Box>
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                    Si no seleccionas nada, la oferta estará disponible siempre
+                    Si vous ne sélectionnez rien, l'offre sera disponible en permanence
                   </Typography>
                   
                   {/* Botones rápidos */}
@@ -6211,21 +6211,21 @@ function App() {
                       variant="outlined"
                       onClick={() => setNewOffer(prev => ({ ...prev, availabilityDays: weekDays.map(d => d.value) }))}
                     >
-                      Todos los días
+                      Tous les jours
                     </Button>
                     <Button
                       size="small"
                       variant="outlined"
                       onClick={() => setNewOffer(prev => ({ ...prev, availabilityDays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] }))}
                     >
-                      Días laborables
+                      Jours ouvrables
                     </Button>
                     <Button
                       size="small"
                       variant="outlined"
                       onClick={() => setNewOffer(prev => ({ ...prev, availabilityDays: ['saturday', 'sunday'] }))}
                     >
-                      Fines de semana
+                      Week-ends
                     </Button>
                     <Button
                       size="small"
@@ -6233,12 +6233,12 @@ function App() {
                       color="error"
                       onClick={() => setNewOffer(prev => ({ ...prev, availabilityDays: [] }))}
                     >
-                      Limpiar
+                      Effacer
                     </Button>
                   </Box>
 
                   <Box sx={{ mb: 2 }}>
-                    <Typography variant="subtitle2" sx={{ mb: 1 }}>Días seleccionados:</Typography>
+                    <Typography variant="subtitle2" sx={{ mb: 1 }}>Jours sélectionnés:</Typography>
                     <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
                       {weekDays.map((day) => (
                         <FormControlLabel
@@ -6270,7 +6270,7 @@ function App() {
                   {newOffer.availabilityDays.length > 0 && (
                     <Box sx={{ display: 'flex', gap: 2 }}>
                       <TextField
-                        label="Hora de Inicio"
+                        label="Heure de début"
                         type="time"
                         value={newOffer.availabilityStartTime}
                         onChange={(e) => setNewOffer(prev => ({ ...prev, availabilityStartTime: e.target.value }))}
@@ -6279,7 +6279,7 @@ function App() {
                         inputProps={{ step: 300 }}
                       />
                       <TextField
-                        label="Hora de Fin"
+                        label="Heure de fin"
                         type="time"
                         value={newOffer.availabilityEndTime}
                         onChange={(e) => setNewOffer(prev => ({ ...prev, availabilityEndTime: e.target.value }))}
@@ -6456,7 +6456,7 @@ function App() {
                     <Typography variant="h6">Horarios de Disponibilidad (Opcional)</Typography>
                   </Box>
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                    Si no seleccionas nada, el flash deal estará disponible siempre
+                    Si vous ne sélectionnez rien, le flash deal sera disponible en permanence
                   </Typography>
                   
                   {/* Botones rápidos */}
@@ -6466,21 +6466,21 @@ function App() {
                       variant="outlined"
                       onClick={() => setNewFlashDeal(prev => ({ ...prev, availabilityDays: weekDays.map(d => d.value) }))}
                     >
-                      Todos los días
+                      Tous les jours
                     </Button>
                     <Button
                       size="small"
                       variant="outlined"
                       onClick={() => setNewFlashDeal(prev => ({ ...prev, availabilityDays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] }))}
                     >
-                      Días laborables
+                      Jours ouvrables
                     </Button>
                     <Button
                       size="small"
                       variant="outlined"
                       onClick={() => setNewFlashDeal(prev => ({ ...prev, availabilityDays: ['saturday', 'sunday'] }))}
                     >
-                      Fines de semana
+                      Week-ends
                     </Button>
                     <Button
                       size="small"
@@ -6488,12 +6488,12 @@ function App() {
                       color="error"
                       onClick={() => setNewFlashDeal(prev => ({ ...prev, availabilityDays: [] }))}
                     >
-                      Limpiar
+                      Effacer
                     </Button>
                   </Box>
 
                   <Box sx={{ mb: 2 }}>
-                    <Typography variant="subtitle2" sx={{ mb: 1 }}>Días seleccionados:</Typography>
+                    <Typography variant="subtitle2" sx={{ mb: 1 }}>Jours sélectionnés:</Typography>
                     <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
                       {weekDays.map((day) => (
                         <FormControlLabel
@@ -6525,7 +6525,7 @@ function App() {
                   {newFlashDeal.availabilityDays.length > 0 && (
                     <Box sx={{ display: 'flex', gap: 2 }}>
                       <TextField
-                        label="Hora de Inicio"
+                        label="Heure de début"
                         type="time"
                         value={newFlashDeal.availabilityStartTime}
                         onChange={(e) => setNewFlashDeal(prev => ({ ...prev, availabilityStartTime: e.target.value }))}
@@ -6534,7 +6534,7 @@ function App() {
                         inputProps={{ step: 300 }}
                       />
                       <TextField
-                        label="Hora de Fin"
+                        label="Heure de fin"
                         type="time"
                         value={newFlashDeal.availabilityEndTime}
                         onChange={(e) => setNewFlashDeal(prev => ({ ...prev, availabilityEndTime: e.target.value }))}
@@ -6561,7 +6561,7 @@ function App() {
             </DialogActions>
           </Dialog>
 
-          {/* Modal de Gestión de Partenaires */}
+          {/* Modal de Gestion des Partenaires */}
           <Dialog 
             open={showPartnersModal} 
             onClose={() => setShowPartnersModal(false)}

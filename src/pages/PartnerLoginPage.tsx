@@ -57,7 +57,7 @@ export const PartnerLoginPage: React.FC = () => {
 
   const handleLogin = async () => {
     if (!email || !password) {
-      setError('Por favor completa todos los campos');
+      setError('Veuillez remplir tous les champs');
       return;
     }
 
@@ -83,15 +83,15 @@ export const PartnerLoginPage: React.FC = () => {
             // Redirigir al dashboard
             navigate('/partner/dashboard', { replace: true });
           } else {
-            setError('Perfil de partner no encontrado. Contacta al administrador.');
+            setError('Profil partenaire introuvable. Contactez l\'administrateur.');
             await auth.signOut();
           }
         } else {
-          setError('No tienes permisos de partner');
+          setError('Vous n\'avez pas les permissions de partenaire');
           await auth.signOut();
         }
       } else {
-        setError('Usuario no encontrado');
+        setError('Utilisateur introuvable');
         await auth.signOut();
       }
     } catch (error: any) {
@@ -141,10 +141,10 @@ export const PartnerLoginPage: React.FC = () => {
             >
               <Store sx={{ fontSize: 60, mb: 2 }} />
               <Typography variant="h4" component="h1" sx={{ fontWeight: 700, mb: 1 }}>
-                Panel Partner
+                Panel Partenaire
               </Typography>
               <Typography variant="body1" sx={{ opacity: 0.9 }}>
-                Gestiona tus ofertas y perfil
+                Gérez vos offres et votre profil
               </Typography>
             </Box>
 
@@ -177,7 +177,7 @@ export const PartnerLoginPage: React.FC = () => {
 
                 <TextField
                   fullWidth
-                  label="Contraseña"
+                  label="Mot de passe"
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -216,7 +216,7 @@ export const PartnerLoginPage: React.FC = () => {
                   }}
                   startIcon={isLoading ? <CircularProgress size={20} color="inherit" /> : null}
                 >
-                  {isLoading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
+                  {isLoading ? 'Connexion...' : 'Se connecter'}
                 </Button>
 
                 <Box sx={{ textAlign: 'center', mt: 2 }}>
@@ -226,7 +226,7 @@ export const PartnerLoginPage: React.FC = () => {
                     size="small"
                     sx={{ color: 'text.secondary' }}
                   >
-                    ← Volver a la app
+                    ← Retour à l'app
                   </Button>
                 </Box>
               </Box>

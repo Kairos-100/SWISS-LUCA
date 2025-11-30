@@ -123,15 +123,15 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
     categories: [] as string[]
   });
 
-  // Días de la semana
+  // Jours de la semaine
   const weekDays = [
-    { value: 'monday', label: 'Lunes' },
-    { value: 'tuesday', label: 'Martes' },
-    { value: 'wednesday', label: 'Miércoles' },
-    { value: 'thursday', label: 'Jueves' },
-    { value: 'friday', label: 'Viernes' },
-    { value: 'saturday', label: 'Sábado' },
-    { value: 'sunday', label: 'Domingo' }
+    { value: 'monday', label: 'Lundi' },
+    { value: 'tuesday', label: 'Mardi' },
+    { value: 'wednesday', label: 'Mercredi' },
+    { value: 'thursday', label: 'Jeudi' },
+    { value: 'friday', label: 'Vendredi' },
+    { value: 'saturday', label: 'Samedi' },
+    { value: 'sunday', label: 'Dimanche' }
   ];
 
   // Categorías completas del sistema
@@ -188,7 +188,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
       }
     } catch (error) {
       console.error('Error cargando datos del partner:', error);
-      showSnackbar('Error al cargar datos', 'error');
+      showSnackbar('Erreur lors du chargement des données', 'error');
     } finally {
       setIsLoading(false);
     }
@@ -207,7 +207,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
       setOffers(offersData);
     } catch (error) {
       console.error('Error cargando ofertas:', error);
-      showSnackbar('Error al cargar ofertas', 'error');
+      showSnackbar('Erreur lors du chargement des offres', 'error');
     }
   };
 
@@ -805,7 +805,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
                     }}
                     sx={{ mr: 1 }}
                   >
-                    Cancelar
+                    Annuler
                   </Button>
                   <Button
                     startIcon={<Save />}
@@ -1329,25 +1329,25 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
             <Box>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                 <AccessTime sx={{ color: 'primary.main' }} />
-                <Typography variant="h6">📅 Calendario y Horarios de Disponibilidad</Typography>
+                <Typography variant="h6">📅 Calendrier et Horaires de Disponibilité</Typography>
               </Box>
               
               {/* Información explicativa */}
               <Alert severity="info" sx={{ mb: 2 }}>
                 <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 0.5 }}>
-                  ¿Cómo funciona el calendario?
+                  Comment fonctionne le calendrier ?
                 </Typography>
                 <Typography variant="body2">
-                  • <strong>Sin selección:</strong> La oferta estará disponible 24/7, todos los días<br/>
-                  • <strong>Con días seleccionados:</strong> La oferta solo será visible y activable en los días y horarios que configures<br/>
-                  • <strong>Horarios:</strong> Define el rango de horas en que la oferta estará disponible cada día seleccionado
+                  • <strong>Sans sélection:</strong> L'offre sera disponible 24/7, tous les jours<br/>
+                  • <strong>Avec jours sélectionnés:</strong> L'offre ne sera visible et activable que les jours et horaires que vous configurez<br/>
+                  • <strong>Horaires:</strong> Définissez la plage horaire pendant laquelle l'offre sera disponible chaque jour sélectionné
                 </Typography>
               </Alert>
               
               {/* Botones rápidos */}
               <Box sx={{ mb: 2 }}>
                 <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>
-                  Selección rápida:
+                  Sélection rapide:
                 </Typography>
                 <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                   <Button
@@ -1362,7 +1362,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
                       }));
                     }}
                   >
-                    📆 Todos los días (24h)
+                    📆 Tous les jours (24h)
                   </Button>
                   <Button
                     size="small"
@@ -1376,7 +1376,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
                       }));
                     }}
                   >
-                    💼 Días laborables (9:00-18:00)
+                    💼 Jours ouvrables (9:00-18:00)
                   </Button>
                   <Button
                     size="small"
@@ -1390,7 +1390,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
                       }));
                     }}
                   >
-                    🎉 Fines de semana (10:00-20:00)
+                    🎉 Week-ends (10:00-20:00)
                   </Button>
                   <Button
                     size="small"
@@ -1398,7 +1398,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
                     color="error"
                     onClick={() => setOfferForm(prev => ({ ...prev, availabilityDays: [] }))}
                   >
-                    🗑️ Limpiar todo
+                    🗑️ Tout effacer
                   </Button>
                 </Box>
               </Box>
@@ -1454,24 +1454,24 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
                   </Typography>
                   <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
                     <TextField
-                      label="Hora de Inicio"
+                      label="Heure de début"
                       type="time"
                       value={offerForm.availabilityStartTime}
                       onChange={(e) => setOfferForm(prev => ({ ...prev, availabilityStartTime: e.target.value }))}
                       fullWidth
                       InputLabelProps={{ shrink: true }}
                       inputProps={{ step: 300 }}
-                      helperText="Hora desde la que la oferta estará disponible"
+                      helperText="Heure à partir de laquelle l'offre sera disponible"
                     />
                     <TextField
-                      label="Hora de Fin"
+                      label="Heure de fin"
                       type="time"
                       value={offerForm.availabilityEndTime}
                       onChange={(e) => setOfferForm(prev => ({ ...prev, availabilityEndTime: e.target.value }))}
                       fullWidth
                       InputLabelProps={{ shrink: true }}
                       inputProps={{ step: 300 }}
-                      helperText="Hora hasta la que la oferta estará disponible"
+                      helperText="Heure jusqu'à laquelle l'offre sera disponible"
                     />
                   </Box>
                   
@@ -1497,7 +1497,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
               ) : (
                 <Paper sx={{ p: 2, bgcolor: 'action.hover', textAlign: 'center' }}>
                   <Typography variant="body2" color="text.secondary">
-                    ℹ️ No has seleccionado días específicos. La oferta estará disponible siempre (24/7).
+                    ℹ️ Vous n'avez pas sélectionné de jours spécifiques. L'offre sera disponible en permanence (24/7).
                   </Typography>
                 </Paper>
               )}
@@ -1685,7 +1685,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
             <Box>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                 <AccessTime sx={{ color: 'primary.main' }} />
-                <Typography variant="h6">📅 Calendario y Horarios de Disponibilidad</Typography>
+                <Typography variant="h6">📅 Calendrier et Horaires de Disponibilité</Typography>
               </Box>
               
               {/* Información explicativa */}
@@ -1694,7 +1694,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
                   ¿Cómo funciona el calendario?
                 </Typography>
                 <Typography variant="body2">
-                  • <strong>Sin selección:</strong> El flash deal estará disponible 24/7, todos los días<br/>
+                  • <strong>Sans sélection:</strong> Le flash deal sera disponible 24/7, tous les jours<br/>
                   • <strong>Con días seleccionados:</strong> El flash deal solo será visible y activable en los días y horarios que configures<br/>
                   • <strong>Horarios:</strong> Define el rango de horas en que el flash deal estará disponible cada día seleccionado
                 </Typography>
@@ -1703,7 +1703,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
               {/* Botones rápidos */}
               <Box sx={{ mb: 2 }}>
                 <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>
-                  Selección rápida:
+                  Sélection rapide:
                 </Typography>
                 <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                   <Button
@@ -1718,7 +1718,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
                       }));
                     }}
                   >
-                    📆 Todos los días (24h)
+                    📆 Tous les jours (24h)
                   </Button>
                   <Button
                     size="small"
@@ -1732,7 +1732,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
                       }));
                     }}
                   >
-                    💼 Días laborables (9:00-18:00)
+                    💼 Jours ouvrables (9:00-18:00)
                   </Button>
                   <Button
                     size="small"
@@ -1746,7 +1746,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
                       }));
                     }}
                   >
-                    🎉 Fines de semana (10:00-20:00)
+                    🎉 Week-ends (10:00-20:00)
                   </Button>
                   <Button
                     size="small"
@@ -1754,7 +1754,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
                     color="error"
                     onClick={() => setFlashDealForm(prev => ({ ...prev, availabilityDays: [] }))}
                   >
-                    🗑️ Limpiar todo
+                    🗑️ Tout effacer
                   </Button>
                 </Box>
               </Box>
@@ -1810,24 +1810,24 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
                   </Typography>
                   <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
                     <TextField
-                      label="Hora de Inicio"
+                      label="Heure de début"
                       type="time"
                       value={flashDealForm.availabilityStartTime}
                       onChange={(e) => setFlashDealForm(prev => ({ ...prev, availabilityStartTime: e.target.value }))}
                       fullWidth
                       InputLabelProps={{ shrink: true }}
                       inputProps={{ step: 300 }}
-                      helperText="Hora desde la que el flash deal estará disponible"
+                      helperText="Heure à partir de laquelle le flash deal sera disponible"
                     />
                     <TextField
-                      label="Hora de Fin"
+                      label="Heure de fin"
                       type="time"
                       value={flashDealForm.availabilityEndTime}
                       onChange={(e) => setFlashDealForm(prev => ({ ...prev, availabilityEndTime: e.target.value }))}
                       fullWidth
                       InputLabelProps={{ shrink: true }}
                       inputProps={{ step: 300 }}
-                      helperText="Hora hasta la que el flash deal estará disponible"
+                      helperText="Heure jusqu'à laquelle le flash deal sera disponible"
                     />
                   </Box>
                   
@@ -1853,7 +1853,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
               ) : (
                 <Paper sx={{ p: 2, bgcolor: 'action.hover', textAlign: 'center' }}>
                   <Typography variant="body2" color="text.secondary">
-                    ℹ️ No has seleccionado días específicos. El flash deal estará disponible siempre (24/7).
+                    ℹ️ Vous n'avez pas sélectionné de jours spécifiques. Le flash deal sera disponible en permanence (24/7).
                   </Typography>
                 </Paper>
               )}

@@ -132,7 +132,7 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
           isAdmin: true,
           isPartner: false
         });
-        showSnackbar(`✅ Administrador creado: ${user.email} ahora tiene permisos de administrador`, 'success');
+        showSnackbar(`✅ Administrateur créé: ${user.email} a maintenant les permissions d'administrateur`, 'success');
       } else if (selectedRole === 'partner') {
         // Asignar rol de partner
         await updateDoc(userRef, {
@@ -170,7 +170,7 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
           });
         }
         
-        showSnackbar(`✅ Partner creado: ${user.email} ahora es partner y puede gestionar sus ofertas`, 'success');
+        showSnackbar(`✅ Partenaire créé: ${user.email} est maintenant partenaire et peut gérer ses offres`, 'success');
       } else {
         // Remover roles
         await updateDoc(userRef, {
@@ -298,12 +298,12 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
               }}
             >
               <Typography variant="body2" component="div" sx={{ color: '#FFFFFF' }}>
-                <strong style={{ color: '#FFD700' }}>Gestión de Roles:</strong>
+                <strong style={{ color: '#FFD700' }}>Gestion des Rôles:</strong>
                 <ul style={{ margin: '8px 0', paddingLeft: '20px', color: '#B0B0B0' }}>
-                  <li><strong style={{ color: '#FFD700' }}>Administrador:</strong> Puede gestionar ofertas, flash deals y usuarios</li>
-                  <li><strong style={{ color: '#FFD700' }}>Partner:</strong> Puede gestionar su perfil y crear ofertas/flash deals propios</li>
+                  <li><strong style={{ color: '#FFD700' }}>Administrateur:</strong> Peut gérer les offres, flash deals et utilisateurs</li>
+                  <li><strong style={{ color: '#FFD700' }}>Partenaire:</strong> Peut gérer son profil et créer ses propres offres/flash deals</li>
                 </ul>
-                <strong style={{ color: '#FFD700' }}>Nota:</strong> Los admins son los únicos que pueden crear y asignar partners.
+                <strong style={{ color: '#FFD700' }}>Note:</strong> Seuls les administrateurs peuvent créer et attribuer des partenaires.
               </Typography>
             </Alert>
 
