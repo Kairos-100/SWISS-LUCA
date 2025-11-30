@@ -2,31 +2,7 @@ import React, { useMemo, useCallback } from 'react';
 import { Box } from '@mui/material';
 import { FlashDealCard } from './FlashDealCard';
 import { useBlockedOffers } from '../hooks/useBlockedOffers';
-
-interface FlashDeal {
-  id: string;
-  name: string;
-  image: string;
-  category: string;
-  subCategory: string;
-  discount: string;
-  description: string;
-  location: {
-    lat: number;
-    lng: number;
-    address: string;
-  };
-  rating: number;
-  price: string;
-  oldPrice: string;
-  originalPrice: number;
-  discountedPrice: number;
-  startTime: Date;
-  endTime: Date;
-  isActive: boolean;
-  maxQuantity?: number;
-  soldQuantity?: number;
-}
+import type { FlashDeal } from '../types';
 
 interface VirtualizedFlashDealsProps {
   flashDeals: FlashDeal[];

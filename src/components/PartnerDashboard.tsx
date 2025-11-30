@@ -20,8 +20,6 @@ import {
   Paper,
   IconButton,
   Chip,
-  FormControlLabel,
-  Checkbox,
   Divider
 } from '@mui/material';
 import {
@@ -41,7 +39,7 @@ import {
   Upload,
   AccessTime
 } from '@mui/icons-material';
-import { doc, getDoc, setDoc, updateDoc, deleteDoc, collection, query, where, getDocs, Timestamp, addDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, deleteDoc, collection, query, where, getDocs, Timestamp, addDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../firebase';
 import type { Partner, Offer, FlashDeal } from '../types';
@@ -775,7 +773,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
       </Box>
 
       <Paper sx={{ mb: 3 }}>
-        <Tabs value={activeTab} onChange={(e, newValue) => setActiveTab(newValue)}>
+        <Tabs value={activeTab} onChange={(_, newValue) => setActiveTab(newValue)}>
           <Tab label="Mi Perfil" />
           <Tab label="Mis Ofertas" />
           <Tab label="Flash Deals" />
@@ -822,7 +820,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
             </Box>
 
             <Grid container spacing={3}>
-              <Grid item xs={12} md={4}>
+              <Grid size={{ xs: 12, md: 4 }}>
                 <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                   <Avatar
                     src={isEditing ? formData.picture : partner?.picture}
@@ -863,9 +861,9 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
                 </Box>
               </Grid>
 
-              <Grid item xs={12} md={8}>
+              <Grid size={{ xs: 12, md: 8 }}>
                 <Grid container spacing={2}>
-                  <Grid item xs={12} sm={6}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
                     <TextField
                       fullWidth
                       label="Nombre"
@@ -874,7 +872,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
                       disabled={!isEditing}
                     />
                   </Grid>
-                  <Grid item xs={12} sm={6}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
                     <TextField
                       fullWidth
                       label="Nombre del Negocio"
@@ -883,7 +881,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
                       disabled={!isEditing}
                     />
                   </Grid>
-                  <Grid item xs={12}>
+                  <Grid size={{ xs: 12 }}>
                     <TextField
                       fullWidth
                       label="Dirección"
@@ -901,7 +899,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
                   </Grid>
                   {isEditing && (
                     <>
-                      <Grid item xs={12} sm={6}>
+                      <Grid size={{ xs: 12, sm: 6 }}>
                         <TextField
                           fullWidth
                           label="Latitud"
@@ -910,7 +908,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
                           onChange={(e) => setFormData(prev => ({ ...prev, lat: parseFloat(e.target.value) || 0 }))}
                         />
                       </Grid>
-                      <Grid item xs={12} sm={6}>
+                      <Grid size={{ xs: 12, sm: 6 }}>
                         <TextField
                           fullWidth
                           label="Longitud"
@@ -921,12 +919,12 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
                       </Grid>
                     </>
                   )}
-                  <Grid item xs={12}>
+                  <Grid size={{ xs: 12 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                       <Typography>Rating:</Typography>
                       <Rating
                         value={isEditing ? formData.rating : partner?.rating || 0}
-                        onChange={(e, newValue) => {
+                        onChange={(_, newValue) => {
                           if (isEditing) {
                             setFormData(prev => ({ ...prev, rating: newValue || 0 }));
                           }
@@ -936,7 +934,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
                       />
                     </Box>
                   </Grid>
-                  <Grid item xs={12}>
+                  <Grid size={{ xs: 12 }}>
                     <TextField
                       fullWidth
                       label="Enlace Google Maps"
@@ -949,7 +947,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
                       }}
                     />
                   </Grid>
-                  <Grid item xs={12} sm={6}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
                     <TextField
                       fullWidth
                       label="Teléfono"
@@ -958,7 +956,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
                       disabled={!isEditing}
                     />
                   </Grid>
-                  <Grid item xs={12} sm={6}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
                     <TextField
                       fullWidth
                       label="Sitio Web"
@@ -967,7 +965,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
                       disabled={!isEditing}
                     />
                   </Grid>
-                  <Grid item xs={12}>
+                  <Grid size={{ xs: 12 }}>
                     <TextField
                       fullWidth
                       label="Descripción"
@@ -1018,7 +1016,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
           </Box>
           <Grid container spacing={2}>
             {offers.map((offer) => (
-              <Grid item xs={12} sm={6} md={4} key={offer.id}>
+              <Grid size={{ xs: 12, sm: 6, md: 4 }} key={offer.id}>
                 <Card>
                   <CardContent>
                     <Typography variant="h6">{offer.name}</Typography>
@@ -1049,7 +1047,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
               </Grid>
             ))}
             {offers.length === 0 && (
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <Paper sx={{ p: 3, textAlign: 'center' }}>
                   <Typography color="text.secondary">
                     No tienes ofertas aún. Crea tu primera oferta.
@@ -1066,7 +1064,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
         <Box>
           <Typography variant="h5" sx={{ mb: 3 }}>Estadísticas</Typography>
           <Grid container spacing={3}>
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
               <Card>
                 <CardContent>
                   <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
@@ -1086,7 +1084,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
                 </CardContent>
               </Card>
             </Grid>
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
               <Card>
                 <CardContent>
                   <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
@@ -1106,7 +1104,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
                 </CardContent>
               </Card>
             </Grid>
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
               <Card>
                 <CardContent>
                   <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
@@ -1126,7 +1124,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
                 </CardContent>
               </Card>
             </Grid>
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
               <Card>
                 <CardContent>
                   <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
@@ -1184,7 +1182,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
           </Box>
           <Grid container spacing={2}>
             {flashDeals.map((deal) => (
-              <Grid item xs={12} sm={6} md={4} key={deal.id}>
+              <Grid size={{ xs: 12, sm: 6, md: 4 }} key={deal.id}>
                 <Card>
                   <CardContent>
                     <Typography variant="h6">{deal.name}</Typography>
@@ -1215,7 +1213,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
               </Grid>
             ))}
             {flashDeals.length === 0 && (
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <Paper sx={{ p: 3, textAlign: 'center' }}>
                   <Typography color="text.secondary">
                     No tienes flash deals aún. Crea tu primer flash deal.
@@ -1261,8 +1259,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
                 select
                 label="Categoría"
                 value={offerForm.category}
-                onChange={(e) => {
-                  const selectedCategory = categories.find(c => c.id === e.target.value);
+                        onChange={(e) => {
                   setOfferForm(prev => ({ 
                     ...prev, 
                     category: e.target.value,
@@ -1605,7 +1602,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
                 select
                 label="Categoría"
                 value={flashDealForm.category}
-                onChange={(e) => {
+                        onChange={(e) => {
                   setFlashDealForm(prev => ({ 
                     ...prev, 
                     category: e.target.value,

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { auth, db, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, sendPasswordResetEmail, GoogleAuthProvider, signInWithPopup } from './firebase';
 import type { User } from 'firebase/auth';
-import { doc, setDoc, getDoc, updateDoc, arrayUnion, Timestamp, collection, addDoc, getDocs, query, where } from 'firebase/firestore';
+import { doc, setDoc, getDoc, updateDoc, arrayUnion, Timestamp, collection, addDoc, getDocs } from 'firebase/firestore';
 import { getAuthErrorMessage, validateEmail, validatePassword, validateName } from './utils/authUtils';
 import { useTranslation } from 'react-i18next';
 import LanguageSelector from './components/LanguageSelector';
@@ -11,9 +11,8 @@ import { BlockedOfferTimer } from './components/BlockedOfferTimer';
 import SubscriptionWidget from './components/SubscriptionWidget';
 import { StripePaymentModal } from './components/StripePaymentModal';
 import { PartnerLoginModal } from './components/PartnerLoginModal';
-import { PartnerDashboard } from './components/PartnerDashboard';
 import { UserManagementModal } from './components/UserManagementModal';
-import type { UserProfile, Offer, FlashDeal, Partner } from './types';
+import type { UserProfile, Offer, FlashDeal } from './types';
 import './i18n';
 import { 
   AppBar, 
@@ -246,7 +245,8 @@ const initialOffers: Offer[] = [
     rating: 4.5,
     isNew: true,
     price: 'CHF 15',
-    oldPrice: 'CHF 18'
+    oldPrice: 'CHF 18',
+    createdBy: 'admin'
   },
   {
     id: '2',
@@ -260,7 +260,8 @@ const initialOffers: Offer[] = [
     rating: 4.2,
     isNew: false,
     price: 'CHF 25',
-    oldPrice: 'CHF 30'
+    oldPrice: 'CHF 30',
+    createdBy: 'admin'
   },
   {
     id: '3',
@@ -1939,7 +1940,7 @@ function OffersList({ offers, selectedCategory, selectedSubCategory, onOfferClic
       // Parsear el precio correctamente (manejar formato "CHF 20,00" o "CHF 20.00")
       const offerPrice = typeof offer.price === 'string' 
         ? parseFloat(offer.price.replace('CHF ', '').replace(',', '.'))
-        : parseFloat(offer.price.toString());
+        : (typeof offer.price === 'number' ? offer.price : parseFloat(String(offer.price)));
       const usagePrice = offerPrice * OFFER_USAGE_PERCENTAGE;
       
       // Guardar la oferta para después del pago
@@ -4339,7 +4340,7 @@ function App() {
               price: newOffer.price,
               oldPrice: newOffer.oldPrice,
               // Agregar información de quién creó la oferta
-              createdBy: isPartner ? 'partner' : 'admin',
+              createdBy: (isPartner ? 'partner' : 'admin') as 'partner' | 'admin',
               partnerId: isPartner ? currentPartnerId : null,
               adminId: isAdmin && currentUser ? currentUser.uid : null,
               createdAt: Timestamp.now(),
@@ -4489,7 +4490,7 @@ function App() {
         isActive: true,
         soldQuantity: 0,
         // Agregar información de quién creó el flash deal
-        createdBy: isPartner ? 'partner' : 'admin',
+        createdBy: (isPartner ? 'partner' : 'admin') as 'partner' | 'admin',
         partnerId: isPartner ? currentPartnerId : null,
         adminId: isAdmin && currentUser ? currentUser.uid : null,
         createdAt: Timestamp.now(),
@@ -4820,7 +4821,7 @@ function App() {
       // Parsear el precio correctamente
       const offerPrice = typeof deal.price === 'string' 
         ? parseFloat(deal.price.replace('CHF ', '').replace(',', '.'))
-        : parseFloat(deal.price.toString());
+        : (typeof deal.price === 'number' ? deal.price : parseFloat(String(deal.price)));
       const usagePrice = offerPrice * OFFER_USAGE_PERCENTAGE;
       
       // Convertir FlashDeal a Offer para el modal
@@ -4837,7 +4838,8 @@ function App() {
         isNew: true,
         price: deal.price,
         oldPrice: deal.oldPrice,
-        usagePrice: usagePrice
+        usagePrice: usagePrice,
+        createdBy: deal.createdBy || 'admin'
       };
       
       // Abrir modal de pago con Stripe/Twint directamente
@@ -4882,7 +4884,8 @@ function App() {
       isNew: true, // Las ofertas flash siempre son nuevas
       price: offer.price,
       oldPrice: offer.oldPrice,
-      usagePrice: offer.price ? parseFloat(offer.price) * OFFER_USAGE_PERCENTAGE : 0
+      usagePrice: offer.price ? parseFloat(offer.price) * OFFER_USAGE_PERCENTAGE : 0,
+      createdBy: offer.createdBy || 'admin'
     };
     
     // Si la oferta tiene precio, abrir modal de pago directamente
@@ -4890,7 +4893,7 @@ function App() {
       // Parsear el precio correctamente (manejar formato "CHF 20,00" o "CHF 20.00")
       const offerPrice = typeof offer.price === 'string' 
         ? parseFloat(offer.price.replace('CHF ', '').replace(',', '.'))
-        : parseFloat(offer.price.toString());
+        : (typeof offer.price === 'number' ? offer.price : parseFloat(String(offer.price)));
       const usagePrice = offerPrice * OFFER_USAGE_PERCENTAGE;
       
       // Abrir modal de pago con Stripe/Twint directamente
@@ -6300,7 +6303,8 @@ function App() {
                     onChange={(e) => {
                       const file = e.target.files?.[0];
                       if (file) {
-                        setNewOffer({...newOffer, image: file});
+                        // La imagen se manejará en handleAddOffer
+                        (window as any).newOfferImage = file;
                       }
                     }}
                     style={{
@@ -6311,10 +6315,10 @@ function App() {
                       backgroundColor: '#f5f5f5'
                     }}
                   />
-                  {newOffer.image && (
+                  {(window as any).newOfferImage && (
                     <Box sx={{ mt: 2, textAlign: 'center' }}>
                       <Typography variant="body2" color="success.main">
-                        ✅ {newOffer.image.name}
+                        ✅ {(window as any).newOfferImage.name}
                       </Typography>
                     </Box>
                   )}
@@ -6849,7 +6853,7 @@ function App() {
                         
                         // Mostrar modal de countdown
                         setSelectedOffer(pending.offerData);
-                        setShowActivationModal(true);
+                        // setShowActivationModal se maneja dentro de OffersList
                         
                         // Guardar información para después del countdown
                         (window as any).pendingActivation = {
@@ -6896,8 +6900,8 @@ function App() {
                               };
                             });
                             
-                            // Marcar como activada en swipedOffers
-                            setSwipedOffers(prev => new Set([...prev, pending.offerId]));
+                            // Marcar como activada - se maneja dentro de OffersList
+                            // setSwipedOffers se maneja dentro de OffersList
                             
                             addNotification('success', `Offre activée • Économie: ${savedAmount.toFixed(2)} CHF`);
                           } catch (error) {
@@ -7060,8 +7064,6 @@ function App() {
               </Box>
             </Box>
           </Dialog>
-        </Box>
-      )}
 
       {/* Navegación inferior fija */}
       <Box sx={{
@@ -7429,6 +7431,7 @@ function App() {
             iconPosition="top"
           />
         </Tabs>
+      </Box>
             </Box>
           )}
         </>

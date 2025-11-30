@@ -17,36 +17,7 @@ import { LocationIcon, LockIcon, TimeIcon } from './ProfessionalIcons';
 import { ScrollBlockWrapper } from './ScrollBlockWrapper';
 import { SlideToConfirmButton } from './SlideToConfirmButton';
 import { isOfferAvailable, getAvailabilityText } from '../utils/availabilityUtils';
-
-interface FlashDeal {
-  id: string;
-  name: string;
-  image: string;
-  category: string;
-  subCategory: string;
-  discount: string;
-  description: string;
-  location: {
-    lat: number;
-    lng: number;
-    address: string;
-  };
-  rating: number;
-  price: string;
-  oldPrice: string;
-  originalPrice: number;
-  discountedPrice: number;
-  startTime: Date;
-  endTime: Date;
-  isActive: boolean;
-  maxQuantity?: number;
-  soldQuantity?: number;
-  availabilitySchedule?: {
-    days: string[];
-    startTime: string;
-    endTime: string;
-  };
-}
+import type { FlashDeal } from '../types';
 
 interface FlashDealCardProps {
   deal: FlashDeal;

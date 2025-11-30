@@ -89,9 +89,9 @@ export interface Offer {
   price?: string;
   oldPrice?: string;
   // Control de publicación
-  partnerId?: string;
-  adminId?: string;
-  createdBy: 'partner' | 'admin';
+  partnerId?: string | null;
+  adminId?: string | null;
+  createdBy?: 'partner' | 'admin';
   createdAt?: any;
   updatedAt?: any;
   // Horarios de disponibilidad
@@ -126,9 +126,9 @@ export interface FlashDeal {
   maxQuantity?: number;
   soldQuantity?: number;
   // Control de publicación
-  partnerId?: string;
-  adminId?: string;
-  createdBy: 'partner' | 'admin';
+  partnerId?: string | null;
+  adminId?: string | null;
+  createdBy?: 'partner' | 'admin';
   createdAt?: any;
   updatedAt?: any;
   // Horarios de disponibilidad

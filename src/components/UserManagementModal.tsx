@@ -30,9 +30,8 @@ import {
   Store,
   PersonRemove,
   CheckCircle,
-  Cancel
 } from '@mui/icons-material';
-import { collection, getDocs, doc, updateDoc, getDoc, setDoc, Timestamp, query, where } from 'firebase/firestore';
+import { collection, getDocs, doc, updateDoc, getDoc, setDoc, Timestamp } from 'firebase/firestore';
 import { db } from '../firebase';
 import type { Partner } from '../types';
 
