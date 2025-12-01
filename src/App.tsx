@@ -100,7 +100,6 @@ declare global {
 const GOOGLE_MAPS_API_KEY = 'AIzaSyBbnCxckdR0XrhYorXJHXPlIx-58MPcva0';
 
 // Plans d'abonnement
-// IMPORTANTE: Ambos planes se pagan mensualmente
 const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
   {
     id: 'monthly',
@@ -113,10 +112,10 @@ const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
   {
     id: 'yearly',
     name: 'Plan Annuel',
-    price: 4.95, // Precio mensual del plan anual (4.95 CHF/mes)
+    price: 59.40, // Prix total annuel (4.95 CHF/mois × 12 mois) - Paiement unique annuel
     duration: 365,
     type: 'yearly',
-    features: ['Accès complet à l\'app', 'Offres illimitées', 'Support prioritaire', 'Économie: 1.00 CHF/mois']
+    features: ['Accès complet à l\'app', 'Offres illimitées', 'Support prioritaire', 'Économie: 1.00 CHF/mois', 'Paiement unique annuel']
   }
 ];
 
@@ -2923,11 +2922,18 @@ function SubscriptionModal({
                       {plan.name}
                     </Typography>
                     <Typography variant="h4" sx={{ color: '#FFD700', fontWeight: 'bold' }}>
-                      CHF {plan.price}
+                      CHF {plan.type === 'yearly' ? plan.price : plan.price}
                     </Typography>
                     <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                      par mois {plan.type === 'yearly' && '(plan annuel - 12 mois)'}
+                      {plan.type === 'yearly' 
+                        ? `par an (4.95 CHF/mois × 12 mois)` 
+                        : 'par mois'}
                     </Typography>
+                    {plan.type === 'yearly' && (
+                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+                        Paiement unique annuel
+                      </Typography>
+                    )}
                     
                     <List dense>
                       {plan.features.map((feature, index) => (

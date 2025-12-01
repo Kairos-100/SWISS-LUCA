@@ -164,32 +164,30 @@ export const createSubscription = functions
       }
 
       // Determinar precio según plan
-      // IMPORTANTE: Ambos planes se pagan mensualmente
       const prices: Record<string, { monthly: number; yearly: number }> = {
         standard: {
-          monthly: 5.95,  // Plan mensual: 5.95 CHF/mes
-          yearly: 4.95,   // Plan anual: 4.95 CHF/mes
+          monthly: 5.95,  // Plan mensual: 5.95 CHF/mois (paiement mensuel)
+          yearly: 59.40,  // Plan anual: 59.40 CHF/an (4.95 CHF/mois × 12 mois) - Paiement unique annuel
         },
       };
 
-      const planPrices = prices.standard || { monthly: 5.95, yearly: 4.95 };
+      const planPrices = prices.standard || { monthly: 5.95, yearly: 59.40 };
       const price = planType === 'monthly' 
         ? planPrices.monthly 
         : planPrices.yearly;
 
-      // Crear precio en Stripe primero
-      // AMBOS planes se pagan mensualmente (interval: 'month')
+      // Crear precio en Stripe
       const priceObj = await stripe.prices.create({
         currency: 'chf',
         unit_amount: Math.round(price * 100),
         recurring: {
-          interval: 'month', // Ambos planes se pagan mensualmente
+          interval: planType === 'monthly' ? 'month' : 'year', // Mensuel = mensuel, Annuel = annuel
         },
         product_data: {
           name: `LUCA App - ${planType === 'monthly' ? 'Plan Mensuel' : 'Plan Annuel'}`,
           description: planType === 'yearly' 
-            ? 'Plan anual con pago mensual (12 meses)' 
-            : 'Plan mensual',
+            ? 'Plan annuel - Paiement unique annuel (59.40 CHF)' 
+            : 'Plan mensuel - Paiement mensuel (5.95 CHF/mois)',
         },
       });
 
