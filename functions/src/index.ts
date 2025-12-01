@@ -167,12 +167,12 @@ export const createSubscription = functions
       // IMPORTANTE: Ambos planes se pagan mensualmente
       const prices: Record<string, { monthly: number; yearly: number }> = {
         standard: {
-          monthly: 9.99,  // Plan mensual: 9.99 CHF/mes
-          yearly: 8.33,   // Plan anual: 8.33 CHF/mes (99.99 / 12 meses)
+          monthly: 5.95,  // Plan mensual: 5.95 CHF/mes
+          yearly: 4.95,   // Plan anual: 4.95 CHF/mes
         },
       };
 
-      const planPrices = prices.standard || { monthly: 9.99, yearly: 8.33 };
+      const planPrices = prices.standard || { monthly: 5.95, yearly: 4.95 };
       const price = planType === 'monthly' 
         ? planPrices.monthly 
         : planPrices.yearly;

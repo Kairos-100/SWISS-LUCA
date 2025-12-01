@@ -12,6 +12,7 @@ import SubscriptionWidget from './components/SubscriptionWidget';
 import { StripePaymentModal } from './components/StripePaymentModal';
 import { PartnerLoginModal } from './components/PartnerLoginModal';
 import { UserManagementModal } from './components/UserManagementModal';
+import { AdminDashboard } from './components/AdminDashboard';
 import type { UserProfile, Offer, FlashDeal } from './types';
 import './i18n';
 import { 
@@ -104,7 +105,7 @@ const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
   {
     id: 'monthly',
     name: 'Plan Mensuel',
-    price: 9.99,
+    price: 5.95,
     duration: 30,
     type: 'monthly',
     features: ['Accès complet à l\'app', 'Offres illimitées', 'Support prioritaire']
@@ -112,10 +113,10 @@ const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
   {
     id: 'yearly',
     name: 'Plan Annuel',
-    price: 8.33, // Precio mensual del plan anual (99.99 / 12 meses)
+    price: 4.95, // Precio mensual del plan anual (4.95 CHF/mes)
     duration: 365,
     type: 'yearly',
-    features: ['Accès complet à l\'app', 'Offres illimitées', 'Support prioritaire', 'Économie: 1.66 CHF/mois']
+    features: ['Accès complet à l\'app', 'Offres illimitées', 'Support prioritaire', 'Économie: 1.00 CHF/mois']
   }
 ];
 
@@ -6561,225 +6562,28 @@ function App() {
             </DialogActions>
           </Dialog>
 
-          {/* Modal de Gestion des Partenaires */}
+          {/* Modal de Gestion des Partenaires - Admin Dashboard */}
+          {isAdmin && currentUser && (
           <Dialog 
             open={showPartnersModal} 
             onClose={() => setShowPartnersModal(false)}
-            maxWidth="md"
+              maxWidth="xl"
             fullWidth
-          >
-            <DialogTitle>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Typography variant="h6">🏪 Gérer les Partenaires</Typography>
-                <IconButton onClick={() => setShowPartnersModal(false)}>
-                  <Close />
-                </IconButton>
-              </Box>
-            </DialogTitle>
-            <DialogContent>
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
-                {/* Lista de socios existentes */}
-                <Typography variant="h6" gutterBottom>
-                  Partenaires actuels ({partners.length})
-                </Typography>
-                
-                {partners.length === 0 ? (
-                  <Box sx={{ 
-                    textAlign: 'center', 
-                    py: 4,
-                    color: 'rgba(255, 255, 255, 0.6)'
-                  }}>
-                    <Typography variant="body1">
-                      Aucun partenaire ajouté
-                    </Typography>
-                  </Box>
-                ) : (
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                    {partners.map((partner, index) => (
-                      <Box 
-                        key={partner.id || index}
-                        sx={{ 
-                          display: 'flex', 
-                          justifyContent: 'space-between', 
-                          alignItems: 'center',
-                          p: 2,
-                          bgcolor: 'rgba(255, 255, 255, 0.05)',
-                          borderRadius: 2,
-                          border: '1px solid rgba(255, 255, 255, 0.1)'
-                        }}
-                      >
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            {getCategoryIcon(partner.category, { sx: { fontSize: 24, color: 'white' } })}
-                          </Box>
-                          <Box>
-                            <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                              {partner.name}
-                            </Typography>
-                            <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
-                              {partner.address}
-                            </Typography>
-                          </Box>
-                        </Box>
-                        <IconButton 
-                          onClick={() => {
-                            const newPartners = partners.filter((_, i) => i !== index);
-                            setPartners(newPartners);
-                          }}
-                          sx={{ color: '#f44336' }}
+              PaperProps={{
+                sx: {
+                  height: '90vh',
+                  maxHeight: '90vh'
+                }
+              }}
                         >
-                          <Close />
-                        </IconButton>
-                      </Box>
-                    ))}
-                  </Box>
-                )}
-                
-                <Divider sx={{ my: 2 }} />
-                
-                {/* Formulario para añadir nuevo socio */}
-                <Typography variant="h6" gutterBottom>
-                  Ajouter un nouveau partenaire
-                </Typography>
-                
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  <TextField
-                    label="Nom du partenaire"
-                    value={newPartner.name}
-                    onChange={(e) => setNewPartner({...newPartner, name: e.target.value})}
-                    fullWidth
-                    variant="outlined"
-                  />
-                  
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                    <Typography variant="body2" sx={{ fontWeight: 600, color: 'rgba(255, 255, 255, 0.9)' }}>
-                      Icône du partenaire
-                    </Typography>
-                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, maxHeight: 120, overflowY: 'auto' }}>
-                      {[
-                        { id: 'restaurant', name: 'Restaurant', category: 'restaurants' },
-                        { id: 'bar', name: 'Bar', category: 'bars' },
-                        { id: 'shop', name: 'Magasin', category: 'shops' },
-                        { id: 'hotel', name: 'Hôtel', category: 'hotels' },
-                        { id: 'gas', name: 'Station', category: 'shops' },
-                        { id: 'bank', name: 'Banque', category: 'shops' },
-                        { id: 'pharmacy', name: 'Pharmacie', category: 'health' },
-                        { id: 'gym', name: 'Fitness', category: 'fitness' },
-                        { id: 'beauty', name: 'Beauté', category: 'beauty' },
-                        { id: 'car', name: 'Auto', category: 'shops' },
-                        { id: 'clothes', name: 'Mode', category: 'clothing' },
-                        { id: 'electronics', name: 'Électronique', category: 'shops' }
-                      ].map((iconOption) => (
-                        <Box
-                          key={iconOption.id}
-                          onClick={() => setNewPartner({...newPartner, category: iconOption.category})}
-                          sx={{
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            p: 1.5,
-                            border: newPartner.category === iconOption.category ? '2px solid #FFD700' : '1px solid rgba(255, 255, 255, 0.2)',
-                            borderRadius: 2,
-                            cursor: 'pointer',
-                            bgcolor: newPartner.category === iconOption.category ? 'rgba(255, 215, 0, 0.1)' : 'rgba(255, 255, 255, 0.05)',
-                            transition: 'all 0.2s ease',
-                            '&:hover': {
-                              bgcolor: 'rgba(255, 215, 0, 0.1)',
-                              borderColor: '#FFD700'
-                            },
-                            minWidth: 60
-                          }}
-                        >
-                          <Box sx={{ mb: 0.5, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            {getCategoryIcon(iconOption.category, { sx: { fontSize: 24, color: 'white' } })}
-                          </Box>
-                          <Typography variant="caption" sx={{ 
-                            fontSize: '0.7rem', 
-                            color: 'rgba(255, 255, 255, 0.8)',
-                            textAlign: 'center'
-                          }}>
-                            {iconOption.name}
-                          </Typography>
-                        </Box>
-                      ))}
-                    </Box>
-                    <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.6)', mt: 1 }}>
-                      Sélectionnez une icône professionnelle pour le partenaire
-                    </Typography>
-                  </Box>
-                  
-                  <TextField
-                    label="Adresse"
-                    value={newPartner.address}
-                    onChange={(e) => setNewPartner({...newPartner, address: e.target.value})}
-                    fullWidth
-                    variant="outlined"
-                  />
-                  
-                  <Box sx={{ display: 'flex', gap: 2 }}>
-                    <TextField
-                      label="Latitude"
-                      type="number"
-                      value={newPartner.location.lat}
-                      onChange={(e) => setNewPartner({
-                        ...newPartner, 
-                        location: {...newPartner.location, lat: parseFloat(e.target.value) || 0}
-                      })}
-                      sx={{ flex: 1 }}
-                    />
-                    
-                    <TextField
-                      label="Longitude"
-                      type="number"
-                      value={newPartner.location.lng}
-                      onChange={(e) => setNewPartner({
-                        ...newPartner, 
-                        location: {...newPartner.location, lng: parseFloat(e.target.value) || 0}
-                      })}
-                      sx={{ flex: 1 }}
-                    />
-                  </Box>
-                  
-                  <TextField
-                    label="Remise"
-                    value={newPartner.discount}
-                    onChange={(e) => setNewPartner({...newPartner, discount: e.target.value})}
-                    fullWidth
-                    variant="outlined"
-                    placeholder="20% OFF"
-                  />
-                </Box>
-              </Box>
+              <DialogContent sx={{ p: 0, height: '100%', overflow: 'auto' }}>
+                <AdminDashboard 
+                  adminId={currentUser.uid} 
+                  onClose={() => setShowPartnersModal(false)} 
+                />
             </DialogContent>
-            <DialogActions>
-              <Button onClick={() => setShowPartnersModal(false)}>
-                Annuler
-              </Button>
-              <Button 
-                onClick={() => {
-                  if (newPartner.name && newPartner.category && newPartner.address) {
-                    const partner = {
-                      ...newPartner,
-                      id: `partner_${Date.now()}`
-                    };
-                    setPartners([...partners, partner]);
-                    setNewPartner({
-                      name: '',
-                      category: '',
-                      address: '',
-                      location: { lat: 46.2306, lng: 7.3590 },
-                      discount: '20% OFF'
-                    });
-                  }
-                }}
-                variant="contained"
-                disabled={!newPartner.name || !newPartner.category || !newPartner.address}
-                sx={{ bgcolor: '#FFD700', color: '#000', '&:hover': { bgcolor: '#FFA000' } }}
-              >
-                Ajouter Partenaire
-              </Button>
-            </DialogActions>
           </Dialog>
+          )}
 
           {/* Offer Detail Dialog */}
           <OfferDetail 

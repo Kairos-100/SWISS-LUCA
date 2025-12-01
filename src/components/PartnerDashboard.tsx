@@ -64,6 +64,8 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
   const [editingOffer, setEditingOffer] = useState<Offer | null>(null);
   const [editingFlashDeal, setEditingFlashDeal] = useState<FlashDeal | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [hasPreviewedOffer, setHasPreviewedOffer] = useState(false);
+  const [hasPreviewedFlashDeal, setHasPreviewedFlashDeal] = useState(false);
   const [stats, setStats] = useState({
     totalOffers: 0,
     totalFlashDeals: 0,
@@ -278,10 +280,87 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
     }
   };
 
+  // Función para verificar límites de ofertas
+  const checkOfferLimits = async (): Promise<{ canCreate: boolean; message: string }> => {
+    try {
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const startOfWeek = new Date(now);
+      startOfWeek.setDate(now.getDate() - now.getDay()); // Lunes de esta semana
+      startOfWeek.setHours(0, 0, 0, 0);
+
+      // Verificar ofertas normales del mes actual
+      const offersRef = collection(db, 'offers');
+      const offersQuery = query(
+        offersRef,
+        where('partnerId', '==', partnerId),
+        where('createdAt', '>=', Timestamp.fromDate(startOfMonth))
+      );
+      const offersSnapshot = await getDocs(offersQuery);
+      const monthlyOffers = offersSnapshot.docs.length;
+
+      if (monthlyOffers >= 1) {
+        return {
+          canCreate: false,
+          message: 'Has alcanzado el límite de 1 oferta normal por mes. Podrás crear otra oferta el próximo mes.'
+        };
+      }
+
+      return { canCreate: true, message: '' };
+    } catch (error) {
+      console.error('Error verificando límites:', error);
+      return { canCreate: true, message: '' }; // Permitir en caso de error
+    }
+  };
+
+  // Función para verificar límites de flash deals
+  const checkFlashDealLimits = async (): Promise<{ canCreate: boolean; message: string }> => {
+    try {
+      const now = new Date();
+      const startOfWeek = new Date(now);
+      startOfWeek.setDate(now.getDate() - now.getDay()); // Lunes de esta semana
+      startOfWeek.setHours(0, 0, 0, 0);
+
+      // Verificar flash deals de esta semana
+      const flashDealsRef = collection(db, 'flashDeals');
+      const flashDealsQuery = query(
+        flashDealsRef,
+        where('partnerId', '==', partnerId),
+        where('createdAt', '>=', Timestamp.fromDate(startOfWeek))
+      );
+      const flashDealsSnapshot = await getDocs(flashDealsQuery);
+      const weeklyFlashDeals = flashDealsSnapshot.docs.length;
+
+      if (weeklyFlashDeals >= 2) {
+        return {
+          canCreate: false,
+          message: 'Has alcanzado el límite de 2 flash deals por semana. Podrás crear otro flash deal la próxima semana.'
+        };
+      }
+
+      return { canCreate: true, message: '' };
+    } catch (error) {
+      console.error('Error verificando límites:', error);
+      return { canCreate: true, message: '' }; // Permitir en caso de error
+    }
+  };
+
   // Función para crear nueva oferta (SOLO del partner actual)
   const handleCreateOffer = async () => {
     if (!offerForm.name || !offerForm.address) {
       showSnackbar('Por favor completa nombre y dirección', 'error');
+      return;
+    }
+
+    if (!hasPreviewedOffer) {
+      showSnackbar('Por favor revisa la vista previa antes de crear la oferta', 'error');
+      return;
+    }
+
+    // Verificar límites
+    const limitCheck = await checkOfferLimits();
+    if (!limitCheck.canCreate) {
+      showSnackbar(limitCheck.message, 'error');
       return;
     }
 
@@ -296,6 +375,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
 
       if (!data.results || data.results.length === 0) {
         showSnackbar('No se pudo encontrar la ubicación', 'error');
+        setIsLoading(false);
         return;
       }
 
@@ -336,6 +416,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
       
       showSnackbar('Oferta creada correctamente', 'success');
       setShowAddOfferModal(false);
+      setHasPreviewedOffer(false);
       setOfferForm({
         name: '',
         category: 'restaurants',
@@ -370,6 +451,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
     }
     
     setEditingOffer(offer);
+    setHasPreviewedOffer(true); // Al editar, no se requiere preview
     setOfferForm({
       name: offer.name,
       category: offer.category,
@@ -485,6 +567,18 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
       return;
     }
 
+    if (!hasPreviewedFlashDeal) {
+      showSnackbar('Por favor revisa la vista previa antes de crear el flash deal', 'error');
+      return;
+    }
+
+    // Verificar límites
+    const limitCheck = await checkFlashDealLimits();
+    if (!limitCheck.canCreate) {
+      showSnackbar(limitCheck.message, 'error');
+      return;
+    }
+
     try {
       setIsLoading(true);
       
@@ -496,6 +590,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
 
       if (!data.results || data.results.length === 0) {
         showSnackbar('No se pudo encontrar la ubicación', 'error');
+        setIsLoading(false);
         return;
       }
 
@@ -544,6 +639,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
       
       showSnackbar('Flash deal creado correctamente', 'success');
       setShowAddFlashModal(false);
+      setHasPreviewedFlashDeal(false);
       setFlashDealForm({
         name: '',
         category: 'restaurants',
@@ -578,6 +674,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
     }
     
     setEditingFlashDeal(deal);
+    setHasPreviewedFlashDeal(true); // Al editar, no se requiere preview
     setFlashDealForm({
       name: deal.name,
       category: deal.category,
@@ -993,6 +1090,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
               variant="contained"
               onClick={() => {
                 setEditingOffer(null);
+                setHasPreviewedOffer(false);
                 setOfferForm({
                   name: '',
                   category: 'restaurants',
@@ -1158,6 +1256,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
               variant="contained"
               onClick={() => {
                 setEditingFlashDeal(null);
+                setHasPreviewedFlashDeal(false);
                 setFlashDealForm({
                   name: '',
                   category: 'restaurants',
@@ -1552,6 +1651,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
             onClick={() => {
               setPreviewType('offer');
               setShowPreviewModal(true);
+              setHasPreviewedOffer(true);
             }}
             variant="outlined"
             startIcon={<Preview />}
@@ -1561,7 +1661,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
           <Button 
             onClick={editingOffer ? handleUpdateOffer : handleCreateOffer}
             variant="contained"
-            disabled={isLoading}
+            disabled={isLoading || (!editingOffer && !hasPreviewedOffer)}
           >
             {editingOffer ? 'Actualizar' : 'Crear'}
           </Button>
@@ -1908,6 +2008,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
             onClick={() => {
               setPreviewType('flashDeal');
               setShowPreviewModal(true);
+              setHasPreviewedFlashDeal(true);
             }}
             variant="outlined"
             startIcon={<Preview />}
@@ -1917,7 +2018,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
           <Button 
             onClick={editingFlashDeal ? handleUpdateFlashDeal : handleCreateFlashDeal}
             variant="contained"
-            disabled={isLoading}
+            disabled={isLoading || (!editingFlashDeal && !hasPreviewedFlashDeal)}
           >
             {editingFlashDeal ? 'Actualizar' : 'Crear'}
           </Button>
