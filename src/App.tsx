@@ -3271,7 +3271,7 @@ function App() {
   const [flashDeals, setFlashDeals] = useState<FlashDeal[]>(initialFlashDeals);
   const [activatedFlashDeals, setActivatedFlashDeals] = useState<Set<string>>(new Set());
   const [flashActivationTimes, setFlashActivationTimes] = useState<{[key: string]: Date}>({});
-  const [partners, setPartners] = useState<any[]>([]); // Estado para socios dinámicos
+  // const [partners, setPartners] = useState<any[]>([]); // Ya no se usa - reemplazado por AdminDashboard
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -3287,13 +3287,6 @@ function App() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showAddFlashModal, setShowAddFlashModal] = useState(false);
   const [showPartnersModal, setShowPartnersModal] = useState(false);
-  const [newPartner, setNewPartner] = useState({
-    name: '',
-    category: '',
-    address: '',
-    location: { lat: 46.2306, lng: 7.3590 },
-    discount: '20% OFF'
-  });
   const [loginCredentials, setLoginCredentials] = useState({
     email: '',
     password: ''

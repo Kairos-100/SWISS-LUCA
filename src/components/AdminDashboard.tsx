@@ -17,34 +17,19 @@ import {
   Snackbar,
   Tabs,
   Tab,
-  Paper,
-  IconButton,
-  Chip,
-  Divider,
-  MenuItem,
-  Select,
-  SelectChangeEvent
+  Paper
 } from '@mui/material';
 import {
   Edit,
-  Save,
-  Cancel,
-  PhotoCamera,
   LocationOn,
-  Star,
-  Link as LinkIcon,
-  Add,
   Delete,
-  Visibility,
   TrendingUp,
   ShoppingCart,
   Preview,
   Upload,
-  AccessTime,
-  Store,
-  Person
+  Store
 } from '@mui/icons-material';
-import { doc, getDoc, updateDoc, deleteDoc, collection, query, where, getDocs, Timestamp, addDoc } from 'firebase/firestore';
+import { doc, updateDoc, deleteDoc, collection, getDocs, Timestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../firebase';
 import type { Partner, Offer, FlashDeal } from '../types';
@@ -54,14 +39,13 @@ interface AdminDashboardProps {
   onClose: () => void;
 }
 
-export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminId, onClose }) => {
+export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
   const [activeTab, setActiveTab] = useState(0);
   const [partners, setPartners] = useState<Partner[]>([]);
   const [offers, setOffers] = useState<Offer[]>([]);
   const [flashDeals, setFlashDeals] = useState<FlashDeal[]>([]);
-  const [selectedPartner, setSelectedPartner] = useState<Partner | null>(null);
   
   // Modales
   const [showPartnerModal, setShowPartnerModal] = useState(false);
@@ -74,8 +58,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminId, onClose
   const [editingOffer, setEditingOffer] = useState<Offer | null>(null);
   const [editingFlashDeal, setEditingFlashDeal] = useState<FlashDeal | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
-  const [hasPreviewedOffer, setHasPreviewedOffer] = useState(false);
-  const [hasPreviewedFlashDeal, setHasPreviewedFlashDeal] = useState(false);
 
   // Formularios
   const [partnerForm, setPartnerForm] = useState({
@@ -128,16 +110,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminId, onClose
     partnerId: ''
   });
 
-  // Jours de la semaine
-  const weekDays = [
-    { value: 'monday', label: 'Lundi' },
-    { value: 'tuesday', label: 'Mardi' },
-    { value: 'wednesday', label: 'Mercredi' },
-    { value: 'thursday', label: 'Jeudi' },
-    { value: 'friday', label: 'Vendredi' },
-    { value: 'saturday', label: 'Samedi' },
-    { value: 'sunday', label: 'Dimanche' }
-  ];
 
   // Catégories complètes du système
   const categories = [
@@ -290,7 +262,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminId, onClose
   // Funciones para Ofertas
   const handleEditOffer = (offer: Offer) => {
     setEditingOffer(offer);
-    setHasPreviewedOffer(true);
     setOfferForm({
       name: offer.name,
       category: offer.category,
@@ -368,7 +339,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminId, onClose
   // Funciones para Flash Deals
   const handleEditFlashDeal = (deal: FlashDeal) => {
     setEditingFlashDeal(deal);
-    setHasPreviewedFlashDeal(true);
     setFlashDealForm({
       name: deal.name,
       category: deal.category,
@@ -771,7 +741,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminId, onClose
         onClose={() => {
           setShowOfferModal(false);
           setEditingOffer(null);
-          setHasPreviewedOffer(false);
         }}
         maxWidth="md"
         fullWidth
@@ -920,7 +889,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminId, onClose
           <Button onClick={() => {
             setShowOfferModal(false);
             setEditingOffer(null);
-            setHasPreviewedOffer(false);
           }}>
             Annuler
           </Button>
@@ -928,7 +896,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminId, onClose
             onClick={() => {
               setPreviewType('offer');
               setShowPreviewModal(true);
-              setHasPreviewedOffer(true);
             }}
             variant="outlined"
             startIcon={<Preview />}
@@ -951,7 +918,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminId, onClose
         onClose={() => {
           setShowFlashModal(false);
           setEditingFlashDeal(null);
-          setHasPreviewedFlashDeal(false);
         }}
         maxWidth="md"
         fullWidth
@@ -1113,7 +1079,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminId, onClose
           <Button onClick={() => {
             setShowFlashModal(false);
             setEditingFlashDeal(null);
-            setHasPreviewedFlashDeal(false);
           }}>
             Annuler
           </Button>
@@ -1121,7 +1086,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminId, onClose
             onClick={() => {
               setPreviewType('flashDeal');
               setShowPreviewModal(true);
-              setHasPreviewedFlashDeal(true);
             }}
             variant="outlined"
             startIcon={<Preview />}
