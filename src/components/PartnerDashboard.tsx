@@ -228,7 +228,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
       setFlashDeals(flashDealsData);
     } catch (error) {
       console.error('Error cargando flash deals:', error);
-      showSnackbar('Error al cargar flash deals', 'error');
+      showSnackbar('Erreur lors du chargement des flash deals', 'error');
     }
   };
 
@@ -302,7 +302,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
       if (monthlyOffers >= 1) {
         return {
           canCreate: false,
-          message: 'Has alcanzado el límite de 1 oferta normal por mes. Podrás crear otra oferta el próximo mes.'
+          message: 'Vous avez atteint la limite de 1 offre normale par mois. Vous pourrez créer une autre offre le mois prochain.'
         };
       }
 
@@ -334,7 +334,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
       if (weeklyFlashDeals >= 2) {
         return {
           canCreate: false,
-          message: 'Has alcanzado el límite de 2 flash deals por semana. Podrás crear otro flash deal la próxima semana.'
+          message: 'Vous avez atteint la limite de 2 flash deals par semaine. Vous pourrez créer un autre flash deal la semaine prochaine.'
         };
       }
 
@@ -353,7 +353,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
     }
 
     if (!hasPreviewedOffer) {
-      showSnackbar('Por favor revisa la vista previa antes de crear la oferta', 'error');
+      showSnackbar('Veuillez vérifier l\'aperçu avant de créer l\'offre', 'error');
       return;
     }
 
@@ -374,7 +374,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
       const data = await response.json();
 
       if (!data.results || data.results.length === 0) {
-        showSnackbar('No se pudo encontrar la ubicación', 'error');
+        showSnackbar('Impossible de trouver l\'emplacement', 'error');
         setIsLoading(false);
         return;
       }
@@ -414,7 +414,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
       const offersRef = collection(db, 'offers');
       await addDoc(offersRef, offerData);
       
-      showSnackbar('Oferta creada correctamente', 'success');
+      showSnackbar('Offre créée avec succès', 'success');
       setShowAddOfferModal(false);
       setHasPreviewedOffer(false);
       setOfferForm({
@@ -436,7 +436,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
       await loadStats();
     } catch (error) {
       console.error('Error creando oferta:', error);
-      showSnackbar('Error al crear oferta', 'error');
+      showSnackbar('Erreur lors de la création de l\'offre', 'error');
     } finally {
       setIsLoading(false);
     }
@@ -446,7 +446,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
   const handleEditOffer = (offer: Offer) => {
     // Validar que la oferta pertenece al partner actual
     if (offer.partnerId !== partnerId) {
-      showSnackbar('No tienes permisos para editar esta oferta', 'error');
+      showSnackbar('Vous n\'avez pas la permission de modifier cette offre', 'error');
       return;
     }
     
@@ -476,7 +476,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
     
     // Validar que la oferta pertenece al partner actual
     if (editingOffer.partnerId !== partnerId) {
-      showSnackbar('No tienes permisos para editar esta oferta', 'error');
+      showSnackbar('Vous n\'avez pas la permission de modifier cette offre', 'error');
       return;
     }
 
@@ -502,7 +502,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
         updatedAt: Timestamp.now()
       });
       
-      showSnackbar('Oferta actualizada correctamente', 'success');
+      showSnackbar('Offre mise à jour avec succès', 'success');
       setShowAddOfferModal(false);
       setEditingOffer(null);
       setOfferForm({
@@ -524,7 +524,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
       await loadStats();
     } catch (error) {
       console.error('Error actualizando oferta:', error);
-      showSnackbar('Error al actualizar oferta', 'error');
+      showSnackbar('Erreur lors de la mise à jour de l\'offre', 'error');
     } finally {
       setIsLoading(false);
     }
@@ -537,11 +537,11 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
     
     // Validar que la oferta pertenece al partner actual
     if (offer.partnerId !== partnerId) {
-      showSnackbar('No tienes permisos para eliminar esta oferta', 'error');
+      showSnackbar('Vous n\'avez pas la permission de supprimer cette offre', 'error');
       return;
     }
 
-    if (!window.confirm('¿Estás seguro de que quieres eliminar esta oferta?')) {
+    if (!window.confirm('Êtes-vous sûr de vouloir supprimer cette offre ?')) {
       return;
     }
 
@@ -549,12 +549,12 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
       setIsLoading(true);
       const offerRef = doc(db, 'offers', offerId);
       await deleteDoc(offerRef);
-      showSnackbar('Oferta eliminada correctamente', 'success');
+      showSnackbar('Offre supprimée avec succès', 'success');
       await loadOffers();
       await loadStats();
     } catch (error) {
       console.error('Error eliminando oferta:', error);
-      showSnackbar('Error al eliminar oferta', 'error');
+      showSnackbar('Erreur lors de la suppression de l\'offre', 'error');
     } finally {
       setIsLoading(false);
     }
@@ -568,7 +568,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
     }
 
     if (!hasPreviewedFlashDeal) {
-      showSnackbar('Por favor revisa la vista previa antes de crear el flash deal', 'error');
+      showSnackbar('Veuillez vérifier l\'aperçu avant de créer le flash deal', 'error');
       return;
     }
 
@@ -589,7 +589,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
       const data = await response.json();
 
       if (!data.results || data.results.length === 0) {
-        showSnackbar('No se pudo encontrar la ubicación', 'error');
+        showSnackbar('Impossible de trouver l\'emplacement', 'error');
         setIsLoading(false);
         return;
       }
@@ -637,7 +637,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
       const flashDealsRef = collection(db, 'flashDeals');
       await addDoc(flashDealsRef, flashDealData);
       
-      showSnackbar('Flash deal creado correctamente', 'success');
+      showSnackbar('Flash deal créé avec succès', 'success');
       setShowAddFlashModal(false);
       setHasPreviewedFlashDeal(false);
       setFlashDealForm({
@@ -660,7 +660,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
       await loadStats();
     } catch (error) {
       console.error('Error creando flash deal:', error);
-      showSnackbar('Error al crear flash deal', 'error');
+      showSnackbar('Erreur lors de la création du flash deal', 'error');
     } finally {
       setIsLoading(false);
     }
@@ -669,7 +669,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
   const handleEditFlashDeal = (deal: FlashDeal) => {
     // Validar que el flash deal pertenece al partner actual
     if (deal.partnerId !== partnerId) {
-      showSnackbar('No tienes permisos para editar este flash deal', 'error');
+      showSnackbar('Vous n\'avez pas la permission de modifier ce flash deal', 'error');
       return;
     }
     
@@ -699,7 +699,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
     
     // Validar que el flash deal pertenece al partner actual
     if (editingFlashDeal.partnerId !== partnerId) {
-      showSnackbar('No tienes permisos para editar este flash deal', 'error');
+      showSnackbar('Vous n\'avez pas la permission de modifier ce flash deal', 'error');
       return;
     }
 
@@ -729,7 +729,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
         updatedAt: Timestamp.now()
       });
       
-      showSnackbar('Flash deal actualizado correctamente', 'success');
+      showSnackbar('Flash deal mis à jour avec succès', 'success');
       setShowAddFlashModal(false);
       setEditingFlashDeal(null);
       setFlashDealForm({
@@ -752,7 +752,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
       await loadStats();
     } catch (error) {
       console.error('Error actualizando flash deal:', error);
-      showSnackbar('Error al actualizar flash deal', 'error');
+      showSnackbar('Erreur lors de la mise à jour du flash deal', 'error');
     } finally {
       setIsLoading(false);
     }
@@ -764,11 +764,11 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
     
     // Validar que el flash deal pertenece al partner actual
     if (deal.partnerId !== partnerId) {
-      showSnackbar('No tienes permisos para eliminar este flash deal', 'error');
+      showSnackbar('Vous n\'avez pas la permission de supprimer ce flash deal', 'error');
       return;
     }
 
-    if (!window.confirm('¿Estás seguro de que quieres eliminar este flash deal?')) {
+    if (!window.confirm('Êtes-vous sûr de vouloir supprimer ce flash deal ?')) {
       return;
     }
 
@@ -776,12 +776,12 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
       setIsLoading(true);
       const flashDealRef = doc(db, 'flashDeals', flashDealId);
       await deleteDoc(flashDealRef);
-      showSnackbar('Flash deal eliminado correctamente', 'success');
+      showSnackbar('Flash deal supprimé avec succès', 'success');
       await loadFlashDeals();
       await loadStats();
     } catch (error) {
       console.error('Error eliminando flash deal:', error);
-      showSnackbar('Error al eliminar flash deal', 'error');
+      showSnackbar('Erreur lors de la suppression du flash deal', 'error');
     } finally {
       setIsLoading(false);
     }
@@ -807,7 +807,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
       showSnackbar('Perfil actualizado correctamente', 'success');
     } catch (error) {
       console.error('Error guardando perfil:', error);
-      showSnackbar('Error al guardar perfil', 'error');
+      showSnackbar('Erreur lors de l\'enregistrement du profil', 'error');
     } finally {
       setIsLoading(false);
     }
@@ -815,7 +815,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
 
   const handleGeocodeAddress = async () => {
     if (!formData.address) {
-      showSnackbar('Por favor ingresa una dirección', 'error');
+      showSnackbar('Veuillez entrer une adresse', 'error');
       return;
     }
 
@@ -834,11 +834,11 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
         }));
         showSnackbar('Ubicación encontrada', 'success');
       } else {
-        showSnackbar('No se pudo encontrar la ubicación', 'error');
+        showSnackbar('Impossible de trouver l\'emplacement', 'error');
       }
     } catch (error) {
       console.error('Error geocodificando:', error);
-      showSnackbar('Error al buscar ubicación', 'error');
+      showSnackbar('Erreur lors de la recherche de l\'emplacement', 'error');
     }
   };
 
@@ -853,7 +853,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
   if (isLoading && !partner) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
-        <Typography>Cargando...</Typography>
+        <Typography>Chargement...</Typography>
       </Box>
     );
   }
@@ -865,7 +865,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
           Panel Partner
         </Typography>
         <Button variant="outlined" onClick={onLogout}>
-          Cerrar sesión
+          Fermer la session
         </Button>
       </Box>
 
@@ -890,7 +890,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
                   onClick={() => setIsEditing(true)}
                   variant="outlined"
                 >
-                  Editar
+                  Modifier
                 </Button>
               ) : (
                 <Box>
@@ -947,7 +947,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
                               }));
                               showSnackbar('Imagen subida correctamente', 'success');
                             } catch (error) {
-                              showSnackbar('Error al subir imagen', 'error');
+                              showSnackbar('Erreur lors du téléchargement de l\'image', 'error');
                             }
                           }
                         }}
@@ -1128,7 +1128,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
                         onClick={() => handleEditOffer(offer)}
                         disabled={offer.partnerId !== partnerId}
                       >
-                        Editar
+                        Modifier
                       </Button>
                       <Button 
                         size="small" 
@@ -1137,7 +1137,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
                         onClick={() => handleDeleteOffer(offer.id)}
                         disabled={offer.partnerId !== partnerId}
                       >
-                        Eliminar
+                        Supprimer
                       </Button>
                     </Box>
                   </CardContent>
@@ -1148,7 +1148,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
               <Grid size={{ xs: 12 }}>
                 <Paper sx={{ p: 3, textAlign: 'center' }}>
                   <Typography color="text.secondary">
-                    No tienes ofertas aún. Crea tu primera oferta.
+                    Vous n'avez pas encore d'offres. Créez votre première offre.
                   </Typography>
                 </Paper>
               </Grid>
@@ -1295,7 +1295,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
                         onClick={() => handleEditFlashDeal(deal)}
                         disabled={deal.partnerId !== partnerId}
                       >
-                        Editar
+                        Modifier
                       </Button>
                       <Button 
                         size="small" 
@@ -1304,7 +1304,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
                         onClick={() => handleDeleteFlashDeal(deal.id)}
                         disabled={deal.partnerId !== partnerId}
                       >
-                        Eliminar
+                        Supprimer
                       </Button>
                     </Box>
                   </CardContent>
@@ -1315,7 +1315,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
               <Grid size={{ xs: 12 }}>
                 <Paper sx={{ p: 3, textAlign: 'center' }}>
                   <Typography color="text.secondary">
-                    No tienes flash deals aún. Crea tu primer flash deal.
+                    Vous n'avez pas encore de flash deals. Créez votre premier flash deal.
                   </Typography>
                 </Paper>
               </Grid>
@@ -1335,7 +1335,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
         fullWidth
       >
         <DialogTitle>
-          {editingOffer ? 'Editar Oferta' : 'Nueva Oferta'}
+          {editingOffer ? 'Modifier l\'Offre' : 'Nouvelle Offre'}
         </DialogTitle>
         <DialogContent>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
@@ -1381,7 +1381,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
                 SelectProps={{ native: true }}
                 disabled={!offerForm.category}
               >
-                <option value="">Selecciona una subcategoría</option>
+                <option value="">Sélectionnez une sous-catégorie</option>
                 {categories.find(c => c.id === offerForm.category)?.subCategories.map(sub => (
                   <option key={sub} value={sub}>{sub}</option>
                 ))}
@@ -1505,7 +1505,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
               {/* Selección manual de días */}
               <Box sx={{ mb: 2 }}>
                 <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>
-                  Selecciona los días de la semana:
+                  Sélectionnez les jours de la semaine:
                 </Typography>
                 <Box sx={{ 
                   display: 'grid', 
@@ -1540,7 +1540,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
                 </Box>
                 {offerForm.availabilityDays.length > 0 && (
                   <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                    ✓ {offerForm.availabilityDays.length} día(s) seleccionado(s)
+                    ✓ {offerForm.availabilityDays.length} jour(s) sélectionné(s)
                   </Typography>
                 )}
               </Box>
@@ -1549,7 +1549,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
               {offerForm.availabilityDays.length > 0 ? (
                 <Box>
                   <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>
-                    ⏰ Horario de disponibilidad:
+                    ⏰ Horaires de disponibilité:
                   </Typography>
                   <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
                     <TextField
@@ -1577,18 +1577,18 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
                   {/* Resumen visual */}
                   <Paper sx={{ p: 2, bgcolor: 'action.hover', mt: 2 }}>
                     <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1 }}>
-                      📋 Resumen de disponibilidad:
+                      📋 Résumé de disponibilité:
                     </Typography>
                     <Typography variant="body2">
                       <strong>Días:</strong> {
                         offerForm.availabilityDays.length === 0 
-                          ? 'Siempre disponible (24/7)'
+                          ? 'Toujours disponible (24/7)'
                           : offerForm.availabilityDays.map(d => weekDays.find(w => w.value === d)?.label).join(', ')
                       }
                     </Typography>
                     {offerForm.availabilityDays.length > 0 && (
                       <Typography variant="body2" sx={{ mt: 0.5 }}>
-                        <strong>Horario:</strong> {offerForm.availabilityStartTime} - {offerForm.availabilityEndTime}
+                        <strong>Horaires:</strong> {offerForm.availabilityStartTime} - {offerForm.availabilityEndTime}
                       </Typography>
                     )}
                   </Paper>
@@ -1645,7 +1645,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
             setShowAddOfferModal(false);
             setEditingOffer(null);
           }}>
-            Cancelar
+            Annuler
           </Button>
           <Button
             onClick={() => {
@@ -1656,14 +1656,14 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
             variant="outlined"
             startIcon={<Preview />}
           >
-            Vista Previa
+            Aperçu
           </Button>
           <Button 
             onClick={editingOffer ? handleUpdateOffer : handleCreateOffer}
             variant="contained"
             disabled={isLoading || (!editingOffer && !hasPreviewedOffer)}
           >
-            {editingOffer ? 'Actualizar' : 'Crear'}
+            {editingOffer ? 'Mettre à jour' : 'Créer'}
           </Button>
         </DialogActions>
       </Dialog>
@@ -1679,7 +1679,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
         fullWidth
       >
         <DialogTitle>
-          {editingFlashDeal ? 'Editar Flash Deal' : 'Nuevo Flash Deal'}
+          {editingFlashDeal ? 'Modifier le Flash Deal' : 'Nouveau Flash Deal'}
         </DialogTitle>
         <DialogContent>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
@@ -1725,7 +1725,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
                 SelectProps={{ native: true }}
                 disabled={!flashDealForm.category}
               >
-                <option value="">Selecciona una subcategoría</option>
+                <option value="">Sélectionnez une sous-catégorie</option>
                 {categories.find(c => c.id === flashDealForm.category)?.subCategories.map(sub => (
                   <option key={sub} value={sub}>{sub}</option>
                 ))}
@@ -1796,7 +1796,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
                 <Typography variant="body2">
                   • <strong>Sans sélection:</strong> Le flash deal sera disponible 24/7, tous les jours<br/>
                   • <strong>Con días seleccionados:</strong> El flash deal solo será visible y activable en los días y horarios que configures<br/>
-                  • <strong>Horarios:</strong> Define el rango de horas en que el flash deal estará disponible cada día seleccionado
+                  • <strong>Horaires:</strong> Définissez la plage horaire pendant laquelle le flash deal sera disponible chaque jour sélectionné
                 </Typography>
               </Alert>
               
@@ -1862,7 +1862,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
               {/* Selección manual de días */}
               <Box sx={{ mb: 2 }}>
                 <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>
-                  Selecciona los días de la semana:
+                  Sélectionnez les jours de la semaine:
                 </Typography>
                 <Box sx={{ 
                   display: 'grid', 
@@ -1897,7 +1897,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
                 </Box>
                 {flashDealForm.availabilityDays.length > 0 && (
                   <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                    ✓ {flashDealForm.availabilityDays.length} día(s) seleccionado(s)
+                    ✓ {flashDealForm.availabilityDays.length} jour(s) sélectionné(s)
                   </Typography>
                 )}
               </Box>
@@ -1906,7 +1906,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
               {flashDealForm.availabilityDays.length > 0 ? (
                 <Box>
                   <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>
-                    ⏰ Horario de disponibilidad:
+                    ⏰ Horaires de disponibilité:
                   </Typography>
                   <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
                     <TextField
@@ -1934,18 +1934,18 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
                   {/* Resumen visual */}
                   <Paper sx={{ p: 2, bgcolor: 'action.hover', mt: 2 }}>
                     <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1 }}>
-                      📋 Resumen de disponibilidad:
+                      📋 Résumé de disponibilité:
                     </Typography>
                     <Typography variant="body2">
                       <strong>Días:</strong> {
                         flashDealForm.availabilityDays.length === 0 
-                          ? 'Siempre disponible (24/7)'
+                          ? 'Toujours disponible (24/7)'
                           : flashDealForm.availabilityDays.map(d => weekDays.find(w => w.value === d)?.label).join(', ')
                       }
                     </Typography>
                     {flashDealForm.availabilityDays.length > 0 && (
                       <Typography variant="body2" sx={{ mt: 0.5 }}>
-                        <strong>Horario:</strong> {flashDealForm.availabilityStartTime} - {flashDealForm.availabilityEndTime}
+                        <strong>Horaires:</strong> {flashDealForm.availabilityStartTime} - {flashDealForm.availabilityEndTime}
                       </Typography>
                     )}
                   </Paper>
@@ -2002,7 +2002,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
             setShowAddFlashModal(false);
             setEditingFlashDeal(null);
           }}>
-            Cancelar
+            Annuler
           </Button>
           <Button
             onClick={() => {
@@ -2013,14 +2013,14 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
             variant="outlined"
             startIcon={<Preview />}
           >
-            Vista Previa
+            Aperçu
           </Button>
           <Button 
             onClick={editingFlashDeal ? handleUpdateFlashDeal : handleCreateFlashDeal}
             variant="contained"
             disabled={isLoading || (!editingFlashDeal && !hasPreviewedFlashDeal)}
           >
-            {editingFlashDeal ? 'Actualizar' : 'Crear'}
+            {editingFlashDeal ? 'Mettre à jour' : 'Créer'}
           </Button>
         </DialogActions>
       </Dialog>
@@ -2032,7 +2032,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
         maxWidth="sm"
         fullWidth
       >
-        <DialogTitle>Vista Previa</DialogTitle>
+        <DialogTitle>Aperçu</DialogTitle>
         <DialogContent>
           {previewType === 'offer' ? (
             <Card>
@@ -2062,7 +2062,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
                   {categories.find(c => c.id === offerForm.category)?.name || offerForm.category} - {offerForm.subCategory || 'Sin subcategoría'}
                 </Typography>
                 <Typography variant="h6" color="primary" gutterBottom>
-                  {offerForm.discount || 'Sin descuento'}
+                  {offerForm.discount || 'Sans réduction'}
                 </Typography>
                 {offerForm.price && (
                   <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
@@ -2077,12 +2077,12 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
                   </Box>
                 )}
                 <Typography variant="body2" sx={{ mt: 2 }}>
-                  {offerForm.description || 'Sin descripción'}
+                  {offerForm.description || 'Sans description'}
                 </Typography>
                 <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
                   <LocationOn fontSize="small" color="action" />
                   <Typography variant="body2" color="text.secondary">
-                    {offerForm.address || 'Sin dirección'}
+                    {offerForm.address || 'Sans adresse'}
                   </Typography>
                 </Box>
               </CardContent>
@@ -2133,7 +2133,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
                 <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
                   <LocationOn fontSize="small" color="action" />
                   <Typography variant="body2" color="text.secondary">
-                    {flashDealForm.address || 'Sin dirección'}
+                    {flashDealForm.address || 'Sans adresse'}
                   </Typography>
                 </Box>
                 <Box sx={{ mt: 2, display: 'flex', gap: 2 }}>
