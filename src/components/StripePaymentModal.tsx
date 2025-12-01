@@ -58,7 +58,7 @@ export const StripePaymentModal: React.FC<StripePaymentModalProps> = ({
   const [paymentElementMounted, setPaymentElementMounted] = useState(false);
   const [paymentConfirmed, setPaymentConfirmed] = useState(false);
 
-  // Limpiar estado al abrir/cerrar modal
+  // Nettoyer l'état à l'ouverture/fermeture du modal
   useEffect(() => {
     if (open) {
       setError('');
@@ -71,7 +71,7 @@ export const StripePaymentModal: React.FC<StripePaymentModalProps> = ({
     }
   }, [open]);
 
-  // Crear Payment Intent o Subscription
+      // Créer Payment Intent ou Subscription
   useEffect(() => {
     if (!open || !userId) return;
 
@@ -83,7 +83,7 @@ export const StripePaymentModal: React.FC<StripePaymentModalProps> = ({
         // Inicializar Stripe
         const initialized = await paymentService.initialize();
         if (!initialized) {
-          throw new Error('No se pudo inicializar el servicio de pagos');
+          throw new Error('Impossible d\'initialiser le service de paiement');
         }
 
         let response: {
@@ -94,7 +94,7 @@ export const StripePaymentModal: React.FC<StripePaymentModalProps> = ({
         };
 
         if (type === 'subscription') {
-          // Crear suscripción usando Firebase Functions (región europe-west1)
+          // Créer une souscription en utilisant Firebase Functions (région europe-west1)
           const functions = getFunctions(app, 'europe-west1');
           const createSubscription = httpsCallable(functions, 'createSubscription');
           
@@ -111,7 +111,7 @@ export const StripePaymentModal: React.FC<StripePaymentModalProps> = ({
             paymentId: data.subscriptionId,
           };
         } else {
-          // Crear Payment Intent usando Firebase Functions (región europe-west1)
+          // Créer Payment Intent en utilisant Firebase Functions (région europe-west1)
           const functions = getFunctions(app, 'europe-west1');
           const createPaymentIntent = httpsCallable(functions, 'createPaymentIntent');
           
@@ -136,21 +136,21 @@ export const StripePaymentModal: React.FC<StripePaymentModalProps> = ({
         if (response.success && response.clientSecret) {
           setClientSecret(response.clientSecret);
           
-          // Configurar elementos de pago de Stripe
+          // Configurer les éléments de paiement Stripe
           const containerId = 'stripe-payment-element';
           const mounted = await paymentService.setupPaymentElements(containerId, response.clientSecret);
           
           if (mounted) {
             setPaymentElementMounted(true);
           } else {
-            throw new Error('No se pudo configurar el formulario de pago');
+            throw new Error('Impossible de configurer le formulaire de paiement');
           }
         } else {
-          throw new Error(response.error || 'Error al crear el pago');
+          throw new Error(response.error || 'Erreur lors de la création du paiement');
         }
       } catch (err: any) {
         console.error('Error creando pago:', err);
-        setError(err.message || 'Error al procesar el pago. Por favor, inténtalo de nuevo.');
+        setError(err.message || 'Erreur lors du traitement du paiement. Veuillez réessayer.');
       } finally {
         setLoading(false);
       }
@@ -172,17 +172,17 @@ export const StripePaymentModal: React.FC<StripePaymentModalProps> = ({
 
       if (result.success) {
         setPaymentConfirmed(true);
-        // Esperar un momento antes de cerrar y llamar onSuccess
+        // Attendre un moment avant de fermer et appeler onSuccess
         setTimeout(() => {
           onSuccess(clientSecret);
           onClose();
         }, 1500);
       } else {
-        setError(result.error || 'Error al confirmar el pago');
+        setError(result.error || 'Erreur lors de la confirmation du paiement');
       }
     } catch (err: any) {
       console.error('Error confirmando pago:', err);
-      setError(err.message || 'Error al confirmar el pago');
+      setError(err.message || 'Erreur lors de la confirmation du paiement');
     } finally {
       setLoading(false);
     }
@@ -221,7 +221,7 @@ export const StripePaymentModal: React.FC<StripePaymentModalProps> = ({
       </DialogTitle>
 
       <DialogContent sx={{ p: 3 }}>
-        {/* Información del pago */}
+        {/* Informations du paiement */}
         <Card sx={{ 
           mb: 3, 
           background: 'linear-gradient(145deg, #1A1A1A 0%, #2A2A2A 100%)',
@@ -252,7 +252,7 @@ export const StripePaymentModal: React.FC<StripePaymentModalProps> = ({
           </CardContent>
         </Card>
 
-        {/* Formulario de pago Stripe */}
+        {/* Formulaire de paiement Stripe */}
         {loading && !paymentElementMounted && (
           <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
             <CircularProgress sx={{ color: '#FFD700' }} />

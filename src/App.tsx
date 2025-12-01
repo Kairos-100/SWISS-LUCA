@@ -119,7 +119,7 @@ const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
   }
 ];
 
-// Prix par utilisation d'offres - Se paga el precio completo de la oferta
+// Prix par utilisation d'offres - Le prix complet de l'offre est payé
 const OFFER_USAGE_PERCENTAGE = 1.0; // 100% - Precio completo de la oferta
 
 // Subscription Plan interface
@@ -405,7 +405,7 @@ const initialOffers: Offer[] = [
   }
 ];
 
-// Datos de ejemplo para ofertas flash
+// Données d'exemple pour les offres flash
 const initialFlashDeals: FlashDeal[] = [
   {
     id: 'flash1',
@@ -517,7 +517,7 @@ const updateSubscriptionAfterPayment = async (userId: string, planId: string): P
     const plan = SUBSCRIPTION_PLANS.find(p => p.id === planId);
     if (!plan) return false;
 
-    // Actualizar perfil del usuario después de pago exitoso
+    // Mettre à jour le profil de l'utilisateur après un paiement réussi
     const userRef = doc(db, 'users', userId);
     const nextPaymentDate = calculateNextPaymentDate(plan.type);
     
@@ -541,7 +541,7 @@ const updateSubscriptionAfterPayment = async (userId: string, planId: string): P
 // El pago real se maneja a través del StripePaymentModal
 const updateOfferPaymentAfterSuccess = async (userId: string, _offerId: string, usagePrice: number): Promise<boolean> => {
   try {
-    // Actualizar perfil del usuario después de pago exitoso
+    // Mettre à jour le profil de l'utilisateur après un paiement réussi
     const userRef = doc(db, 'users', userId);
     const userDoc = await getDoc(userRef);
     if (userDoc.exists()) {
