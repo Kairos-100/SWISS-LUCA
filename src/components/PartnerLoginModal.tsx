@@ -89,12 +89,23 @@ export const PartnerLoginModal: React.FC<PartnerLoginModalProps> = ({
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle>
-        <Typography variant="h5" component="div" sx={{ fontWeight: 600 }}>
+    <Dialog 
+      open={open} 
+      onClose={onClose} 
+      maxWidth="sm" 
+      fullWidth
+      PaperProps={{
+        sx: {
+          background: 'linear-gradient(145deg, #1A1A1A 0%, #2A2A2A 100%)',
+          color: '#FFFFFF',
+        }
+      }}
+    >
+      <DialogTitle sx={{ color: '#FFFFFF' }}>
+        <Typography variant="h5" component="div" sx={{ fontWeight: 600, color: '#FFFFFF' }}>
           Accès Partenaire
         </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+        <Typography variant="body2" sx={{ mt: 1, color: '#B0B0B0' }}>
           Gérez vos offres et votre profil
         </Typography>
       </DialogTitle>
@@ -115,6 +126,15 @@ export const PartnerLoginModal: React.FC<PartnerLoginModalProps> = ({
             margin="normal"
             autoComplete="email"
             disabled={isLoading}
+            sx={{
+              '& .MuiInputLabel-root': { color: '#B0B0B0' },
+              '& .MuiOutlinedInput-root': {
+                color: '#FFFFFF',
+                '& fieldset': { borderColor: '#555' },
+                '&:hover fieldset': { borderColor: '#FFD700' },
+                '&.Mui-focused fieldset': { borderColor: '#FFD700' }
+              }
+            }}
           />
           <TextField
             fullWidth
@@ -126,11 +146,24 @@ export const PartnerLoginModal: React.FC<PartnerLoginModalProps> = ({
             margin="normal"
             autoComplete="current-password"
             disabled={isLoading}
+            sx={{
+              '& .MuiInputLabel-root': { color: '#B0B0B0' },
+              '& .MuiOutlinedInput-root': {
+                color: '#FFFFFF',
+                '& fieldset': { borderColor: '#555' },
+                '&:hover fieldset': { borderColor: '#FFD700' },
+                '&.Mui-focused fieldset': { borderColor: '#FFD700' }
+              }
+            }}
           />
         </Box>
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2 }}>
-        <Button onClick={onClose} disabled={isLoading}>
+        <Button 
+          onClick={onClose} 
+          disabled={isLoading}
+          sx={{ color: '#FFD700' }}
+        >
           Annuler
         </Button>
         <Button
@@ -138,6 +171,13 @@ export const PartnerLoginModal: React.FC<PartnerLoginModalProps> = ({
           variant="contained"
           disabled={isLoading}
           startIcon={isLoading ? <CircularProgress size={20} /> : null}
+          sx={{
+            background: 'linear-gradient(135deg, #FFD700 0%, #FFA000 100%)',
+            color: '#000000',
+            '&:hover': {
+              background: 'linear-gradient(135deg, #FFA000 0%, #FF8F00 100%)',
+            }
+          }}
         >
           {isLoading ? 'Connexion...' : 'Se connecter'}
         </Button>

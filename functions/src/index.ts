@@ -79,18 +79,22 @@ export const createPaymentIntent = functions
       }
 
       // Crear Payment Intent
+      // El amount ya viene en centavos desde el frontend
       const paymentIntent = await stripe.paymentIntents.create({
-        amount: Math.round(amount * 100), // Convertir a centavos
+        amount: Math.round(amount), // Ya viene en centavos, solo redondear
         currency: currency.toLowerCase(),
         description,
         metadata: {
           userId: context.auth.uid,
           ...metadata,
         },
-        // Habilitar métodos de pago automáticamente
+        // Habilitar métodos de pago automáticamente (incluye TWINT, Apple Pay, tarjetas)
         automatic_payment_methods: {
           enabled: true,
+          allow_redirects: 'never', // Evitar redirecciones para mejor UX
         },
+        // Configuración específica para Suiza
+        payment_method_types: ['card', 'twint'],
       });
 
       return {
@@ -164,39 +168,44 @@ export const createSubscription = functions
       }
 
       // Determinar precio según plan
+      // IMPORTANTE: Ambos planes se pagan mensualmente
       const prices: Record<string, { monthly: number; yearly: number }> = {
         standard: {
-          monthly: 5.95,  // Plan mensual: 5.95 CHF/mois (paiement mensuel)
-          yearly: 59.40,  // Plan anual: 59.40 CHF/an (4.95 CHF/mois × 12 mois) - Paiement unique annuel
+          monthly: 9.99,  // Plan mensual: 9.99 CHF/mes
+          yearly: 8.33,   // Plan anual: 8.33 CHF/mes (99.99 / 12 meses)
         },
       };
 
-      const planPrices = prices.standard || { monthly: 5.95, yearly: 59.40 };
+      const planPrices = prices.standard || { monthly: 9.99, yearly: 8.33 };
       const price = planType === 'monthly' 
         ? planPrices.monthly 
         : planPrices.yearly;
 
-      // Crear precio en Stripe
+      // Crear precio en Stripe primero
+      // AMBOS planes se pagan mensualmente (interval: 'month')
       const priceObj = await stripe.prices.create({
         currency: 'chf',
         unit_amount: Math.round(price * 100),
         recurring: {
-          interval: planType === 'monthly' ? 'month' : 'year', // Mensuel = mensuel, Annuel = annuel
+          interval: 'month', // Ambos planes se pagan mensualmente
         },
         product_data: {
           name: `LUCA App - ${planType === 'monthly' ? 'Plan Mensuel' : 'Plan Annuel'}`,
           description: planType === 'yearly' 
-            ? 'Plan annuel - Paiement unique annuel (59.40 CHF)' 
-            : 'Plan mensuel - Paiement mensuel (5.95 CHF/mois)',
+            ? 'Plan anual con pago mensual (12 meses)' 
+            : 'Plan mensual',
         },
       });
 
-      // Crear suscripción en Stripe
+      // Crear suscripción en Stripe con métodos de pago habilitados
       const subscription = await stripe.subscriptions.create({
         customer: customerId,
         items: [{ price: priceObj.id }],
         payment_behavior: 'default_incomplete',
         expand: ['latest_invoice.payment_intent'],
+        payment_settings: {
+          payment_method_types: ['card', 'twint'],
+        },
       });
 
       // Obtener client secret del PaymentIntent

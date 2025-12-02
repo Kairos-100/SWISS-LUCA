@@ -186,7 +186,36 @@ const fr = {
     essai: "🎉 Essai",
     expire: "⚠️ Expiré",
     active: "Active",
-    resetPassword: "Réinitialiser le mot de passe"
+    resetPassword: "Réinitialiser le mot de passe",
+    
+    // Partner Dashboard
+    panelAdministrateur: "Panel Administrateur",
+    panelPartenaire: "Panel Partenaire",
+    modeAdministrateur: "Mode Administrateur",
+    modeAdministrateurDesc: "En tant qu'administrateur, vous pouvez gérer toutes les offres et flash deals de tous les partenaires.",
+    informationsPartenaire: "Informations du Partenaire",
+    toutesLesOffres: "Toutes les Offres",
+    mesOffres: "Mes Offres",
+    nouvelleOffre: "Nouvelle Offre",
+    flashDeals: "Flash Deals",
+    nouveauFlashDeal: "Nouveau Flash Deal",
+    changerPhoto: "Changer photo",
+    telechargementImage: "Téléchargement de l'image...",
+    imageTelechargee: "Image téléchargée avec succès",
+    erreurTelechargementImage: "Erreur lors du téléchargement de l'image",
+    nomDuNegocio: "Nom du Négocio",
+    latitud: "Latitude",
+    longitud: "Longitude",
+    enlaceGoogleMaps: "Enlace Google Maps",
+    ubicacionEncontrada: "Localisation trouvée",
+    noSePudoEncontrarUbicacion: "Impossible de trouver la localisation",
+    errorBuscarUbicacion: "Erreur lors de la recherche de localisation",
+    errorGeocodificando: "Erreur lors de la géocodification",
+    supprimer: "Supprimer",
+    partenaire: "Partenaire",
+    statistiques: "Statistiques",
+    aucuneOffre: "Vous n'avez pas encore d'offres. Créez votre première offre.",
+    aucunFlashDeal: "Vous n'avez pas encore de flash deals. Créez votre premier flash deal."
   }
 };
 
@@ -270,7 +299,11 @@ const en = {
     
     // Personal information
     informationsPersonnelles: "Personal Information",
-    modifier: "Edit",
+    supprimer: "Delete",
+    partenaire: "Partner",
+    statistiques: "Statistics",
+    aucuneOffre: "You don't have any offers yet. Create your first offer.",
+    aucunFlashDeal: "You don't have any flash deals yet. Create your first flash deal.",
     ville: "City",
     dernieresOffresActivees: "Last activated offers",
     tableauBordFinancier: "Financial Dashboard",

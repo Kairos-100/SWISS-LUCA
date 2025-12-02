@@ -55,14 +55,16 @@ export const StripePaymentModal: React.FC<StripePaymentModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>('');
   const [clientSecret, setClientSecret] = useState<string>('');
+  const [paymentId, setPaymentId] = useState<string>('');
   const [paymentElementMounted, setPaymentElementMounted] = useState(false);
   const [paymentConfirmed, setPaymentConfirmed] = useState(false);
 
-  // Nettoyer l'état à l'ouverture/fermeture du modal
+  // Limpiar estado al abrir/cerrar modal
   useEffect(() => {
     if (open) {
       setError('');
       setClientSecret('');
+      setPaymentId('');
       setPaymentElementMounted(false);
       setPaymentConfirmed(false);
       paymentService.cleanup();
@@ -71,7 +73,7 @@ export const StripePaymentModal: React.FC<StripePaymentModalProps> = ({
     }
   }, [open]);
 
-      // Créer Payment Intent ou Subscription
+  // Crear Payment Intent o Subscription
   useEffect(() => {
     if (!open || !userId) return;
 
@@ -83,7 +85,14 @@ export const StripePaymentModal: React.FC<StripePaymentModalProps> = ({
         // Inicializar Stripe
         const initialized = await paymentService.initialize();
         if (!initialized) {
-          throw new Error('Impossible d\'initialiser le service de paiement');
+          // Check if Stripe key is configured
+          const stripeKey = (import.meta as any)?.env?.VITE_STRIPE_PUBLISHABLE_KEY || 
+                          (import.meta as any)?.env?.REACT_APP_STRIPE_PUBLISHABLE_KEY ||
+                          (typeof process !== 'undefined' ? process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY : '');
+          if (!stripeKey) {
+            throw new Error('Clé Stripe non configurée. Veuillez contacter l\'administrateur.');
+          }
+          throw new Error('Impossible d\'initialiser le service de paiement. Veuillez réessayer plus tard.');
         }
 
         let response: {
@@ -94,7 +103,7 @@ export const StripePaymentModal: React.FC<StripePaymentModalProps> = ({
         };
 
         if (type === 'subscription') {
-          // Créer une souscription en utilisant Firebase Functions (région europe-west1)
+          // Crear suscripción usando Firebase Functions (región europe-west1)
           const functions = getFunctions(app, 'europe-west1');
           const createSubscription = httpsCallable(functions, 'createSubscription');
           
@@ -111,7 +120,7 @@ export const StripePaymentModal: React.FC<StripePaymentModalProps> = ({
             paymentId: data.subscriptionId,
           };
         } else {
-          // Créer Payment Intent en utilisant Firebase Functions (région europe-west1)
+          // Crear Payment Intent usando Firebase Functions (región europe-west1)
           const functions = getFunctions(app, 'europe-west1');
           const createPaymentIntent = httpsCallable(functions, 'createPaymentIntent');
           
@@ -133,24 +142,25 @@ export const StripePaymentModal: React.FC<StripePaymentModalProps> = ({
           };
         }
 
-        if (response.success && response.clientSecret) {
+        if (response.success && response.clientSecret && response.paymentId) {
           setClientSecret(response.clientSecret);
+          setPaymentId(response.paymentId);
           
-          // Configurer les éléments de paiement Stripe
+          // Configurar elementos de pago de Stripe
           const containerId = 'stripe-payment-element';
           const mounted = await paymentService.setupPaymentElements(containerId, response.clientSecret);
           
           if (mounted) {
             setPaymentElementMounted(true);
           } else {
-            throw new Error('Impossible de configurer le formulaire de paiement');
+            throw new Error('No se pudo configurar el formulario de pago. Por favor, recarga la página e inténtalo de nuevo.');
           }
         } else {
-          throw new Error(response.error || 'Erreur lors de la création du paiement');
+          throw new Error(response.error || 'Error al crear el pago. Por favor, verifica tu conexión e inténtalo de nuevo.');
         }
       } catch (err: any) {
         console.error('Error creando pago:', err);
-        setError(err.message || 'Erreur lors du traitement du paiement. Veuillez réessayer.');
+        setError(err.message || 'Error al procesar el pago. Por favor, inténtalo de nuevo.');
       } finally {
         setLoading(false);
       }
@@ -160,29 +170,55 @@ export const StripePaymentModal: React.FC<StripePaymentModalProps> = ({
   }, [open, userId, type, amount, currency, description, orderId, customerEmail, planType, planId]);
 
   const handleConfirmPayment = async () => {
-    if (!clientSecret) return;
+    if (!clientSecret) {
+      setError('No se ha configurado el pago. Por favor, inténtalo de nuevo.');
+      return;
+    }
+
+    if (!paymentId) {
+      setError('Error: ID de pago no disponible. Por favor, inténtalo de nuevo.');
+      return;
+    }
 
     setLoading(true);
     setError('');
 
     try {
       const result = await paymentService.confirmPayment(
-        `${window.location.origin}/payment/success?payment_intent=${clientSecret}`
+        `${window.location.origin}/payment/success?payment_intent=${paymentId}`
       );
 
       if (result.success) {
         setPaymentConfirmed(true);
-        // Attendre un moment avant de fermer et appeler onSuccess
-        setTimeout(() => {
-          onSuccess(clientSecret);
-          onClose();
-        }, 1500);
+        // Verificar el estado del pago antes de cerrar
+        try {
+          const status = await paymentService.checkPaymentStatus(paymentId);
+          if (status.status === 'succeeded' || status.status === 'processing') {
+            // Esperar un momento antes de cerrar y llamar onSuccess
+            setTimeout(() => {
+              onSuccess(paymentId);
+              onClose();
+            }, 1500);
+          } else {
+            // Si el pago no se completó, mostrar error
+            setError('El pago no se completó correctamente. Por favor, verifica tu método de pago.');
+            setPaymentConfirmed(false);
+            setLoading(false);
+          }
+        } catch (statusError) {
+          // Si no se puede verificar el estado, asumir éxito (puede ser un problema de red)
+          console.warn('No se pudo verificar el estado del pago:', statusError);
+          setTimeout(() => {
+            onSuccess(paymentId);
+            onClose();
+          }, 1500);
+        }
       } else {
-        setError(result.error || 'Erreur lors de la confirmation du paiement');
+        setError(result.error || 'Error al confirmar el pago. Por favor, verifica tu método de pago e inténtalo de nuevo.');
       }
     } catch (err: any) {
       console.error('Error confirmando pago:', err);
-      setError(err.message || 'Erreur lors de la confirmation du paiement');
+      setError(err.message || 'Error al confirmar el pago. Por favor, inténtalo de nuevo.');
     } finally {
       setLoading(false);
     }
@@ -221,7 +257,7 @@ export const StripePaymentModal: React.FC<StripePaymentModalProps> = ({
       </DialogTitle>
 
       <DialogContent sx={{ p: 3 }}>
-        {/* Informations du paiement */}
+        {/* Información del pago */}
         <Card sx={{ 
           mb: 3, 
           background: 'linear-gradient(145deg, #1A1A1A 0%, #2A2A2A 100%)',
@@ -233,12 +269,12 @@ export const StripePaymentModal: React.FC<StripePaymentModalProps> = ({
               Résumé du paiement
             </Typography>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-              <Typography>Description :</Typography>
-              <Typography>{description}</Typography>
+              <Typography sx={{ color: '#FFFFFF' }}>Description :</Typography>
+              <Typography sx={{ color: '#FFFFFF' }}>{description}</Typography>
             </Box>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-              <Typography>ID de commande :</Typography>
-              <Typography sx={{ fontFamily: 'monospace', fontSize: '0.875rem' }}>
+              <Typography sx={{ color: '#FFFFFF' }}>ID de commande :</Typography>
+              <Typography sx={{ fontFamily: 'monospace', fontSize: '0.875rem', color: '#FFFFFF' }}>
                 {orderId.substring(0, 20)}...
               </Typography>
             </Box>
@@ -252,7 +288,7 @@ export const StripePaymentModal: React.FC<StripePaymentModalProps> = ({
           </CardContent>
         </Card>
 
-        {/* Formulaire de paiement Stripe */}
+        {/* Formulario de pago Stripe */}
         {loading && !paymentElementMounted && (
           <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
             <CircularProgress sx={{ color: '#FFD700' }} />

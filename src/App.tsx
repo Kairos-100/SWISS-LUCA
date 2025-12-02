@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { auth, db, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, sendPasswordResetEmail, GoogleAuthProvider, signInWithPopup } from './firebase';
 import type { User } from 'firebase/auth';
-import { doc, setDoc, getDoc, updateDoc, arrayUnion, Timestamp, collection, addDoc, getDocs } from 'firebase/firestore';
+import { doc, setDoc, getDoc, updateDoc, arrayUnion, Timestamp, collection, addDoc, getDocs, query, where } from 'firebase/firestore';
 import { getAuthErrorMessage, validateEmail, validatePassword, validateName } from './utils/authUtils';
 import { useTranslation } from 'react-i18next';
 import LanguageSelector from './components/LanguageSelector';
@@ -11,9 +11,9 @@ import { BlockedOfferTimer } from './components/BlockedOfferTimer';
 import SubscriptionWidget from './components/SubscriptionWidget';
 import { StripePaymentModal } from './components/StripePaymentModal';
 import { PartnerLoginModal } from './components/PartnerLoginModal';
+import { PartnerDashboard } from './components/PartnerDashboard';
 import { UserManagementModal } from './components/UserManagementModal';
-import { AdminDashboard } from './components/AdminDashboard';
-import type { UserProfile, Offer, FlashDeal } from './types';
+import type { UserProfile, Offer, FlashDeal, Partner } from './types';
 import './i18n';
 import { 
   AppBar, 
@@ -84,7 +84,7 @@ import {
   LockIcon
 } from './components/ProfessionalIcons';
 import { getCategoryIcon } from './utils/iconUtils';
-import { isOfferAvailable, getAvailabilityText } from './utils/availabilityUtils';
+import { isOfferAvailable } from './utils/availabilityUtils';
 import professionalTheme from './theme/professionalTheme';
 import './styles/professionalStyles.css';
 import './App.css';
@@ -100,11 +100,12 @@ declare global {
 const GOOGLE_MAPS_API_KEY = 'AIzaSyBbnCxckdR0XrhYorXJHXPlIx-58MPcva0';
 
 // Plans d'abonnement
+// IMPORTANTE: Ambos planes se pagan mensualmente
 const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
   {
     id: 'monthly',
     name: 'Plan Mensuel',
-    price: 5.95,
+    price: 9.99,
     duration: 30,
     type: 'monthly',
     features: ['Accès complet à l\'app', 'Offres illimitées', 'Support prioritaire']
@@ -112,14 +113,14 @@ const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
   {
     id: 'yearly',
     name: 'Plan Annuel',
-    price: 59.40, // Prix total annuel (4.95 CHF/mois × 12 mois) - Paiement unique annuel
+    price: 8.33, // Precio mensual del plan anual (99.99 / 12 meses)
     duration: 365,
     type: 'yearly',
-    features: ['Accès complet à l\'app', 'Offres illimitées', 'Support prioritaire', 'Économie: 1.00 CHF/mois', 'Paiement unique annuel']
+    features: ['Accès complet à l\'app', 'Offres illimitées', 'Support prioritaire', 'Économie: 1.66 CHF/mois']
   }
 ];
 
-// Prix par utilisation d'offres - Le prix complet de l'offre est payé
+// Prix par utilisation d'offres - Se paga el precio completo de la oferta
 const OFFER_USAGE_PERCENTAGE = 1.0; // 100% - Precio completo de la oferta
 
 // Subscription Plan interface
@@ -142,13 +143,13 @@ interface Category {
 
 // Días de la semana
 const weekDays = [
-  { value: 'monday', label: 'Lundi' },
-  { value: 'tuesday', label: 'Mardi' },
-  { value: 'wednesday', label: 'Mercredi' },
-  { value: 'thursday', label: 'Jeudi' },
-  { value: 'friday', label: 'Vendredi' },
-  { value: 'saturday', label: 'Samedi' },
-  { value: 'sunday', label: 'Dimanche' }
+  { value: 'monday', label: 'Lunes' },
+  { value: 'tuesday', label: 'Martes' },
+  { value: 'wednesday', label: 'Miércoles' },
+  { value: 'thursday', label: 'Jueves' },
+  { value: 'friday', label: 'Viernes' },
+  { value: 'saturday', label: 'Sábado' },
+  { value: 'sunday', label: 'Domingo' }
 ];
 
 const categories: Category[] = [
@@ -245,8 +246,7 @@ const initialOffers: Offer[] = [
     rating: 4.5,
     isNew: true,
     price: 'CHF 15',
-    oldPrice: 'CHF 18',
-    createdBy: 'admin'
+    oldPrice: 'CHF 18'
   },
   {
     id: '2',
@@ -260,8 +260,7 @@ const initialOffers: Offer[] = [
     rating: 4.2,
     isNew: false,
     price: 'CHF 25',
-    oldPrice: 'CHF 30',
-    createdBy: 'admin'
+    oldPrice: 'CHF 30'
   },
   {
     id: '3',
@@ -405,7 +404,7 @@ const initialOffers: Offer[] = [
   }
 ];
 
-// Données d'exemple pour les offres flash
+// Datos de ejemplo para ofertas flash
 const initialFlashDeals: FlashDeal[] = [
   {
     id: 'flash1',
@@ -517,7 +516,7 @@ const updateSubscriptionAfterPayment = async (userId: string, planId: string): P
     const plan = SUBSCRIPTION_PLANS.find(p => p.id === planId);
     if (!plan) return false;
 
-    // Mettre à jour le profil de l'utilisateur après un paiement réussi
+    // Actualizar perfil del usuario después de pago exitoso
     const userRef = doc(db, 'users', userId);
     const nextPaymentDate = calculateNextPaymentDate(plan.type);
     
@@ -539,9 +538,9 @@ const updateSubscriptionAfterPayment = async (userId: string, planId: string): P
 
 // Esta función ahora solo actualiza el estado después de que el pago se complete
 // El pago real se maneja a través del StripePaymentModal
-const updateOfferPaymentAfterSuccess = async (userId: string, _offerId: string, usagePrice: number): Promise<boolean> => {
+const updateOfferPaymentAfterSuccess = async (userId: string, offerId: string, usagePrice: number): Promise<boolean> => {
   try {
-    // Mettre à jour le profil de l'utilisateur après un paiement réussi
+    // Actualizar perfil del usuario después de pago exitoso
     const userRef = doc(db, 'users', userId);
     const userDoc = await getDoc(userRef);
     if (userDoc.exists()) {
@@ -603,7 +602,7 @@ function MapView({ offers, flashDeals, selectedCategory, onOfferClick, onFlashDe
   // Enhanced getUserLocation that also centers the map
   const handleGetUserLocation = () => {
     if (!navigator.geolocation) {
-      setLocationError('Geolocation is not supported by this browser.');
+      setLocationError('La géolocalisation n\'est pas prise en charge par ce navigateur.');
       return;
     }
 
@@ -626,16 +625,16 @@ function MapView({ offers, flashDeals, selectedCategory, onOfferClick, onFlashDe
       (error) => {
         switch (error.code) {
           case error.PERMISSION_DENIED:
-            setLocationError('Location access denied by user.');
+            setLocationError('Accès à la localisation refusé par l\'utilisateur.');
             break;
           case error.POSITION_UNAVAILABLE:
-            setLocationError('Location information is unavailable.');
+            setLocationError('Les informations de localisation ne sont pas disponibles.');
             break;
           case error.TIMEOUT:
-            setLocationError('Location request timed out.');
+            setLocationError('La demande de localisation a expiré.');
             break;
           default:
-            setLocationError('An unknown error occurred.');
+            setLocationError('Une erreur inconnue s\'est produite.');
             break;
         }
       },
@@ -664,8 +663,7 @@ function MapView({ offers, flashDeals, selectedCategory, onOfferClick, onFlashDe
       isNew: true, // Las ofertas flash siempre son nuevas
       price: `CHF ${deal.discountedPrice}`,
       oldPrice: `CHF ${deal.originalPrice}`,
-      usagePrice: deal.discountedPrice,
-      availabilitySchedule: deal.availabilitySchedule // Incluir horarios
+      usagePrice: deal.discountedPrice
     }));
 
     // Combinar ofertas regulares y flash
@@ -674,9 +672,6 @@ function MapView({ offers, flashDeals, selectedCategory, onOfferClick, onFlashDe
     let filtered = selectedCategory === 'all' 
       ? allOffers 
       : allOffers.filter(offer => offer.category === selectedCategory);
-
-    // Filtrar por disponibilidad según calendario y horario
-    filtered = filtered.filter(offer => isOfferAvailable(offer));
 
     // Sort by distance if user location is available
     if (userLocation) {
@@ -1399,21 +1394,17 @@ function MapView({ offers, flashDeals, selectedCategory, onOfferClick, onFlashDe
           console.log('Nueva oferta:', offer);
           
           // Limpiar formulario y cerrar modal
-        setNewOffer({
-          name: '',
-          category: 'restaurants',
-          subCategory: '',
-          discount: '',
-          description: '',
-          address: '',
-          rating: 4.5,
-          price: '',
-          oldPrice: '',
-          image: null,
-          availabilityDays: [],
-          availabilityStartTime: '09:00',
-          availabilityEndTime: '18:00'
-        });
+          setNewOffer({
+            name: '',
+            category: 'restaurants',
+            subCategory: '',
+            discount: '',
+            description: '',
+            address: '',
+            rating: 4.5,
+            price: '',
+            oldPrice: ''
+          });
           setShowAddModal(false);
           
           // Recargar el mapa con la nueva oferta
@@ -1767,7 +1758,7 @@ function MapView({ offers, flashDeals, selectedCategory, onOfferClick, onFlashDe
               </Box>
               <Box sx={{ display: 'flex', gap: 2 }}>
                 <TextField
-                  label="Heure de début"
+                  label="Hora de Inicio"
                   type="time"
                   value={newOffer.availabilityStartTime}
                   onChange={(e) => setNewOffer(prev => ({ ...prev, availabilityStartTime: e.target.value }))}
@@ -1776,7 +1767,7 @@ function MapView({ offers, flashDeals, selectedCategory, onOfferClick, onFlashDe
                   inputProps={{ step: 300 }}
                 />
                 <TextField
-                  label="Heure de fin"
+                  label="Hora de Fin"
                   type="time"
                   value={newOffer.availabilityEndTime}
                   onChange={(e) => setNewOffer(prev => ({ ...prev, availabilityEndTime: e.target.value }))}
@@ -1910,27 +1901,46 @@ function OffersList({ offers, selectedCategory, selectedSubCategory, onOfferClic
     let filtered = offers.filter(offer => {
       if (selectedCategory !== 'all' && offer.category !== selectedCategory) return false;
       if (selectedSubCategory !== 'all' && offer.subCategory !== selectedSubCategory) return false;
-      // Filtrar por disponibilidad según calendario y horario
-      if (!isOfferAvailable(offer)) return false;
       return true;
     });
 
-    // Sort by distance if user location is available
+    // Separate available and unavailable offers
+    const availableOffers: Offer[] = [];
+    const unavailableOffers: Offer[] = [];
+    
+    filtered.forEach(offer => {
+      if (isOfferAvailable(offer)) {
+        availableOffers.push(offer);
+      } else {
+        unavailableOffers.push(offer);
+      }
+    });
+
+    // Sort available offers by distance if user location is available
     if (userLocation) {
-      filtered = filtered
-        .map(offer => ({
-          ...offer,
-          distance: calculateDistance(
-            userLocation.lat, 
-            userLocation.lng, 
-            offer.location.lat, 
-            offer.location.lng
-          )
-        }))
-        .sort((a, b) => a.distance - b.distance);
+      availableOffers.forEach(offer => {
+        (offer as any).distance = calculateDistance(
+          userLocation.lat, 
+          userLocation.lng, 
+          offer.location.lat, 
+          offer.location.lng
+        );
+      });
+      availableOffers.sort((a, b) => (a as any).distance - (b as any).distance);
+      
+      unavailableOffers.forEach(offer => {
+        (offer as any).distance = calculateDistance(
+          userLocation.lat, 
+          userLocation.lng, 
+          offer.location.lat, 
+          offer.location.lng
+        );
+      });
+      unavailableOffers.sort((a, b) => (a as any).distance - (b as any).distance);
     }
 
-    return filtered;
+    // Return available offers first, then unavailable
+    return [...availableOffers, ...unavailableOffers];
   }, [offers, selectedCategory, selectedSubCategory, userLocation, calculateDistance]);
 
   const handleSlideToActivate = (offer: Offer) => {
@@ -1939,19 +1949,22 @@ function OffersList({ offers, selectedCategory, selectedSubCategory, onOfferClic
       navigator.vibrate([100, 50, 100]);
     }
     
-    // Si la oferta tiene precio, SIEMPRE abrir modal de pago primero (pasarela de pago)
+    // Si la oferta tiene precio, abrir modal de pago primero
     if (offer.price && currentUser) {
-      // Parsear el precio correctamente (manejar formato "CHF 20,00" o "CHF 20.00")
-      const offerPrice = typeof offer.price === 'string' 
-        ? parseFloat(offer.price.replace('CHF ', '').replace(',', '.'))
-        : (typeof offer.price === 'number' ? offer.price : parseFloat(String(offer.price)));
+      const offerPrice = parseFloat(offer.price.replace('CHF ', '').replace(',', '.'));
       const usagePrice = offerPrice * OFFER_USAGE_PERCENTAGE;
       
       // Guardar la oferta para después del pago
       setSelectedOffer(offer);
       
-      // El modal de pago se maneja desde el componente padre
-      // setPaymentModalConfig y setShowPaymentModal no están disponibles aquí
+      // Abrir modal de pago directamente
+      setPaymentModalConfig({
+        type: 'payment',
+        amount: usagePrice,
+        description: `Utilisation de l'offre: ${offer.name}`,
+        orderId: `offer_${offer.id}_${Date.now()}`,
+      });
+      setShowPaymentModal(true);
       
       // Guardar información para después del pago (mostrar countdown)
       (window as any).pendingOfferPayment = {
@@ -2110,7 +2123,13 @@ function OffersList({ offers, selectedCategory, selectedSubCategory, onOfferClic
         overflow: 'auto',
         width: '100%'
       }}>
-        {filteredOffers.map((offer) => {
+        {filteredOffers.map((offer, index) => {
+          const isCurrentlyAvailable = isOfferAvailable(offer);
+          
+          // Show section header when transitioning from available to unavailable
+          const prevOffer = index > 0 ? filteredOffers[index - 1] : null;
+          const showUnavailableHeader = prevOffer && isOfferAvailable(prevOffer) && !isCurrentlyAvailable;
+          
           // Verificar si la oferta está activada localmente (swiped)
           const isSwiped = swipedOffers.has(offer.id);
           
@@ -2121,26 +2140,50 @@ function OffersList({ offers, selectedCategory, selectedSubCategory, onOfferClic
           const isActivated = isSwiped || isBlocked;
           
           return (
-          <Box
-            key={offer.id}
-            className="offer-card"
-            sx={{
-              position: 'relative',
-              mb: { xs: 3, sm: 4 },
-              overflow: 'visible',
-              borderRadius: { xs: 1, sm: 2 }
-            }}
-          >
-            
-            <Card 
+            <Box key={offer.id}>
+              {showUnavailableHeader && (
+                <Typography 
+                  variant="h6" 
+                  sx={{ 
+                    mb: 2, 
+                    mt: 4, 
+                    color: 'text.secondary',
+                    fontWeight: 600,
+                    fontSize: '1.1rem'
+                  }}
+                >
+                  Offres non disponibles actuellement
+                </Typography>
+              )}
+              <Box
+                className="offer-card"
+                sx={{
+                  position: 'relative',
+                  mb: { xs: 3, sm: 4 },
+                  overflow: 'visible',
+                  borderRadius: { xs: 1, sm: 2 }
+                }}
+              >
+                <Card 
               sx={{ 
                 cursor: 'pointer',
                 borderRadius: { xs: 1, sm: 2 },
                 position: 'relative',
                 zIndex: 2,
-                opacity: isActivated ? 0.9 : 1,
-                filter: isActivated ? 'grayscale(20%)' : 'none',
-                overflow: 'hidden'
+                opacity: isActivated ? 0.9 : (isCurrentlyAvailable ? 1 : 0.6),
+                filter: isActivated ? 'grayscale(20%)' : (isCurrentlyAvailable ? 'none' : 'grayscale(80%)'),
+                overflow: 'hidden',
+                '&::before': !isCurrentlyAvailable ? {
+                  content: '""',
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  backgroundColor: 'rgba(0, 0, 0, 0.3)',
+                  zIndex: 1,
+                  pointerEvents: 'none'
+                } : {}
               }} 
               onClick={() => onOfferClick(offer)}
             >
@@ -2172,7 +2215,24 @@ function OffersList({ offers, selectedCategory, selectedSubCategory, onOfferClic
                       position: 'absolute',
                       top: 8,
                       right: 8,
-                      fontWeight: 'bold'
+                      fontWeight: 'bold',
+                      zIndex: 3
+                    }}
+                  />
+                )}
+                {!isCurrentlyAvailable && (
+                  <Chip
+                    icon={<AccessTime />}
+                    label="Hors horaire"
+                    size="small"
+                    sx={{
+                      position: 'absolute',
+                      top: 8,
+                      left: 8,
+                      backgroundColor: 'rgba(158, 158, 158, 0.9)',
+                      color: 'white',
+                      fontWeight: 'bold',
+                      zIndex: 3
                     }}
                   />
                 )}
@@ -2252,24 +2312,6 @@ function OffersList({ offers, selectedCategory, selectedSubCategory, onOfferClic
                   <Star sx={{ fontSize: 16, color: '#FFD700' }} />
                   <Typography variant="body2">{offer.rating}</Typography>
                 </Box>
-                {/* Chip de disponibilidad */}
-                {offer.availabilitySchedule && offer.availabilitySchedule.days && offer.availabilitySchedule.days.length > 0 && (
-                  <Chip
-                    icon={<AccessTime sx={{ fontSize: 14 }} />}
-                    label={isOfferAvailable(offer) ? 'Disponible maintenant' : 'Hors horaire'}
-                    size="small"
-                    color={isOfferAvailable(offer) ? 'success' : 'default'}
-                    sx={{
-                      position: 'absolute',
-                      bottom: 8,
-                      right: 8,
-                      bgcolor: isOfferAvailable(offer) ? 'rgba(76, 175, 80, 0.9)' : 'rgba(158, 158, 158, 0.9)',
-                      color: 'white',
-                      fontWeight: 'bold',
-                      fontSize: '0.7rem'
-                    }}
-                  />
-                )}
               </Box>
               
               <CardContent sx={{ p: { xs: 2, sm: 2 } }}>
@@ -2290,7 +2332,7 @@ function OffersList({ offers, selectedCategory, selectedSubCategory, onOfferClic
                   {offer.description}
                 </Typography>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexWrap: 'wrap' }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                     <LocationIcon sx={{ fontSize: '1rem', color: '#888' }} />
                     <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}>
                       {offer.location.address}
@@ -2303,23 +2345,6 @@ function OffersList({ offers, selectedCategory, selectedSubCategory, onOfferClic
                       }}>
                         📍 {(offer as any).distance.toFixed(1)} km
                       </Typography>
-                    )}
-                    {/* Información de horario */}
-                    {offer.availabilitySchedule && offer.availabilitySchedule.days && offer.availabilitySchedule.days.length > 0 && (
-                      <Chip
-                        icon={<AccessTime sx={{ fontSize: 12 }} />}
-                        label={getAvailabilityText(offer)}
-                        size="small"
-                        variant="outlined"
-                        sx={{
-                          fontSize: { xs: '0.65rem', sm: '0.75rem' },
-                          height: 'auto',
-                          py: 0.25,
-                          '& .MuiChip-label': {
-                            padding: '0 6px'
-                          }
-                        }}
-                      />
                     )}
                   </Box>
                   {offer.price && offer.oldPrice && (
@@ -2343,9 +2368,10 @@ function OffersList({ offers, selectedCategory, selectedSubCategory, onOfferClic
                     />
                   </Box>
                 )}
-              </CardContent>
-            </Card>
-          </Box>
+                </CardContent>
+              </Card>
+            </Box>
+            </Box>
           );
         })}
       </Box>
@@ -2922,18 +2948,11 @@ function SubscriptionModal({
                       {plan.name}
                     </Typography>
                     <Typography variant="h4" sx={{ color: '#FFD700', fontWeight: 'bold' }}>
-                      CHF {plan.type === 'yearly' ? plan.price : plan.price}
+                      CHF {plan.price}
                     </Typography>
                     <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                      {plan.type === 'yearly' 
-                        ? `par an (4.95 CHF/mois × 12 mois)` 
-                        : 'par mois'}
+                      par mois {plan.type === 'yearly' && '(plan annuel - 12 mois)'}
                     </Typography>
-                    {plan.type === 'yearly' && (
-                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
-                        Paiement unique annuel
-                      </Typography>
-                    )}
                     
                     <List dense>
                       {plan.features.map((feature, index) => (
@@ -3266,12 +3285,12 @@ function OfferDetail({ offer, open, onClose }: { offer: Offer | null, open: bool
 
 function App() {
   const { t } = useTranslation();
-  const [offers, setOffers] = useState<Offer[]>(initialOffers);
+  const [offers] = useState<Offer[]>(initialOffers);
   const [selectedTab, setSelectedTab] = useState(1);
   const [flashDeals, setFlashDeals] = useState<FlashDeal[]>(initialFlashDeals);
   const [activatedFlashDeals, setActivatedFlashDeals] = useState<Set<string>>(new Set());
   const [flashActivationTimes, setFlashActivationTimes] = useState<{[key: string]: Date}>({});
-  // const [partners, setPartners] = useState<any[]>([]); // Ya no se usa - reemplazado por AdminDashboard
+  const [partners, setPartners] = useState<any[]>([]); // Estado para socios dinámicos
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -3287,6 +3306,13 @@ function App() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showAddFlashModal, setShowAddFlashModal] = useState(false);
   const [showPartnersModal, setShowPartnersModal] = useState(false);
+  const [newPartner, setNewPartner] = useState({
+    name: '',
+    category: '',
+    address: '',
+    location: { lat: 46.2306, lng: 7.3590 },
+    discount: '20% OFF'
+  });
   const [loginCredentials, setLoginCredentials] = useState({
     email: '',
     password: ''
@@ -3361,7 +3387,7 @@ function App() {
   // Get user's current location
   const getUserLocation = () => {
     if (!navigator.geolocation) {
-      console.error('Geolocation is not supported by this browser.');
+      console.error('La géolocalisation n\'est pas prise en charge par ce navigateur.');
       return;
     }
 
@@ -3630,44 +3656,6 @@ function App() {
     }
   }, [isDragging, isTransitioning, startX, currentX]);
 
-  // Cargar ofertas y flash deals desde Firestore
-  useEffect(() => {
-    const loadOffersFromFirestore = async () => {
-      try {
-        // Cargar ofertas
-        const offersRef = collection(db, 'offers');
-        const offersSnapshot = await getDocs(offersRef);
-        const offersData = offersSnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        })) as Offer[];
-        
-        // Combinar con ofertas iniciales (por si hay ofertas hardcodeadas)
-        setOffers([...initialOffers, ...offersData]);
-
-        // Cargar flash deals
-        const flashDealsRef = collection(db, 'flashDeals');
-        const flashDealsSnapshot = await getDocs(flashDealsRef);
-        const flashDealsData = flashDealsSnapshot.docs.map(doc => {
-          const data = doc.data();
-          return {
-            id: doc.id,
-            ...data,
-            startTime: data.startTime?.toDate() || new Date(),
-            endTime: data.endTime?.toDate() || new Date()
-          };
-        }) as FlashDeal[];
-        
-        // Combinar con flash deals iniciales
-        setFlashDeals([...initialFlashDeals, ...flashDealsData]);
-      } catch (error) {
-        console.error('Error cargando ofertas/flash deals desde Firestore:', error);
-      }
-    };
-
-    loadOffersFromFirestore();
-  }, []);
-
   // Listener de autenticación
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
@@ -3689,13 +3677,13 @@ function App() {
     return () => unsubscribe();
   }, []);
 
-  // Mostrar modal de pago cuando el usuario no tenga suscripción activa
+  // Mostrar modal de suscripción cuando el usuario no tenga suscripción activa
   useEffect(() => {
-    if (isAuthenticated && userProfile && currentUser) {
+    if (isAuthenticated && userProfile) {
       const isSubscriptionActive = checkSubscriptionStatus(userProfile);
       const isTrialActive = checkTrialStatus(userProfile);
       
-      // Si el trial expiró o la suscripción expiró, abrir modal de pago directamente
+      // Si el trial expiró o la suscripción expiró, abrir modal de suscripción
       if (!isSubscriptionActive && !isTrialActive) {
         const now = new Date();
         const subscriptionEnd = userProfile.subscriptionEnd.toDate();
@@ -3705,27 +3693,15 @@ function App() {
         const oneHour = 60 * 60 * 1000;
         
         if (timeSinceExpiry > 0 && timeSinceExpiry < oneHour) {
-          // Usar el último plan del usuario si está disponible, sino usar mensual por defecto
-          const lastPlanType = userProfile.subscriptionPlan === 'yearly' ? 'yearly' : 'monthly';
-          const plan = SUBSCRIPTION_PLANS.find(p => p.type === lastPlanType) || SUBSCRIPTION_PLANS[0];
-          
-          // Abrir modal de pago directamente con la suscripción
-          setPaymentModalConfig({
-            type: 'subscription',
-            amount: plan.price,
-            description: `${plan.name} - LUCA App`,
-            orderId: `sub_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-            planType: plan.type,
-            planId: plan.id,
-          });
-          setShowPaymentModal(true);
+          // Abrir modal de suscripción automáticamente
+          setShowSubscriptionModal(true);
         }
       } else {
         // Ocultar modal si tiene suscripción activa
         setShowSubscriptionOverlay(false);
       }
     }
-  }, [isAuthenticated, userProfile, currentUser]);
+  }, [isAuthenticated, userProfile]);
 
   const [newOffer, setNewOffer] = useState({
     name: '',
@@ -3737,7 +3713,6 @@ function App() {
     rating: 4.5,
     price: '',
     oldPrice: '',
-    image: null as File | null,
     availabilityDays: [] as string[],
     availabilityStartTime: '09:00',
     availabilityEndTime: '18:00'
@@ -4058,7 +4033,7 @@ function App() {
         const newProfile: UserProfile = {
           uid: user.uid,
           email: user.email || '',
-          name: user.displayName || 'Usuario FLASH',
+          name: user.displayName || 'Utilisateur FLASH',
           city: 'Valais',
           activatedOffers: [],
           totalSaved: 0,
@@ -4157,6 +4132,8 @@ function App() {
           setShowAdminLoginModal(false);
           setAdminLoginCredentials({ email: '', password: '' });
           addNotification('success', t('bienvenidoAdmin'));
+          // Navigate to admin dashboard
+          window.location.href = `/admin/dashboard/${user.uid}`;
         } else {
           alert('Vous n\'avez pas les autorisations d\'administrateur');
           await signOut(auth);
@@ -4196,10 +4173,10 @@ function App() {
       });
 
       setShowEditProfileModal(false);
-      addNotification('success', 'Perfil actualizado exitosamente!');
+      addNotification('success', 'Profil mis à jour avec succès !');
     } catch (error) {
       console.error('Error al actualizar perfil:', error);
-          alert('Erreur lors de la mise à jour du profil');
+      alert('Erreur lors de la mise à jour du profil');
     }
   };
 
@@ -4228,7 +4205,7 @@ function App() {
     }
   };
 
-  // Fonction pour réinitialiser le mot de passe
+  // Función para restablecer contraseña
   const handleResetPassword = async () => {
     if (!resetPasswordEmail) {
       alert('Veuillez entrer votre adresse e-mail');
@@ -4280,20 +4257,19 @@ function App() {
   };
 
   // Función para cerrar sesión de partner
-  // Función no usada actualmente - se mantiene para uso futuro
-  // const _handlePartnerLogout = async () => {
-  //   try {
-  //     await signOut(auth);
-  //     setIsPartner(false);
-  //     setCurrentPartnerId(null);
-  //     setIsAuthenticated(false);
-  //     setCurrentUser(null);
-  //     setUserProfile(null);
-  //     setShowLoginModal(true);
-  //   } catch (error) {
-  //     console.error('Error al cerrar sesión de partner:', error);
-  //   }
-  // };
+  const handlePartnerLogout = async () => {
+    try {
+      await signOut(auth);
+      setIsPartner(false);
+      setCurrentPartnerId(null);
+      setIsAuthenticated(false);
+      setCurrentUser(null);
+      setUserProfile(null);
+      setShowLoginModal(true);
+    } catch (error) {
+      console.error('Error al cerrar sesión de partner:', error);
+    }
+  };
 
   // Función para agregar nueva oferta
   const handleAddOffer = async () => {
@@ -4317,78 +4293,88 @@ function App() {
         }
       }
 
-      if (window.google) {
-        const geocoder = new window.google.maps.Geocoder();
-        geocoder.geocode({ address: newOffer.address + ', Valais, Switzerland' }, async (results: any, status: any) => {
-          if (status === 'OK' && results && results[0]) {
-            const location = results[0].geometry.location;
-            
-            const offerData = {
-              name: newOffer.name,
-              image: imageUrl,
-              category: newOffer.category,
-              subCategory: newOffer.subCategory,
-              discount: newOffer.discount,
-              description: newOffer.description,
-              location: {
-                lat: location.lat(),
-                lng: location.lng(),
-                address: newOffer.address
-              },
-              rating: newOffer.rating,
-              isNew: true,
-              price: newOffer.price,
-              oldPrice: newOffer.oldPrice,
-              // Agregar información de quién creó la oferta
-              createdBy: (isPartner ? 'partner' : 'admin') as 'partner' | 'admin',
-              partnerId: isPartner ? currentPartnerId : null,
-              adminId: isAdmin && currentUser ? currentUser.uid : null,
-              createdAt: Timestamp.now(),
-              updatedAt: Timestamp.now(),
-              // Horarios de disponibilidad
-              availabilitySchedule: newOffer.availabilityDays.length > 0 ? {
-                days: newOffer.availabilityDays,
-                startTime: newOffer.availabilityStartTime,
-                endTime: newOffer.availabilityEndTime
-              } : undefined
-            };
-
-            // Guardar en Firestore
-            const offersRef = collection(db, 'offers');
-            const docRef = await addDoc(offersRef, offerData);
-            
-            const offer = {
-              id: docRef.id,
-              ...offerData
-            };
-
-            console.log('Nueva oferta guardada:', offer);
-            
-            setNewOffer({
-              name: '',
-              category: 'restaurants',
-              subCategory: '',
-              discount: '',
-              description: '',
-              address: '',
-              rating: 4.5,
-              price: '',
-              oldPrice: '',
-              image: null,
-              availabilityDays: [],
-              availabilityStartTime: '09:00',
-              availabilityEndTime: '18:00'
-            });
-            setShowAddModal(false);
-            
-            alert('Offre ajoutée avec succès !');
+      // Use REST API instead of Google Maps JS to avoid dependency issues
+      let location = { lat: 46.2044, lng: 6.1432 }; // Default to Geneva
+      
+      try {
+        const geocodeResponse = await fetch(
+          `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(newOffer.address + ', Switzerland')}&key=AIzaSyBbnCxckdR0XrhYorXJHXPlIx-58MPcva0`
+        );
+        
+        if (geocodeResponse.ok) {
+          const geocodeData = await geocodeResponse.json();
+          if (geocodeData.status === 'OK' && geocodeData.results && geocodeData.results.length > 0) {
+            location = geocodeData.results[0].geometry.location;
           } else {
-            alert('Impossible de trouver l\'adresse. Essayez avec une adresse plus spécifique.');
+            console.warn('Geocoding returned:', geocodeData.status);
+            // Continue with default location
           }
-        });
-      } else {
-        alert('Google Maps n\'est pas disponible. Réessayez plus tard.');
+        }
+      } catch (error) {
+        console.error('Error geocoding address:', error);
+        // Continue with default location
       }
+      
+      // Proceed with offer creation using the location
+      const offerData = {
+        name: newOffer.name,
+        image: imageUrl,
+        category: newOffer.category,
+        subCategory: newOffer.subCategory,
+        discount: newOffer.discount,
+        description: newOffer.description,
+        location: {
+          lat: location.lat,
+          lng: location.lng,
+          address: newOffer.address
+        },
+        rating: newOffer.rating,
+        isNew: true,
+        price: newOffer.price,
+        oldPrice: newOffer.oldPrice,
+        // Agregar información de quién creó la oferta
+        createdBy: isPartner ? 'partner' : 'admin',
+        partnerId: isPartner ? currentPartnerId : null,
+        adminId: isAdmin && currentUser ? currentUser.uid : null,
+        createdAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
+        // Horarios de disponibilidad
+        availabilitySchedule: newOffer.availabilityDays.length > 0 ? {
+          days: newOffer.availabilityDays,
+          startTime: newOffer.availabilityStartTime,
+          endTime: newOffer.availabilityEndTime
+        } : undefined
+      };
+
+      // Guardar en Firestore
+      const offersRef = collection(db, 'offers');
+      const docRef = await addDoc(offersRef, offerData);
+      
+      const offer = {
+        id: docRef.id,
+        ...offerData
+      };
+
+      console.log('Nueva oferta guardada:', offer);
+      
+      setNewOffer({
+        name: '',
+        category: 'restaurants',
+        subCategory: '',
+        discount: '',
+        description: '',
+        address: '',
+        rating: 4.5,
+        price: '',
+        oldPrice: '',
+        image: null,
+        availabilityDays: [],
+        availabilityStartTime: '09:00',
+        availabilityEndTime: '18:00'
+      });
+      setShowAddModal(false);
+      
+      alert('Offre ajoutée avec succès !');
     } catch (error) {
       console.error('Error adding offer:', error);
       alert('Erreur lors de l\'ajout de l\'offre');
@@ -4428,7 +4414,7 @@ function App() {
 
     // Si no tiene precio, activar normalmente
     // Simular el proceso de bloqueo con lightning
-    addNotification('info', '🔒 Bloqueando oferta... Espera 10 minutos para la activación.');
+    addNotification('info', '🔒 Blocage de l\'offre... Attendez 10 minutes pour l\'activation.');
     
     // Después de 2 segundos, mostrar el modal de oferta bloqueada
     setTimeout(() => {
@@ -4490,7 +4476,7 @@ function App() {
         isActive: true,
         soldQuantity: 0,
         // Agregar información de quién creó el flash deal
-        createdBy: (isPartner ? 'partner' : 'admin') as 'partner' | 'admin',
+        createdBy: isPartner ? 'partner' : 'admin',
         partnerId: isPartner ? currentPartnerId : null,
         adminId: isAdmin && currentUser ? currentUser.uid : null,
         createdAt: Timestamp.now(),
@@ -4816,50 +4802,25 @@ function App() {
     // Registrar que el usuario vio esta oferta
     await updateOffersViewed(deal.id, deal.category);
 
-    // Si la oferta flash tiene precio, abrir modal de pago directamente (pasarela de pago)
+    // Las ofertas flash se procesan directamente
+    
+    // Procesar pago por uso de oferta
     if (currentUser && deal.price) {
-      // Parsear el precio correctamente
-      const offerPrice = typeof deal.price === 'string' 
-        ? parseFloat(deal.price.replace('CHF ', '').replace(',', '.'))
-        : (typeof deal.price === 'number' ? deal.price : parseFloat(String(deal.price)));
-      const usagePrice = offerPrice * OFFER_USAGE_PERCENTAGE;
+      const offerPrice = parseFloat(deal.price);
+      const usageCost = offerPrice * OFFER_USAGE_PERCENTAGE;
       
-      // Convertir FlashDeal a Offer para el modal
-      const offerData: Offer = {
-        id: deal.id,
-        name: deal.name,
-        image: deal.image,
-        category: deal.category,
-        subCategory: deal.subCategory,
-        discount: deal.discount,
-        description: deal.description,
-        location: deal.location,
-        rating: deal.rating,
-        isNew: true,
-        price: deal.price,
-        oldPrice: deal.oldPrice,
-        usagePrice: usagePrice,
-        createdBy: deal.createdBy || 'admin'
-      };
-      
-      // Abrir modal de pago con Stripe/Twint directamente
-      setPaymentModalConfig({
-        type: 'payment',
-        amount: usagePrice,
-        description: `Utilisation de l'offre flash: ${deal.name}`,
-        orderId: `flash_${deal.id}_${Date.now()}`,
-      });
-      setShowPaymentModal(true);
-      
-      // Guardar información de la oferta flash para después del pago
-      (window as any).pendingOfferPayment = {
-        offerId: deal.id,
-        offerName: deal.name,
-        usagePrice: usagePrice,
-        offerData: offerData,
-        shouldActivate: true, // Activar directamente después del pago
-        shouldShowCountdown: false
-      };
+      try {
+        // Actualizar el perfil del usuario con el costo
+        await updateDoc(doc(db, 'users', currentUser.uid), {
+          totalSpent: arrayUnion(usageCost),
+          lastOfferUsed: Timestamp.now()
+        });
+        
+        addNotification('success', `Offre flash utilisée ! Coût : CHF ${usageCost.toFixed(2)}`);
+      } catch (error) {
+        console.error('Error updating user profile:', error);
+        addNotification('warning', 'Erreur lors du traitement de l\'utilisation de l\'offre');
+      }
     }
   };
 
@@ -4884,19 +4845,15 @@ function App() {
       isNew: true, // Las ofertas flash siempre son nuevas
       price: offer.price,
       oldPrice: offer.oldPrice,
-      usagePrice: offer.price ? parseFloat(offer.price) * OFFER_USAGE_PERCENTAGE : 0,
-      createdBy: offer.createdBy || 'admin'
+      usagePrice: offer.price ? parseFloat(offer.price) * OFFER_USAGE_PERCENTAGE : 0
     };
     
-    // Si la oferta tiene precio, abrir modal de pago directamente
+    // Si la oferta tiene precio, abrir modal de pago
     if (currentUser && offer.price) {
-      // Parsear el precio correctamente (manejar formato "CHF 20,00" o "CHF 20.00")
-      const offerPrice = typeof offer.price === 'string' 
-        ? parseFloat(offer.price.replace('CHF ', '').replace(',', '.'))
-        : (typeof offer.price === 'number' ? offer.price : parseFloat(String(offer.price)));
+      const offerPrice = parseFloat(offer.price);
       const usagePrice = offerPrice * OFFER_USAGE_PERCENTAGE;
       
-      // Abrir modal de pago con Stripe/Twint directamente
+      // Abrir modal de pago con Stripe/Twint
       setPaymentModalConfig({
         type: 'payment',
         amount: usagePrice,
@@ -4910,8 +4867,7 @@ function App() {
         offerId: offer.id,
         offerName: offer.name,
         usagePrice: usagePrice,
-        offerData: offerData,
-        shouldShowCountdown: false // No mostrar countdown en clic, solo en slide
+        offerData: offerData
       };
     } else {
       // Si no hay precio, mostrar directamente
@@ -4965,7 +4921,7 @@ function App() {
             />
 
             <Typography variant="body2" color="text.secondary" align="center" sx={{ mt: 2 }}>
-              Don't have an account? 
+              {t('pasDeCompte')} 
               <Button 
                 color="primary" 
                 onClick={() => {
@@ -4974,7 +4930,7 @@ function App() {
                 }}
                 sx={{ ml: 1 }}
               >
-                Sign up
+                {t('sinscrire')}
               </Button>
             </Typography>
             
@@ -4987,7 +4943,7 @@ function App() {
                 }}
                 sx={{ fontSize: '0.875rem' }}
               >
-                Forgot your password?
+                {t('motDePasseOublie')}
               </Button>
             </Typography>
           </Box>
@@ -5038,7 +4994,7 @@ function App() {
             {isLoading ? (
               <>
                 <CircularProgress size={20} sx={{ color: '#4285f4', mr: 1 }} />
-                Conectando...
+                Connexion...
               </>
             ) : (
               'Continuar con Google'
@@ -5191,10 +5147,10 @@ function App() {
             {isLoading ? (
               <>
                 <CircularProgress size={20} sx={{ color: '#4285f4', mr: 1 }} />
-                Conectando...
+                Connexion...
               </>
             ) : (
-              'Sign up with Google'
+              'S\'inscrire avec Google'
             )}
           </Button>
         </Box>
@@ -5472,23 +5428,8 @@ function App() {
                     minHeight: 40,
                     bgcolor: isAdmin ? 'rgba(255,255,255,0.2)' : 'transparent'
                   }}
-                  title="Accès administrateur"
                 >
                   <Person sx={{ fontSize: 18 }} />
-                </IconButton>
-
-                <IconButton 
-                  color="inherit" 
-                  onClick={() => setShowPartnerLoginModal(true)}
-                  size="small"
-                  sx={{ 
-                    minWidth: 40,
-                    minHeight: 40,
-                    bgcolor: isPartner ? 'rgba(255,255,255,0.2)' : 'transparent'
-                  }}
-                  title="Accès partner"
-                >
-                  <Store sx={{ fontSize: 18 }} />
                 </IconButton>
                 
                 <IconButton 
@@ -5903,7 +5844,7 @@ function App() {
                         width: '100%'
                       }}
                     >
-                      Accès Partenaire
+                      Acceso Partner
                     </Button>
                   </>
                 )}
@@ -5978,7 +5919,7 @@ function App() {
                           minHeight: { xs: 48, sm: 40 }
                         }}
                       >
-                        Gérer les Utilisateurs
+                        Gestionar Usuarios
                       </Button>
                       
                       <Button
@@ -6084,7 +6025,7 @@ function App() {
             onLoginSuccess={handlePartnerLoginSuccess}
           />
 
-          {/* Modal de Gestion des Utilisateurs (Admin uniquement) */}
+          {/* Modal de Gestión de Usuarios (Solo Admin) */}
           <UserManagementModal
             open={showUserManagementModal}
             onClose={() => setShowUserManagementModal(false)}
@@ -6198,10 +6139,10 @@ function App() {
                 <Box>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                     <AccessTime sx={{ color: '#FFD700' }} />
-                    <Typography variant="h6">Horaires de Disponibilité (Optionnel)</Typography>
+                    <Typography variant="h6">Horarios de Disponibilidad (Opcional)</Typography>
                   </Box>
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                    Si vous ne sélectionnez rien, l'offre sera disponible en permanence
+                    Si no seleccionas nada, la oferta estará disponible siempre
                   </Typography>
                   
                   {/* Botones rápidos */}
@@ -6211,21 +6152,21 @@ function App() {
                       variant="outlined"
                       onClick={() => setNewOffer(prev => ({ ...prev, availabilityDays: weekDays.map(d => d.value) }))}
                     >
-                      Tous les jours
+                      Todos los días
                     </Button>
                     <Button
                       size="small"
                       variant="outlined"
                       onClick={() => setNewOffer(prev => ({ ...prev, availabilityDays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] }))}
                     >
-                      Jours ouvrables
+                      Días laborables
                     </Button>
                     <Button
                       size="small"
                       variant="outlined"
                       onClick={() => setNewOffer(prev => ({ ...prev, availabilityDays: ['saturday', 'sunday'] }))}
                     >
-                      Week-ends
+                      Fines de semana
                     </Button>
                     <Button
                       size="small"
@@ -6233,12 +6174,12 @@ function App() {
                       color="error"
                       onClick={() => setNewOffer(prev => ({ ...prev, availabilityDays: [] }))}
                     >
-                      Effacer
+                      Limpiar
                     </Button>
                   </Box>
 
                   <Box sx={{ mb: 2 }}>
-                    <Typography variant="subtitle2" sx={{ mb: 1 }}>Jours sélectionnés:</Typography>
+                    <Typography variant="subtitle2" sx={{ mb: 1 }}>Días seleccionados:</Typography>
                     <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
                       {weekDays.map((day) => (
                         <FormControlLabel
@@ -6270,7 +6211,7 @@ function App() {
                   {newOffer.availabilityDays.length > 0 && (
                     <Box sx={{ display: 'flex', gap: 2 }}>
                       <TextField
-                        label="Heure de début"
+                        label="Hora de Inicio"
                         type="time"
                         value={newOffer.availabilityStartTime}
                         onChange={(e) => setNewOffer(prev => ({ ...prev, availabilityStartTime: e.target.value }))}
@@ -6279,7 +6220,7 @@ function App() {
                         inputProps={{ step: 300 }}
                       />
                       <TextField
-                        label="Heure de fin"
+                        label="Hora de Fin"
                         type="time"
                         value={newOffer.availabilityEndTime}
                         onChange={(e) => setNewOffer(prev => ({ ...prev, availabilityEndTime: e.target.value }))}
@@ -6303,8 +6244,7 @@ function App() {
                     onChange={(e) => {
                       const file = e.target.files?.[0];
                       if (file) {
-                        // La imagen se manejará en handleAddOffer
-                        (window as any).newOfferImage = file;
+                        setNewOffer({...newOffer, image: file});
                       }
                     }}
                     style={{
@@ -6315,10 +6255,10 @@ function App() {
                       backgroundColor: '#f5f5f5'
                     }}
                   />
-                  {(window as any).newOfferImage && (
+                  {newOffer.image && (
                     <Box sx={{ mt: 2, textAlign: 'center' }}>
                       <Typography variant="body2" color="success.main">
-                        ✅ {(window as any).newOfferImage.name}
+                        ✅ {newOffer.image.name}
                       </Typography>
                     </Box>
                   )}
@@ -6456,7 +6396,7 @@ function App() {
                     <Typography variant="h6">Horarios de Disponibilidad (Opcional)</Typography>
                   </Box>
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                    Si vous ne sélectionnez rien, le flash deal sera disponible en permanence
+                    Si no seleccionas nada, el flash deal estará disponible siempre
                   </Typography>
                   
                   {/* Botones rápidos */}
@@ -6466,21 +6406,21 @@ function App() {
                       variant="outlined"
                       onClick={() => setNewFlashDeal(prev => ({ ...prev, availabilityDays: weekDays.map(d => d.value) }))}
                     >
-                      Tous les jours
+                      Todos los días
                     </Button>
                     <Button
                       size="small"
                       variant="outlined"
                       onClick={() => setNewFlashDeal(prev => ({ ...prev, availabilityDays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] }))}
                     >
-                      Jours ouvrables
+                      Días laborables
                     </Button>
                     <Button
                       size="small"
                       variant="outlined"
                       onClick={() => setNewFlashDeal(prev => ({ ...prev, availabilityDays: ['saturday', 'sunday'] }))}
                     >
-                      Week-ends
+                      Fines de semana
                     </Button>
                     <Button
                       size="small"
@@ -6488,12 +6428,12 @@ function App() {
                       color="error"
                       onClick={() => setNewFlashDeal(prev => ({ ...prev, availabilityDays: [] }))}
                     >
-                      Effacer
+                      Limpiar
                     </Button>
                   </Box>
 
                   <Box sx={{ mb: 2 }}>
-                    <Typography variant="subtitle2" sx={{ mb: 1 }}>Jours sélectionnés:</Typography>
+                    <Typography variant="subtitle2" sx={{ mb: 1 }}>Días seleccionados:</Typography>
                     <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
                       {weekDays.map((day) => (
                         <FormControlLabel
@@ -6525,7 +6465,7 @@ function App() {
                   {newFlashDeal.availabilityDays.length > 0 && (
                     <Box sx={{ display: 'flex', gap: 2 }}>
                       <TextField
-                        label="Heure de début"
+                        label="Hora de Inicio"
                         type="time"
                         value={newFlashDeal.availabilityStartTime}
                         onChange={(e) => setNewFlashDeal(prev => ({ ...prev, availabilityStartTime: e.target.value }))}
@@ -6534,7 +6474,7 @@ function App() {
                         inputProps={{ step: 300 }}
                       />
                       <TextField
-                        label="Heure de fin"
+                        label="Hora de Fin"
                         type="time"
                         value={newFlashDeal.availabilityEndTime}
                         onChange={(e) => setNewFlashDeal(prev => ({ ...prev, availabilityEndTime: e.target.value }))}
@@ -6561,28 +6501,225 @@ function App() {
             </DialogActions>
           </Dialog>
 
-          {/* Modal de Gestion des Partenaires - Admin Dashboard */}
-          {isAdmin && currentUser && (
+          {/* Modal de Gestión de Partenaires */}
           <Dialog 
             open={showPartnersModal} 
             onClose={() => setShowPartnersModal(false)}
-              maxWidth="xl"
+            maxWidth="md"
             fullWidth
-              PaperProps={{
-                sx: {
-                  height: '90vh',
-                  maxHeight: '90vh'
-                }
-              }}
+          >
+            <DialogTitle>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Typography variant="h6">🏪 Gérer les Partenaires</Typography>
+                <IconButton onClick={() => setShowPartnersModal(false)}>
+                  <Close />
+                </IconButton>
+              </Box>
+            </DialogTitle>
+            <DialogContent>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+                {/* Lista de socios existentes */}
+                <Typography variant="h6" gutterBottom>
+                  Partenaires actuels ({partners.length})
+                </Typography>
+                
+                {partners.length === 0 ? (
+                  <Box sx={{ 
+                    textAlign: 'center', 
+                    py: 4,
+                    color: 'rgba(255, 255, 255, 0.6)'
+                  }}>
+                    <Typography variant="body1">
+                      Aucun partenaire ajouté
+                    </Typography>
+                  </Box>
+                ) : (
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    {partners.map((partner, index) => (
+                      <Box 
+                        key={partner.id || index}
+                        sx={{ 
+                          display: 'flex', 
+                          justifyContent: 'space-between', 
+                          alignItems: 'center',
+                          p: 2,
+                          bgcolor: 'rgba(255, 255, 255, 0.05)',
+                          borderRadius: 2,
+                          border: '1px solid rgba(255, 255, 255, 0.1)'
+                        }}
+                      >
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            {getCategoryIcon(partner.category, { sx: { fontSize: 24, color: 'white' } })}
+                          </Box>
+                          <Box>
+                            <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                              {partner.name}
+                            </Typography>
+                            <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                              {partner.address}
+                            </Typography>
+                          </Box>
+                        </Box>
+                        <IconButton 
+                          onClick={() => {
+                            const newPartners = partners.filter((_, i) => i !== index);
+                            setPartners(newPartners);
+                          }}
+                          sx={{ color: '#f44336' }}
                         >
-              <DialogContent sx={{ p: 0, height: '100%', overflow: 'auto' }}>
-                <AdminDashboard 
-                  adminId={currentUser.uid} 
-                  onClose={() => setShowPartnersModal(false)} 
-                />
+                          <Close />
+                        </IconButton>
+                      </Box>
+                    ))}
+                  </Box>
+                )}
+                
+                <Divider sx={{ my: 2 }} />
+                
+                {/* Formulario para añadir nuevo socio */}
+                <Typography variant="h6" gutterBottom>
+                  Ajouter un nouveau partenaire
+                </Typography>
+                
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <TextField
+                    label="Nom du partenaire"
+                    value={newPartner.name}
+                    onChange={(e) => setNewPartner({...newPartner, name: e.target.value})}
+                    fullWidth
+                    variant="outlined"
+                  />
+                  
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    <Typography variant="body2" sx={{ fontWeight: 600, color: 'rgba(255, 255, 255, 0.9)' }}>
+                      Icône du partenaire
+                    </Typography>
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, maxHeight: 120, overflowY: 'auto' }}>
+                      {[
+                        { id: 'restaurant', name: 'Restaurant', category: 'restaurants' },
+                        { id: 'bar', name: 'Bar', category: 'bars' },
+                        { id: 'shop', name: 'Magasin', category: 'shops' },
+                        { id: 'hotel', name: 'Hôtel', category: 'hotels' },
+                        { id: 'gas', name: 'Station', category: 'shops' },
+                        { id: 'bank', name: 'Banque', category: 'shops' },
+                        { id: 'pharmacy', name: 'Pharmacie', category: 'health' },
+                        { id: 'gym', name: 'Fitness', category: 'fitness' },
+                        { id: 'beauty', name: 'Beauté', category: 'beauty' },
+                        { id: 'car', name: 'Auto', category: 'shops' },
+                        { id: 'clothes', name: 'Mode', category: 'clothing' },
+                        { id: 'electronics', name: 'Électronique', category: 'shops' }
+                      ].map((iconOption) => (
+                        <Box
+                          key={iconOption.id}
+                          onClick={() => setNewPartner({...newPartner, category: iconOption.category})}
+                          sx={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            p: 1.5,
+                            border: newPartner.category === iconOption.category ? '2px solid #FFD700' : '1px solid rgba(255, 255, 255, 0.2)',
+                            borderRadius: 2,
+                            cursor: 'pointer',
+                            bgcolor: newPartner.category === iconOption.category ? 'rgba(255, 215, 0, 0.1)' : 'rgba(255, 255, 255, 0.05)',
+                            transition: 'all 0.2s ease',
+                            '&:hover': {
+                              bgcolor: 'rgba(255, 215, 0, 0.1)',
+                              borderColor: '#FFD700'
+                            },
+                            minWidth: 60
+                          }}
+                        >
+                          <Box sx={{ mb: 0.5, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            {getCategoryIcon(iconOption.category, { sx: { fontSize: 24, color: 'white' } })}
+                          </Box>
+                          <Typography variant="caption" sx={{ 
+                            fontSize: '0.7rem', 
+                            color: 'rgba(255, 255, 255, 0.8)',
+                            textAlign: 'center'
+                          }}>
+                            {iconOption.name}
+                          </Typography>
+                        </Box>
+                      ))}
+                    </Box>
+                    <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.6)', mt: 1 }}>
+                      Sélectionnez une icône professionnelle pour le partenaire
+                    </Typography>
+                  </Box>
+                  
+                  <TextField
+                    label="Adresse"
+                    value={newPartner.address}
+                    onChange={(e) => setNewPartner({...newPartner, address: e.target.value})}
+                    fullWidth
+                    variant="outlined"
+                  />
+                  
+                  <Box sx={{ display: 'flex', gap: 2 }}>
+                    <TextField
+                      label="Latitude"
+                      type="number"
+                      value={newPartner.location.lat}
+                      onChange={(e) => setNewPartner({
+                        ...newPartner, 
+                        location: {...newPartner.location, lat: parseFloat(e.target.value) || 0}
+                      })}
+                      sx={{ flex: 1 }}
+                    />
+                    
+                    <TextField
+                      label="Longitude"
+                      type="number"
+                      value={newPartner.location.lng}
+                      onChange={(e) => setNewPartner({
+                        ...newPartner, 
+                        location: {...newPartner.location, lng: parseFloat(e.target.value) || 0}
+                      })}
+                      sx={{ flex: 1 }}
+                    />
+                  </Box>
+                  
+                  <TextField
+                    label="Remise"
+                    value={newPartner.discount}
+                    onChange={(e) => setNewPartner({...newPartner, discount: e.target.value})}
+                    fullWidth
+                    variant="outlined"
+                    placeholder="20% OFF"
+                  />
+                </Box>
+              </Box>
             </DialogContent>
+            <DialogActions>
+              <Button onClick={() => setShowPartnersModal(false)}>
+                Annuler
+              </Button>
+              <Button 
+                onClick={() => {
+                  if (newPartner.name && newPartner.category && newPartner.address) {
+                    const partner = {
+                      ...newPartner,
+                      id: `partner_${Date.now()}`
+                    };
+                    setPartners([...partners, partner]);
+                    setNewPartner({
+                      name: '',
+                      category: '',
+                      address: '',
+                      location: { lat: 46.2306, lng: 7.3590 },
+                      discount: '20% OFF'
+                    });
+                  }
+                }}
+                variant="contained"
+                disabled={!newPartner.name || !newPartner.category || !newPartner.address}
+                sx={{ bgcolor: '#FFD700', color: '#000', '&:hover': { bgcolor: '#FFA000' } }}
+              >
+                Ajouter Partenaire
+              </Button>
+            </DialogActions>
           </Dialog>
-          )}
 
           {/* Offer Detail Dialog */}
           <OfferDetail 
@@ -6656,7 +6793,7 @@ function App() {
                         
                         // Mostrar modal de countdown
                         setSelectedOffer(pending.offerData);
-                        // setShowActivationModal se maneja dentro de OffersList
+                        setShowActivationModal(true);
                         
                         // Guardar información para después del countdown
                         (window as any).pendingActivation = {
@@ -6703,8 +6840,8 @@ function App() {
                               };
                             });
                             
-                            // Marcar como activada - se maneja dentro de OffersList
-                            // setSwipedOffers se maneja dentro de OffersList
+                            // Marcar como activada en swipedOffers
+                            setSwipedOffers(prev => new Set([...prev, pending.offerId]));
                             
                             addNotification('success', `Offre activée • Économie: ${savedAmount.toFixed(2)} CHF`);
                           } catch (error) {
@@ -6757,19 +6894,8 @@ function App() {
           <SubscriptionRequiredModal 
             open={showSubscriptionRequiredModal} 
             onSubscribe={() => {
-              if (currentUser) {
-                const plan = SUBSCRIPTION_PLANS[0]; // Plan mensual por defecto
-                setShowSubscriptionRequiredModal(false);
-                setPaymentModalConfig({
-                  type: 'subscription',
-                  amount: plan.price,
-                  description: `${plan.name} - LUCA App`,
-                  orderId: `sub_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-                  planType: plan.type,
-                  planId: plan.id,
-                });
-                setShowPaymentModal(true);
-              }
+              setShowSubscriptionRequiredModal(false);
+              setShowSubscriptionModal(true);
             }}
           />
 
@@ -6809,41 +6935,14 @@ function App() {
                   variant="contained"
                   size="large"
                   onClick={() => {
-                    if (currentUser) {
-                      const plan = SUBSCRIPTION_PLANS[0]; // Plan mensual por defecto
-                      setShowSubscriptionOverlay(false);
-                      setPaymentModalConfig({
-                        type: 'subscription',
-                        amount: plan.price,
-                        description: `${plan.name} - LUCA App`,
-                        orderId: `sub_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-                        planType: plan.type,
-                        planId: plan.id,
-                      });
-                      setShowPaymentModal(true);
-                    }
-                  }}
-                  sx={{
-                    px: 4,
-                    py: 1.5,
-                    fontSize: '1.1rem',
-                    fontWeight: 'bold'
-                  }}
-                >
-                  💳 Payer Maintenant
-                </Button>
-                
-                <Button
-                  variant="outlined"
-                  size="large"
-                  onClick={() => {
                     setShowSubscriptionOverlay(false);
                     setShowSubscriptionModal(true);
                   }}
                   sx={{
                     px: 4,
                     py: 1.5,
-                    fontSize: '1.1rem'
+                    fontSize: '1.1rem',
+                    fontWeight: 'bold'
                   }}
                 >
                   Voir les Plans
@@ -6867,6 +6966,8 @@ function App() {
               </Box>
             </Box>
           </Dialog>
+        </Box>
+      )}
 
       {/* Navegación inferior fija */}
       <Box sx={{
@@ -7141,6 +7242,7 @@ function App() {
         )}
 
         {/* Tabs de navegación */}
+        <Box>
         <Tabs
           value={selectedTab} 
           onChange={(_, newValue) => setSelectedTab(newValue)}
@@ -7234,12 +7336,11 @@ function App() {
             iconPosition="top"
           />
         </Tabs>
-      </Box>
+        </Box>
             </Box>
-          )}
-        </>
-      )}
-    </ThemeProvider>
+          </>
+        )}
+      </ThemeProvider>
   );
 }
 
