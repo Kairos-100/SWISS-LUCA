@@ -63,10 +63,14 @@ export interface SubscriptionResponse {
 // Vite uses import.meta.env, but we also support process.env for compatibility
 const getEnvVar = (key: string, fallback: string = ''): string => {
   // Try Vite environment variables first (import.meta.env)
-  if (typeof import !== 'undefined' && (import.meta as any)?.env) {
-    const viteKey = key.replace('REACT_APP_', 'VITE_');
-    const value = (import.meta as any).env[viteKey] || (import.meta as any).env[key];
-    if (value) return value;
+  try {
+    if (typeof (import.meta as any)?.env !== 'undefined') {
+      const viteKey = key.replace('REACT_APP_', 'VITE_');
+      const value = (import.meta as any).env[viteKey] || (import.meta as any).env[key];
+      if (value) return value;
+    }
+  } catch (e) {
+    // Ignore if import.meta is not available
   }
   // Fallback to process.env (for compatibility)
   if (typeof process !== 'undefined' && process.env) {

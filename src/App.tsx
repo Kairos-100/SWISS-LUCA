@@ -1856,7 +1856,7 @@ function MapView({ offers, flashDeals, selectedCategory, onOfferClick, onFlashDe
   );
 }
 
-function OffersList({ offers, selectedCategory, selectedSubCategory, onOfferClick, currentUser, userProfile, setUserProfile, addNotification, userLocation, calculateDistance }: {
+function OffersList({ offers, selectedCategory, selectedSubCategory, onOfferClick, currentUser, userProfile, setUserProfile, addNotification, userLocation, calculateDistance, setPaymentModalConfig, setShowPaymentModal, showActivationModal, setShowActivationModal, selectedOffer, setSelectedOffer }: {
   offers: Offer[],
   selectedCategory: string,
   selectedSubCategory: string,
@@ -1866,10 +1866,21 @@ function OffersList({ offers, selectedCategory, selectedSubCategory, onOfferClic
   setUserProfile: React.Dispatch<React.SetStateAction<UserProfile | null>>,
   addNotification: (type: 'success' | 'info' | 'warning', message: string) => void,
   userLocation: {lat: number, lng: number} | null,
-  calculateDistance: (lat1: number, lng1: number, lat2: number, lng2: number) => number
+  calculateDistance: (lat1: number, lng1: number, lat2: number, lng2: number) => number,
+  setPaymentModalConfig: React.Dispatch<React.SetStateAction<{
+    type: 'payment' | 'subscription';
+    amount: number;
+    description: string;
+    orderId: string;
+    planType?: 'monthly' | 'yearly';
+    planId?: string;
+  } | null>>,
+  setShowPaymentModal: React.Dispatch<React.SetStateAction<boolean>>,
+  showActivationModal: boolean,
+  setShowActivationModal: React.Dispatch<React.SetStateAction<boolean>>,
+  selectedOffer: Offer | null,
+  setSelectedOffer: React.Dispatch<React.SetStateAction<Offer | null>>
 }) {
-  const [showActivationModal, setShowActivationModal] = useState(false);
-  const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null);
   const [swipedOffers, setSwipedOffers] = useState<Set<string>>(new Set());
   const [showGlobalFlash, setShowGlobalFlash] = useState(false);
 
@@ -2753,20 +2764,20 @@ function TrialModal({
           borderRadius: 2,
           border: '1px solid #e0e0e0'
         }}>
-          <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>
+          <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold', color: '#333' }}>
             ✅ Ce qui est inclus dans votre essai:
           </Typography>
           <Box component="ul" sx={{ pl: 2, m: 0 }}>
-            <Typography component="li" sx={{ mb: 1 }}>
+            <Typography component="li" sx={{ mb: 1, color: '#333' }}>
               Accès complet à toutes les offres FLASH
             </Typography>
-            <Typography component="li" sx={{ mb: 1 }}>
+            <Typography component="li" sx={{ mb: 1, color: '#333' }}>
               Activation illimitée d'offres
             </Typography>
-            <Typography component="li" sx={{ mb: 1 }}>
+            <Typography component="li" sx={{ mb: 1, color: '#333' }}>
               Accès aux offres flash exclusives
             </Typography>
-            <Typography component="li" sx={{ mb: 1 }}>
+            <Typography component="li" sx={{ mb: 1, color: '#333' }}>
               Support client prioritaire
             </Typography>
           </Box>
@@ -3337,6 +3348,7 @@ function App() {
     planType?: 'monthly' | 'yearly';
     planId?: string;
   } | null>(null);
+  const [showActivationModal, setShowActivationModal] = useState(false);
   const [signupCredentials, setSignupCredentials] = useState({
     email: '',
     password: '',
@@ -4386,9 +4398,27 @@ function App() {
     const deal = flashDeals.find(d => d.id === dealId);
     if (!deal) return;
 
+    // Convertir FlashDeal a Offer para consistencia
+    const offerData: Offer = {
+      id: deal.id,
+      name: deal.name,
+      image: deal.image,
+      category: deal.category,
+      subCategory: deal.subCategory,
+      discount: deal.discount,
+      description: deal.description,
+      location: deal.location,
+      rating: deal.rating,
+      isNew: true,
+      price: deal.price,
+      oldPrice: deal.oldPrice,
+      usagePrice: deal.price ? parseFloat(deal.price.toString().replace('CHF ', '').replace(',', '.')) * OFFER_USAGE_PERCENTAGE : 0
+    };
+
     // Si la oferta tiene precio, abrir modal de pago primero
     if (deal.price && currentUser) {
-      const offerPrice = parseFloat(deal.price.replace('CHF ', '').replace(',', '.'));
+      const priceStr = deal.price.toString().replace('CHF ', '').replace(',', '.');
+      const offerPrice = parseFloat(priceStr);
       const usagePrice = offerPrice * OFFER_USAGE_PERCENTAGE;
       
       // Abrir modal de pago
@@ -4405,7 +4435,7 @@ function App() {
         offerId: dealId,
         offerName: deal.name,
         usagePrice: usagePrice,
-        offerData: deal,
+        offerData: offerData, // Usar offerData convertido a Offer
         shouldActivate: true // Marcar que debe activarse después del pago
       };
       
@@ -4802,25 +4832,51 @@ function App() {
     // Registrar que el usuario vio esta oferta
     await updateOffersViewed(deal.id, deal.category);
 
-    // Las ofertas flash se procesan directamente
-    
-    // Procesar pago por uso de oferta
+    // Convertir FlashDeal a Offer si es necesario
+    const offerData: Offer = {
+      id: deal.id,
+      name: deal.name,
+      image: deal.image,
+      category: deal.category,
+      subCategory: deal.subCategory,
+      discount: deal.discount,
+      description: deal.description,
+      location: deal.location,
+      rating: deal.rating,
+      isNew: true, // Las ofertas flash siempre son nuevas
+      price: deal.price,
+      oldPrice: deal.oldPrice,
+      usagePrice: deal.price ? parseFloat(deal.price.toString().replace('CHF ', '').replace(',', '.')) * OFFER_USAGE_PERCENTAGE : 0
+    };
+
+    // Si la oferta tiene precio, abrir modal de pago primero
     if (currentUser && deal.price) {
-      const offerPrice = parseFloat(deal.price);
-      const usageCost = offerPrice * OFFER_USAGE_PERCENTAGE;
+      // Parsear el precio correctamente (puede venir como "CHF 20" o "20")
+      const priceStr = deal.price.toString().replace('CHF ', '').replace(',', '.');
+      const offerPrice = parseFloat(priceStr);
+      const usagePrice = offerPrice * OFFER_USAGE_PERCENTAGE;
       
-      try {
-        // Actualizar el perfil del usuario con el costo
-        await updateDoc(doc(db, 'users', currentUser.uid), {
-          totalSpent: arrayUnion(usageCost),
-          lastOfferUsed: Timestamp.now()
-        });
-        
-        addNotification('success', `Offre flash utilisée ! Coût : CHF ${usageCost.toFixed(2)}`);
-      } catch (error) {
-        console.error('Error updating user profile:', error);
-        addNotification('warning', 'Erreur lors du traitement de l\'utilisation de l\'offre');
-      }
+      // Abrir modal de pago con Stripe/Twint
+      setPaymentModalConfig({
+        type: 'payment',
+        amount: usagePrice,
+        description: `Utilisation de l'offre flash: ${deal.name}`,
+        orderId: `flash_${deal.id}_${Date.now()}`,
+      });
+      setShowPaymentModal(true);
+      
+      // Guardar información de la oferta para después del pago
+      (window as any).pendingOfferPayment = {
+        offerId: deal.id,
+        offerName: deal.name,
+        usagePrice: usagePrice,
+        offerData: offerData, // Usar offerData convertido a Offer
+        shouldActivate: true // Activar directamente después del pago (flash deals)
+      };
+    } else {
+      // Si no tiene precio, mostrar detalles directamente
+      setSelectedOffer(offerData);
+      setDetailOpen(true);
     }
   };
 
@@ -5394,7 +5450,7 @@ function App() {
                 alignItems: 'center',
                 flexShrink: 0
               }}>
-                <LocationIcon sx={{ mr: 0.5, fontSize: { xs: 18, sm: 24 } }} />
+                <FlashIcon sx={{ mr: 0.5, fontSize: { xs: 18, sm: 24 }, color: '#FFD700' }} />
                 <Typography variant="h6" sx={{ 
                   fontSize: { xs: '0.9rem', sm: '1.25rem' },
                   whiteSpace: 'nowrap'
@@ -5530,6 +5586,12 @@ function App() {
                   addNotification={addNotification}
                   userLocation={userLocation}
                   calculateDistance={calculateDistance}
+                  setPaymentModalConfig={setPaymentModalConfig}
+                  setShowPaymentModal={setShowPaymentModal}
+                  showActivationModal={showActivationModal}
+                  setShowActivationModal={setShowActivationModal}
+                  selectedOffer={selectedOffer}
+                  setSelectedOffer={setSelectedOffer}
                 />
               </Box>
             )}
@@ -5856,38 +5918,6 @@ function App() {
                     <Typography variant="h6" gutterBottom sx={{ fontSize: { xs: '1.1rem', sm: '1.25rem' } }}>Administration</Typography>
                     
                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 2, sm: 2 } }}>
-                      <Button
-                        variant="contained"
-                        startIcon={<Add sx={{ fontSize: { xs: 18, sm: 20 } }} />}
-                        onClick={() => setShowAddModal(true)}
-                        sx={{ 
-                          bgcolor: '#FFD700', 
-                          '&:hover': { bgcolor: '#45a049' },
-                          py: { xs: 2, sm: 1.5 },
-                          px: { xs: 3, sm: 2 },
-                          fontSize: { xs: '0.875rem', sm: '1rem' },
-                          minHeight: { xs: 48, sm: 40 }
-                        }}
-                      >
-                        Ajouter Nouvelle Offre
-                      </Button>
-                      
-                      <Button
-                        variant="contained"
-                        startIcon={<FlashOn sx={{ fontSize: { xs: 18, sm: 20 } }} />}
-                        onClick={() => setShowAddFlashModal(true)}
-                        sx={{ 
-                          bgcolor: '#FFD700', 
-                          '&:hover': { bgcolor: '#fbc02d' },
-                          py: { xs: 2, sm: 1.5 },
-                          px: { xs: 3, sm: 2 },
-                          fontSize: { xs: '0.875rem', sm: '1rem' },
-                          minHeight: { xs: 48, sm: 40 }
-                        }}
-                      >
-                        Créer Offre Flash
-                      </Button>
-                      
                       <Button
                         variant="contained"
                         startIcon={<Store sx={{ fontSize: { xs: 18, sm: 20 } }} />}
@@ -6840,8 +6870,8 @@ function App() {
                               };
                             });
                             
-                            // Marcar como activada en swipedOffers
-                            setSwipedOffers(prev => new Set([...prev, pending.offerId]));
+                            // Nota: swipedOffers se actualiza automáticamente desde userProfile.activatedOffers
+                            // No es necesario actualizarlo aquí ya que está en el scope de OffersList
                             
                             addNotification('success', `Offre activée • Économie: ${savedAmount.toFixed(2)} CHF`);
                           } catch (error) {

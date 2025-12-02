@@ -1050,33 +1050,31 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
         <Box>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
             <Typography variant="h5">{isAdmin ? t('toutesLesOffres') : t('mesOffres')}</Typography>
-            {!isAdmin && (
-              <Button
-                startIcon={<Add />}
-                variant="contained"
-                onClick={() => {
-                  setEditingOffer(null);
-                  setOfferForm({
-                    name: '',
-                    category: 'restaurants',
-                    subCategory: '',
-                    discount: '',
-                    description: '',
-                    address: '',
-                    rating: 4.5,
-                    price: '',
-                    oldPrice: '',
-                    image: '',
-                    availabilityDays: [],
-                    availabilityStartTime: '09:00',
-                    availabilityEndTime: '18:00'
-                  });
-                  setShowAddOfferModal(true);
-                }}
-              >
-                {t('nouvelleOffre')}
-              </Button>
-            )}
+            <Button
+              startIcon={<Add />}
+              variant="contained"
+              onClick={() => {
+                setEditingOffer(null);
+                setOfferForm({
+                  name: '',
+                  category: 'restaurants',
+                  subCategory: '',
+                  discount: '',
+                  description: '',
+                  address: '',
+                  rating: 4.5,
+                  price: '',
+                  oldPrice: '',
+                  image: '',
+                  availabilityDays: [],
+                  availabilityStartTime: '09:00',
+                  availabilityEndTime: '18:00'
+                });
+                setShowAddOfferModal(true);
+              }}
+            >
+              {t('nouvelleOffre')}
+            </Button>
           </Box>
           <Grid container spacing={2}>
             {offers.map((offer) => (
@@ -1217,34 +1215,32 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
         <Box>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
             <Typography variant="h5">{t('flashDeals')}</Typography>
-            {!isAdmin && (
-              <Button
-                startIcon={<Add />}
-                variant="contained"
-                onClick={() => {
-                  setEditingFlashDeal(null);
-                  setFlashDealForm({
-                    name: '',
-                    category: 'restaurants',
-                    subCategory: '',
-                    description: '',
-                    address: '',
-                    rating: 4.5,
-                    originalPrice: 0,
-                    discountedPrice: 0,
-                    duration: 2,
-                    maxQuantity: 20,
-                    image: '',
-                    availabilityDays: [],
-                    availabilityStartTime: '09:00',
-                    availabilityEndTime: '18:00'
-                  });
-                  setShowAddFlashModal(true);
-                }}
-              >
-                {t('nouveauFlashDeal')}
-              </Button>
-            )}
+            <Button
+              startIcon={<Add />}
+              variant="contained"
+              onClick={() => {
+                setEditingFlashDeal(null);
+                setFlashDealForm({
+                  name: '',
+                  category: 'restaurants',
+                  subCategory: '',
+                  description: '',
+                  address: '',
+                  rating: 4.5,
+                  originalPrice: 0,
+                  discountedPrice: 0,
+                  duration: 2,
+                  maxQuantity: 20,
+                  image: '',
+                  availabilityDays: [],
+                  availabilityStartTime: '09:00',
+                  availabilityEndTime: '18:00'
+                });
+                setShowAddFlashModal(true);
+              }}
+            >
+              {t('nouveauFlashDeal')}
+            </Button>
           </Box>
           <Grid container spacing={2}>
             {flashDeals.map((deal) => (
