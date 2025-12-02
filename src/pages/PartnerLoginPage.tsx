@@ -166,12 +166,29 @@ export const PartnerLoginPage: React.FC = () => {
                   autoComplete="email"
                   disabled={isLoading}
                   InputProps={{
-                    startAdornment: <Email sx={{ mr: 1, color: 'text.secondary' }} />
+                    startAdornment: <Email sx={{ mr: 1, color: '#666' }} />
                   }}
                   sx={{
                     '& .MuiOutlinedInput-root': {
-                      borderRadius: 2
-                    }
+                      borderRadius: 2,
+                      backgroundColor: '#fff',
+                      color: '#000',
+                      '& fieldset': {
+                        borderColor: '#ddd',
+                      },
+                      '&:hover fieldset': {
+                        borderColor: '#FFD700',
+                      },
+                      '&.Mui-focused fieldset': {
+                        borderColor: '#FFD700',
+                      },
+                    },
+                    '& .MuiInputLabel-root': {
+                      color: '#666',
+                      '&.Mui-focused': {
+                        color: '#FFD700',
+                      },
+                    },
                   }}
                 />
 
@@ -185,12 +202,29 @@ export const PartnerLoginPage: React.FC = () => {
                   autoComplete="current-password"
                   disabled={isLoading}
                   InputProps={{
-                    startAdornment: <Lock sx={{ mr: 1, color: 'text.secondary' }} />
+                    startAdornment: <Lock sx={{ mr: 1, color: '#666' }} />
                   }}
                   sx={{
                     '& .MuiOutlinedInput-root': {
-                      borderRadius: 2
-                    }
+                      borderRadius: 2,
+                      backgroundColor: '#fff',
+                      color: '#000',
+                      '& fieldset': {
+                        borderColor: '#ddd',
+                      },
+                      '&:hover fieldset': {
+                        borderColor: '#FFD700',
+                      },
+                      '&.Mui-focused fieldset': {
+                        borderColor: '#FFD700',
+                      },
+                    },
+                    '& .MuiInputLabel-root': {
+                      color: '#666',
+                      '&.Mui-focused': {
+                        color: '#FFD700',
+                      },
+                    },
                   }}
                 />
 
@@ -224,7 +258,7 @@ export const PartnerLoginPage: React.FC = () => {
                     onClick={() => navigate('/')}
                     variant="text"
                     size="small"
-                    sx={{ color: 'text.secondary' }}
+                    sx={{ color: '#666' }}
                   >
                     ← Retour à l'app
                   </Button>
