@@ -19,7 +19,6 @@ import {
   Tab,
   Paper,
   IconButton,
-  Chip,
   FormControlLabel,
   Checkbox,
   Divider
@@ -39,13 +38,15 @@ import {
   ShoppingCart,
   Preview,
   Upload,
-  AccessTime
+  AccessTime,
+  AdminPanelSettings
 } from '@mui/icons-material';
-import { doc, getDoc, setDoc, updateDoc, deleteDoc, collection, query, where, getDocs, Timestamp, addDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, deleteDoc, collection, query, where, getDocs, Timestamp, addDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../firebase';
 import type { Partner, Offer, FlashDeal } from '../types';
 import { useTranslation } from 'react-i18next';
+import { UserManagementModal } from './UserManagementModal';
 
 interface PartnerDashboardProps {
   partnerId: string;
@@ -69,6 +70,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
   const [editingOffer, setEditingOffer] = useState<Offer | null>(null);
   const [editingFlashDeal, setEditingFlashDeal] = useState<FlashDeal | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [showUserManagementModal, setShowUserManagementModal] = useState(false);
   const [stats, setStats] = useState({
     totalOffers: 0,
     totalFlashDeals: 0,
@@ -622,8 +624,8 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
   };
 
   const handleEditFlashDeal = (deal: FlashDeal) => {
-    // Validar que el flash deal pertenece al partner actual
-    if (deal.partnerId !== partnerId) {
+    // Validar que el flash deal pertenece al partner actual o es admin
+    if (!isAdmin && deal.partnerId !== partnerId) {
       showSnackbar('No tienes permisos para editar este flash deal', 'error');
       return;
     }
@@ -651,8 +653,8 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
   const handleUpdateFlashDeal = async () => {
     if (!editingFlashDeal) return;
     
-    // Validar que el flash deal pertenece al partner actual
-    if (editingFlashDeal.partnerId !== partnerId) {
+    // Validar que el flash deal pertenece al partner actual o es admin
+    if (!isAdmin && editingFlashDeal.partnerId !== partnerId) {
       showSnackbar('No tienes permisos para editar este flash deal', 'error');
       return;
     }
@@ -716,8 +718,8 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
     const deal = flashDeals.find(d => d.id === flashDealId);
     if (!deal) return;
     
-    // Validar que el flash deal pertenece al partner actual
-    if (deal.partnerId !== partnerId) {
+    // Validar que el flash deal pertenece al partner actual o es admin
+    if (!isAdmin && deal.partnerId !== partnerId) {
       showSnackbar('No tienes permisos para eliminar este flash deal', 'error');
       return;
     }
@@ -826,9 +828,10 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
       <Paper sx={{ mb: 3 }}>
         <Tabs value={activeTab} onChange={(e, newValue) => setActiveTab(newValue)}>
           <Tab label={t('monProfil')} />
-          <Tab label={t('mesOffres')} />
+          <Tab label={isAdmin ? t('toutesLesOffres') : t('mesOffres')} />
           <Tab label={t('flashDeals')} />
           <Tab label={t('statistiques')} />
+          {isAdmin && <Tab label="Gérer les Partenaires" />}
         </Tabs>
       </Paper>
 
@@ -1090,7 +1093,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
                         size="small" 
                         startIcon={<Edit />}
                         onClick={() => handleEditOffer(offer)}
-                        disabled={offer.partnerId !== partnerId}
+                        disabled={!isAdmin && offer.partnerId !== partnerId}
                       >
                         {t('modifier')}
                       </Button>
@@ -1099,7 +1102,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
                         color="error" 
                         startIcon={<Delete />}
                         onClick={() => handleDeleteOffer(offer.id)}
-                        disabled={offer.partnerId !== partnerId}
+                        disabled={!isAdmin && offer.partnerId !== partnerId}
                       >
                         {t('supprimer')}
                       </Button>
@@ -1210,6 +1213,27 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
         </Box>
       )}
 
+      {/* Tab: Partner Management (Admin only) */}
+      {activeTab === 4 && isAdmin && (
+        <Card>
+          <CardContent>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+              <Typography variant="h5">Gestion des Partenaires</Typography>
+              <Button
+                variant="contained"
+                startIcon={<AdminPanelSettings />}
+                onClick={() => setShowUserManagementModal(true)}
+              >
+                Gérer les Partenaires
+              </Button>
+            </Box>
+            <Typography variant="body1" color="text.secondary">
+              Utilisez le bouton ci-dessus pour gérer les partenaires, changer leurs statuts et attribuer des rôles.
+            </Typography>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Tab: Flash Deals */}
       {activeTab === 2 && (
         <Box>
@@ -1256,7 +1280,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
                         size="small" 
                         startIcon={<Edit />}
                         onClick={() => handleEditFlashDeal(deal)}
-                        disabled={deal.partnerId !== partnerId}
+                        disabled={!isAdmin && deal.partnerId !== partnerId}
                       >
                         Editar
                       </Button>
@@ -1265,7 +1289,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
                         color="error" 
                         startIcon={<Delete />}
                         onClick={() => handleDeleteFlashDeal(deal.id)}
-                        disabled={deal.partnerId !== partnerId}
+                        disabled={!isAdmin && deal.partnerId !== partnerId}
                       >
                         Eliminar
                       </Button>
@@ -1954,6 +1978,15 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partnerId, o
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* User Management Modal (Admin only) */}
+      {isAdmin && (
+        <UserManagementModal
+          open={showUserManagementModal}
+          onClose={() => setShowUserManagementModal(false)}
+          currentAdminId={partnerId}
+        />
+      )}
 
       <Snackbar
         open={snackbar.open}
