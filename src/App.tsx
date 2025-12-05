@@ -84,7 +84,6 @@ import {
   LockIcon
 } from './components/ProfessionalIcons';
 import { getCategoryIcon } from './utils/iconUtils';
-import { isOfferAvailable } from './utils/availabilityUtils';
 import professionalTheme from './theme/professionalTheme';
 import './styles/professionalStyles.css';
 import './App.css';
@@ -96,7 +95,7 @@ declare global {
   }
 }
 
-// Google Maps API Key - En producción, esto debería estar en variables de entorno
+// Google Maps API Key - In production, this should be in environment variables
 const GOOGLE_MAPS_API_KEY = 'AIzaSyBbnCxckdR0XrhYorXJHXPlIx-58MPcva0';
 
 // Plans d'abonnement
@@ -128,7 +127,7 @@ interface SubscriptionPlan {
   id: string;
   name: string;
   price: number;
-  duration: number; // en días
+  duration: number; // in days
   type: 'monthly' | 'yearly';
   features: string[];
 }
@@ -141,16 +140,7 @@ interface Category {
   subCategories: string[];
 }
 
-// Días de la semana
-const weekDays = [
-  { value: 'monday', label: 'Lunes' },
-  { value: 'tuesday', label: 'Martes' },
-  { value: 'wednesday', label: 'Miércoles' },
-  { value: 'thursday', label: 'Jueves' },
-  { value: 'friday', label: 'Viernes' },
-  { value: 'saturday', label: 'Sábado' },
-  { value: 'sunday', label: 'Domingo' }
-];
+// Week days - will be created dynamically in components using useTranslation
 
 const categories: Category[] = [
   {
@@ -323,9 +313,9 @@ const initialOffers: Offer[] = [
     name: 'Salon de Beauté Élégance',
     image: 'https://images.unsplash.com/photo-1562322140-8baeececf3df?auto=format&fit=crop&w=400&q=80',
     category: 'beauty',
-    subCategory: 'Peluquería',
-    discount: '20% en cortes y coloración',
-    description: 'Salón de belleza profesional con los mejores productos y técnicas.',
+    subCategory: 'Hairdresser',
+    discount: '20% sur les coupes et colorations',
+    description: 'Salon de beauté professionnel avec les meilleurs produits et techniques.',
     location: { lat: 46.2014, lng: 6.1442, address: 'Rue de la Croix-d\'Or, Genève' },
     rating: 4.8,
     isNew: true,
@@ -337,9 +327,9 @@ const initialOffers: Offer[] = [
     name: 'Fitness Center Plus',
     image: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?auto=format&fit=crop&w=400&q=80',
     category: 'fitness',
-    subCategory: 'Gimnasio',
-    discount: 'Primer mes gratis',
-    description: 'Gimnasio moderno con equipos de última generación y clases personalizadas.',
+    subCategory: 'Gym',
+    discount: 'Premier mois gratuit',
+    description: 'Gym moderne avec équipements de dernière génération et cours personnalisés.',
     location: { lat: 46.2034, lng: 6.1412, address: 'Rue du Mont-Blanc, Genève' },
     rating: 4.6,
     isNew: true,
@@ -348,12 +338,12 @@ const initialOffers: Offer[] = [
   },
   {
     id: '9',
-    name: 'Coop Supermercado',
+    name: 'Coop Supermarché',
     image: 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=400&q=80',
     category: 'grocery',
-    subCategory: 'Supermercado',
-    discount: '10% en productos orgánicos',
-    description: 'Supermercado con amplia selección de productos frescos y orgánicos.',
+    subCategory: 'Grocery',
+    discount: '10% sur les produits biologiques',
+    description: 'Supermarché avec une large sélection de produits frais et biologiques.',
     location: { lat: 46.1994, lng: 6.1472, address: 'Rue du Marché, Genève' },
     rating: 4.2,
     isNew: false,
@@ -365,9 +355,9 @@ const initialOffers: Offer[] = [
     name: 'Cine Pathé Balexert',
     image: 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=400&q=80',
     category: 'entertainment',
-    subCategory: 'Cine',
-    discount: 'Entradas a mitad de precio los martes',
-    description: 'Cine moderno con las últimas películas y la mejor calidad de imagen.',
+    subCategory: 'Cinema',
+    discount: 'Billets à moitié prix le mardi',
+    description: 'Cinéma moderne avec les derniers films et la meilleure qualité d\'image.',
     location: { lat: 46.2054, lng: 6.1492, address: 'Avenue Louis-Casaï, Genève' },
     rating: 4.5,
     isNew: false,
@@ -394,8 +384,8 @@ const initialOffers: Offer[] = [
     image: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=400&q=80',
     category: 'clothing',
     subCategory: 'Ropa',
-    discount: '30% en toda la colección de verano',
-    description: 'Boutique de moda con las últimas tendencias y marcas exclusivas.',
+    discount: '30% sur toute la collection d\'été',
+    description: 'Boutique de mode avec les dernières tendances et marques exclusives.',
     location: { lat: 46.2024, lng: 6.1452, address: 'Rue de la Corraterie, Genève' },
     rating: 4.7,
     isNew: true,
@@ -530,7 +520,7 @@ const updateSubscriptionAfterPayment = async (userId: string, planId: string): P
     
     return true;
   } catch (error) {
-    console.error('Error actualizando suscripción:', error);
+      console.error('Error updating subscription:', error);
     return false;
   }
 };
@@ -552,7 +542,7 @@ const updateOfferPaymentAfterSuccess = async (userId: string, offerId: string, u
     
     return true;
   } catch (error) {
-    console.error('Error actualizando pago de oferta:', error);
+      console.error('Error updating offer payment:', error);
     return false;
   }
 };
@@ -568,6 +558,7 @@ function MapView({ offers, flashDeals, selectedCategory, onOfferClick, onFlashDe
   getUserLocation: () => void,
   calculateDistance: (lat1: number, lng1: number, lat2: number, lng2: number) => number
 }) {
+  const { t } = useTranslation();
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
@@ -599,10 +590,21 @@ function MapView({ offers, flashDeals, selectedCategory, onOfferClick, onFlashDe
   // Location state for UI
   const [locationError, setLocationError] = useState<string | null>(null);
 
+  // Week days with translations
+  const weekDays = useMemo(() => [
+    { value: 'monday', label: t('monday') },
+    { value: 'tuesday', label: t('tuesday') },
+    { value: 'wednesday', label: t('wednesday') },
+    { value: 'thursday', label: t('thursday') },
+    { value: 'friday', label: t('friday') },
+    { value: 'saturday', label: t('saturday') },
+    { value: 'sunday', label: t('sunday') }
+  ], [t]);
+
   // Enhanced getUserLocation that also centers the map
   const handleGetUserLocation = () => {
     if (!navigator.geolocation) {
-      setLocationError('La géolocalisation n\'est pas prise en charge par ce navigateur.');
+      setLocationError('Geolocation is not supported by this browser.');
       return;
     }
 
@@ -625,16 +627,16 @@ function MapView({ offers, flashDeals, selectedCategory, onOfferClick, onFlashDe
       (error) => {
         switch (error.code) {
           case error.PERMISSION_DENIED:
-            setLocationError('Accès à la localisation refusé par l\'utilisateur.');
+            setLocationError('Location access denied by user.');
             break;
           case error.POSITION_UNAVAILABLE:
-            setLocationError('Les informations de localisation ne sont pas disponibles.');
+            setLocationError('Location information is unavailable.');
             break;
           case error.TIMEOUT:
-            setLocationError('La demande de localisation a expiré.');
+            setLocationError('Location request timed out.');
             break;
           default:
-            setLocationError('Une erreur inconnue s\'est produite.');
+            setLocationError('An unknown error occurred.');
             break;
         }
       },
@@ -1415,7 +1417,7 @@ function MapView({ offers, flashDeals, selectedCategory, onOfferClick, onFlashDe
       });
     } catch (error) {
       console.error('Error adding offer:', error);
-      alert('Erreur lors de l\'ajout de l\'offre');
+      alert('Error al agregar la oferta');
     }
   };
 
@@ -1462,7 +1464,7 @@ function MapView({ offers, flashDeals, selectedCategory, onOfferClick, onFlashDe
           fontSize: '10px',
           textAlign: 'center'
         }}>
-          Admin: {isAdmin ? 'Sí' : 'No'}
+          Admin: {isAdmin ? t('oui') : t('non')}
         </Box>
         {/* Botón para agregar nueva oferta (solo admin) */}
         {isAdmin && (
@@ -1656,13 +1658,13 @@ function MapView({ offers, flashDeals, selectedCategory, onOfferClick, onFlashDe
               onChange={(e) => setNewOffer({...newOffer, address: e.target.value})}
               fullWidth
               required
-              placeholder="Ej: Rue du Rhône 1, Genève"
+              placeholder={t('addressPlaceholder')}
             />
 
             <Box sx={{ display: 'flex', gap: 2 }}>
               <TextField
                 select
-                label="Catégorie"
+                label={t('categoria')}
                 value={newOffer.category}
                 onChange={(e) => setNewOffer({...newOffer, category: e.target.value})}
                 fullWidth
@@ -1673,21 +1675,21 @@ function MapView({ offers, flashDeals, selectedCategory, onOfferClick, onFlashDe
               </TextField>
 
               <TextField
-                label="Sous-catégorie"
+                label={t('subcategoria')}
                 value={newOffer.subCategory}
                 onChange={(e) => setNewOffer({...newOffer, subCategory: e.target.value})}
                 fullWidth
-                placeholder="Ej: Pizza, Café, etc."
+                placeholder={t('subcategoryPlaceholder')}
               />
             </Box>
 
             <Box sx={{ display: 'flex', gap: 2 }}>
               <TextField
-                label="Réduction/Offre"
+                label={t('reduccionOferta')}
                 value={newOffer.discount}
                 onChange={(e) => setNewOffer({...newOffer, discount: e.target.value})}
                 fullWidth
-                placeholder="Ej: -20% en pizzas"
+                placeholder={t('discountPlaceholder')}
               />
 
               <TextField
@@ -1695,7 +1697,7 @@ function MapView({ offers, flashDeals, selectedCategory, onOfferClick, onFlashDe
                 value={newOffer.price}
                 onChange={(e) => setNewOffer({...newOffer, price: e.target.value})}
                 fullWidth
-                placeholder="Ej: CHF 25"
+                placeholder={t('pricePlaceholder')}
               />
             </Box>
 
@@ -1722,13 +1724,13 @@ function MapView({ offers, flashDeals, selectedCategory, onOfferClick, onFlashDe
             <Box>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
                 <AccessTime sx={{ color: '#FFD700' }} />
-                <Typography variant="h6">Horarios de Disponibilidad</Typography>
+                <Typography variant="h6">{t('availabilitySchedule')}</Typography>
               </Box>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                 Selecciona los días y horas en que esta oferta estará disponible
               </Typography>
               <Box sx={{ mb: 2 }}>
-                <Typography variant="subtitle2" sx={{ mb: 1 }}>Días de la semana:</Typography>
+                <Typography variant="subtitle2" sx={{ mb: 1 }}>{t('selectedDays')}</Typography>
                 <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
                   {weekDays.map((day) => (
                     <FormControlLabel
@@ -1758,7 +1760,7 @@ function MapView({ offers, flashDeals, selectedCategory, onOfferClick, onFlashDe
               </Box>
               <Box sx={{ display: 'flex', gap: 2 }}>
                 <TextField
-                  label="Hora de Inicio"
+                  label={t('startTime')}
                   type="time"
                   value={newOffer.availabilityStartTime}
                   onChange={(e) => setNewOffer(prev => ({ ...prev, availabilityStartTime: e.target.value }))}
@@ -1767,7 +1769,7 @@ function MapView({ offers, flashDeals, selectedCategory, onOfferClick, onFlashDe
                   inputProps={{ step: 300 }}
                 />
                 <TextField
-                  label="Hora de Fin"
+                  label={t('endTime')}
                   type="time"
                   value={newOffer.availabilityEndTime}
                   onChange={(e) => setNewOffer(prev => ({ ...prev, availabilityEndTime: e.target.value }))}
@@ -1856,7 +1858,7 @@ function MapView({ offers, flashDeals, selectedCategory, onOfferClick, onFlashDe
   );
 }
 
-function OffersList({ offers, selectedCategory, selectedSubCategory, onOfferClick, currentUser, userProfile, setUserProfile, addNotification, userLocation, calculateDistance, setPaymentModalConfig, setShowPaymentModal, showActivationModal, setShowActivationModal, selectedOffer, setSelectedOffer }: {
+function OffersList({ offers, selectedCategory, selectedSubCategory, onOfferClick, currentUser, userProfile, setUserProfile, addNotification, userLocation, calculateDistance }: {
   offers: Offer[],
   selectedCategory: string,
   selectedSubCategory: string,
@@ -1866,21 +1868,10 @@ function OffersList({ offers, selectedCategory, selectedSubCategory, onOfferClic
   setUserProfile: React.Dispatch<React.SetStateAction<UserProfile | null>>,
   addNotification: (type: 'success' | 'info' | 'warning', message: string) => void,
   userLocation: {lat: number, lng: number} | null,
-  calculateDistance: (lat1: number, lng1: number, lat2: number, lng2: number) => number,
-  setPaymentModalConfig: React.Dispatch<React.SetStateAction<{
-    type: 'payment' | 'subscription';
-    amount: number;
-    description: string;
-    orderId: string;
-    planType?: 'monthly' | 'yearly';
-    planId?: string;
-  } | null>>,
-  setShowPaymentModal: React.Dispatch<React.SetStateAction<boolean>>,
-  showActivationModal: boolean,
-  setShowActivationModal: React.Dispatch<React.SetStateAction<boolean>>,
-  selectedOffer: Offer | null,
-  setSelectedOffer: React.Dispatch<React.SetStateAction<Offer | null>>
+  calculateDistance: (lat1: number, lng1: number, lat2: number, lng2: number) => number
 }) {
+  const [showActivationModal, setShowActivationModal] = useState(false);
+  const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null);
   const [swipedOffers, setSwipedOffers] = useState<Set<string>>(new Set());
   const [showGlobalFlash, setShowGlobalFlash] = useState(false);
 
@@ -1915,43 +1906,22 @@ function OffersList({ offers, selectedCategory, selectedSubCategory, onOfferClic
       return true;
     });
 
-    // Separate available and unavailable offers
-    const availableOffers: Offer[] = [];
-    const unavailableOffers: Offer[] = [];
-    
-    filtered.forEach(offer => {
-      if (isOfferAvailable(offer)) {
-        availableOffers.push(offer);
-      } else {
-        unavailableOffers.push(offer);
-      }
-    });
-
-    // Sort available offers by distance if user location is available
+    // Sort by distance if user location is available
     if (userLocation) {
-      availableOffers.forEach(offer => {
-        (offer as any).distance = calculateDistance(
-          userLocation.lat, 
-          userLocation.lng, 
-          offer.location.lat, 
-          offer.location.lng
-        );
-      });
-      availableOffers.sort((a, b) => (a as any).distance - (b as any).distance);
-      
-      unavailableOffers.forEach(offer => {
-        (offer as any).distance = calculateDistance(
-          userLocation.lat, 
-          userLocation.lng, 
-          offer.location.lat, 
-          offer.location.lng
-        );
-      });
-      unavailableOffers.sort((a, b) => (a as any).distance - (b as any).distance);
+      filtered = filtered
+        .map(offer => ({
+          ...offer,
+          distance: calculateDistance(
+            userLocation.lat, 
+            userLocation.lng, 
+            offer.location.lat, 
+            offer.location.lng
+          )
+        }))
+        .sort((a, b) => a.distance - b.distance);
     }
 
-    // Return available offers first, then unavailable
-    return [...availableOffers, ...unavailableOffers];
+    return filtered;
   }, [offers, selectedCategory, selectedSubCategory, userLocation, calculateDistance]);
 
   const handleSlideToActivate = (offer: Offer) => {
@@ -2134,13 +2104,7 @@ function OffersList({ offers, selectedCategory, selectedSubCategory, onOfferClic
         overflow: 'auto',
         width: '100%'
       }}>
-        {filteredOffers.map((offer, index) => {
-          const isCurrentlyAvailable = isOfferAvailable(offer);
-          
-          // Show section header when transitioning from available to unavailable
-          const prevOffer = index > 0 ? filteredOffers[index - 1] : null;
-          const showUnavailableHeader = prevOffer && isOfferAvailable(prevOffer) && !isCurrentlyAvailable;
-          
+        {filteredOffers.map((offer) => {
           // Verificar si la oferta está activada localmente (swiped)
           const isSwiped = swipedOffers.has(offer.id);
           
@@ -2151,50 +2115,26 @@ function OffersList({ offers, selectedCategory, selectedSubCategory, onOfferClic
           const isActivated = isSwiped || isBlocked;
           
           return (
-            <Box key={offer.id}>
-              {showUnavailableHeader && (
-                <Typography 
-                  variant="h6" 
-                  sx={{ 
-                    mb: 2, 
-                    mt: 4, 
-                    color: 'text.secondary',
-                    fontWeight: 600,
-                    fontSize: '1.1rem'
-                  }}
-                >
-                  Offres non disponibles actuellement
-                </Typography>
-              )}
-              <Box
-                className="offer-card"
-                sx={{
-                  position: 'relative',
-                  mb: { xs: 3, sm: 4 },
-                  overflow: 'visible',
-                  borderRadius: { xs: 1, sm: 2 }
-                }}
-              >
-                <Card 
+          <Box
+            key={offer.id}
+            className="offer-card"
+            sx={{
+              position: 'relative',
+              mb: { xs: 3, sm: 4 },
+              overflow: 'visible',
+              borderRadius: { xs: 1, sm: 2 }
+            }}
+          >
+            
+            <Card 
               sx={{ 
                 cursor: 'pointer',
                 borderRadius: { xs: 1, sm: 2 },
                 position: 'relative',
                 zIndex: 2,
-                opacity: isActivated ? 0.9 : (isCurrentlyAvailable ? 1 : 0.6),
-                filter: isActivated ? 'grayscale(20%)' : (isCurrentlyAvailable ? 'none' : 'grayscale(80%)'),
-                overflow: 'hidden',
-                '&::before': !isCurrentlyAvailable ? {
-                  content: '""',
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  backgroundColor: 'rgba(0, 0, 0, 0.3)',
-                  zIndex: 1,
-                  pointerEvents: 'none'
-                } : {}
+                opacity: isActivated ? 0.9 : 1,
+                filter: isActivated ? 'grayscale(20%)' : 'none',
+                overflow: 'hidden'
               }} 
               onClick={() => onOfferClick(offer)}
             >
@@ -2226,24 +2166,7 @@ function OffersList({ offers, selectedCategory, selectedSubCategory, onOfferClic
                       position: 'absolute',
                       top: 8,
                       right: 8,
-                      fontWeight: 'bold',
-                      zIndex: 3
-                    }}
-                  />
-                )}
-                {!isCurrentlyAvailable && (
-                  <Chip
-                    icon={<AccessTime />}
-                    label="Hors horaire"
-                    size="small"
-                    sx={{
-                      position: 'absolute',
-                      top: 8,
-                      left: 8,
-                      backgroundColor: 'rgba(158, 158, 158, 0.9)',
-                      color: 'white',
-                      fontWeight: 'bold',
-                      zIndex: 3
+                      fontWeight: 'bold'
                     }}
                   />
                 )}
@@ -2379,10 +2302,9 @@ function OffersList({ offers, selectedCategory, selectedSubCategory, onOfferClic
                     />
                   </Box>
                 )}
-                </CardContent>
-              </Card>
-            </Box>
-            </Box>
+              </CardContent>
+            </Card>
+          </Box>
           );
         })}
       </Box>
@@ -2764,20 +2686,20 @@ function TrialModal({
           borderRadius: 2,
           border: '1px solid #e0e0e0'
         }}>
-          <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold', color: '#333' }}>
+          <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>
             ✅ Ce qui est inclus dans votre essai:
           </Typography>
           <Box component="ul" sx={{ pl: 2, m: 0 }}>
-            <Typography component="li" sx={{ mb: 1, color: '#333' }}>
+            <Typography component="li" sx={{ mb: 1 }}>
               Accès complet à toutes les offres FLASH
             </Typography>
-            <Typography component="li" sx={{ mb: 1, color: '#333' }}>
+            <Typography component="li" sx={{ mb: 1 }}>
               Activation illimitée d'offres
             </Typography>
-            <Typography component="li" sx={{ mb: 1, color: '#333' }}>
+            <Typography component="li" sx={{ mb: 1 }}>
               Accès aux offres flash exclusives
             </Typography>
-            <Typography component="li" sx={{ mb: 1, color: '#333' }}>
+            <Typography component="li" sx={{ mb: 1 }}>
               Support client prioritaire
             </Typography>
           </Box>
@@ -2879,7 +2801,7 @@ function SubscriptionModal({
       onClose();
       alert('Abonnement annulé avec succès. Votre accès se terminera à la fin de la période actuelle.');
     } catch (error) {
-      console.error('Error cancelando suscripción:', error);
+      console.error('Error cancelling subscription:', error);
       alert('Erreur lors de l\'annulation de l\'abonnement.');
     } finally {
       setIsProcessing(false);
@@ -3306,6 +3228,17 @@ function App() {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedSubCategory, setSelectedSubCategory] = useState('all');
+
+  // Week days with translations
+  const weekDays = useMemo(() => [
+    { value: 'monday', label: t('monday') },
+    { value: 'tuesday', label: t('tuesday') },
+    { value: 'wednesday', label: t('wednesday') },
+    { value: 'thursday', label: t('thursday') },
+    { value: 'friday', label: t('friday') },
+    { value: 'saturday', label: t('saturday') },
+    { value: 'sunday', label: t('sunday') }
+  ], [t]);
   const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -3348,7 +3281,6 @@ function App() {
     planType?: 'monthly' | 'yearly';
     planId?: string;
   } | null>(null);
-  const [showActivationModal, setShowActivationModal] = useState(false);
   const [signupCredentials, setSignupCredentials] = useState({
     email: '',
     password: '',
@@ -3399,7 +3331,7 @@ function App() {
   // Get user's current location
   const getUserLocation = () => {
     if (!navigator.geolocation) {
-      console.error('La géolocalisation n\'est pas prise en charge par ce navigateur.');
+      console.error('Geolocation is not supported by this browser.');
       return;
     }
 
@@ -3996,7 +3928,7 @@ function App() {
   // Función para manejar el login de usuario
   const handleUserLogin = async () => {
     if (!loginCredentials.email || !loginCredentials.password) {
-      alert('Veuillez remplir tous les champs');
+      alert('Por favor completa todos los campos');
       return;
     }
 
@@ -4045,7 +3977,7 @@ function App() {
         const newProfile: UserProfile = {
           uid: user.uid,
           email: user.email || '',
-          name: user.displayName || 'Utilisateur FLASH',
+          name: user.displayName || 'Usuario FLASH',
           city: 'Valais',
           activatedOffers: [],
           totalSaved: 0,
@@ -4118,7 +4050,7 @@ function App() {
   // Función para manejar el login de admin
   const handleAdminLogin = async () => {
     if (!adminLoginCredentials.email || !adminLoginCredentials.password) {
-      alert('Veuillez remplir tous les champs');
+      alert('Por favor completa todos los campos');
       return;
     }
 
@@ -4144,8 +4076,6 @@ function App() {
           setShowAdminLoginModal(false);
           setAdminLoginCredentials({ email: '', password: '' });
           addNotification('success', t('bienvenidoAdmin'));
-          // Navigate to admin dashboard
-          window.location.href = `/admin/dashboard/${user.uid}`;
         } else {
           alert('Vous n\'avez pas les autorisations d\'administrateur');
           await signOut(auth);
@@ -4185,10 +4115,10 @@ function App() {
       });
 
       setShowEditProfileModal(false);
-      addNotification('success', 'Profil mis à jour avec succès !');
+      addNotification('success', 'Perfil actualizado exitosamente!');
     } catch (error) {
       console.error('Error al actualizar perfil:', error);
-      alert('Erreur lors de la mise à jour du profil');
+      alert('Error al actualizar el perfil');
     }
   };
 
@@ -4257,7 +4187,7 @@ function App() {
       setShowLoginModal(true);
       alert('Session fermée');
     } catch (error) {
-      console.error('Error al cerrar sesión:', error);
+      console.error('Error logging out:', error);
       alert('Erreur lors de la déconnexion');
     }
   };
@@ -4300,96 +4230,86 @@ function App() {
           imageUrl = `/images/offers/${Date.now()}_${newOffer.image.name}`;
           console.log('Imagen seleccionada:', newOffer.image.name);
         } catch (error) {
-          console.error('Error al subir imagen:', error);
-          alert('Erreur lors du téléchargement de l\'image, une image par défaut sera utilisée');
+          console.error('Error uploading image:', error);
+          alert(t('errorUploadingImage'));
         }
       }
 
-      // Use REST API instead of Google Maps JS to avoid dependency issues
-      let location = { lat: 46.2044, lng: 6.1432 }; // Default to Geneva
-      
-      try {
-        const geocodeResponse = await fetch(
-          `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(newOffer.address + ', Switzerland')}&key=AIzaSyBbnCxckdR0XrhYorXJHXPlIx-58MPcva0`
-        );
-        
-        if (geocodeResponse.ok) {
-          const geocodeData = await geocodeResponse.json();
-          if (geocodeData.status === 'OK' && geocodeData.results && geocodeData.results.length > 0) {
-            location = geocodeData.results[0].geometry.location;
+      if (window.google) {
+        const geocoder = new window.google.maps.Geocoder();
+        geocoder.geocode({ address: newOffer.address + ', Valais, Switzerland' }, async (results: any, status: any) => {
+          if (status === 'OK' && results && results[0]) {
+            const location = results[0].geometry.location;
+            
+            const offerData = {
+              name: newOffer.name,
+              image: imageUrl,
+              category: newOffer.category,
+              subCategory: newOffer.subCategory,
+              discount: newOffer.discount,
+              description: newOffer.description,
+              location: {
+                lat: location.lat(),
+                lng: location.lng(),
+                address: newOffer.address
+              },
+              rating: newOffer.rating,
+              isNew: true,
+              price: newOffer.price,
+              oldPrice: newOffer.oldPrice,
+              // Agregar información de quién creó la oferta
+              createdBy: isPartner ? 'partner' : 'admin',
+              partnerId: isPartner ? currentPartnerId : null,
+              adminId: isAdmin && currentUser ? currentUser.uid : null,
+              createdAt: Timestamp.now(),
+              updatedAt: Timestamp.now(),
+              // Horarios de disponibilidad
+              availabilitySchedule: newOffer.availabilityDays.length > 0 ? {
+                days: newOffer.availabilityDays,
+                startTime: newOffer.availabilityStartTime,
+                endTime: newOffer.availabilityEndTime
+              } : undefined
+            };
+
+            // Guardar en Firestore
+            const offersRef = collection(db, 'offers');
+            const docRef = await addDoc(offersRef, offerData);
+            
+            const offer = {
+              id: docRef.id,
+              ...offerData
+            };
+
+            console.log('Nueva oferta guardada:', offer);
+            
+            setNewOffer({
+              name: '',
+              category: 'restaurants',
+              subCategory: '',
+              discount: '',
+              description: '',
+              address: '',
+              rating: 4.5,
+              price: '',
+              oldPrice: '',
+              image: null,
+              availabilityDays: [],
+              availabilityStartTime: '09:00',
+              availabilityEndTime: '18:00'
+            });
+            setShowAddModal(false);
+            
+            alert('Offre ajoutée avec succès !');
           } else {
-            console.warn('Geocoding returned:', geocodeData.status);
-            // Continue with default location
+            alert('Impossible de trouver l\'adresse. Essayez avec une adresse plus spécifique.');
           }
-        }
-      } catch (error) {
-        console.error('Error geocoding address:', error);
-        // Continue with default location
+        });
+      } else {
+        alert('Google Maps n\'est pas disponible. Réessayez plus tard.');
       }
-      
-      // Proceed with offer creation using the location
-      const offerData = {
-        name: newOffer.name,
-        image: imageUrl,
-        category: newOffer.category,
-        subCategory: newOffer.subCategory,
-        discount: newOffer.discount,
-        description: newOffer.description,
-        location: {
-          lat: location.lat,
-          lng: location.lng,
-          address: newOffer.address
-        },
-        rating: newOffer.rating,
-        isNew: true,
-        price: newOffer.price,
-        oldPrice: newOffer.oldPrice,
-        // Agregar información de quién creó la oferta
-        createdBy: isPartner ? 'partner' : 'admin',
-        partnerId: isPartner ? currentPartnerId : null,
-        adminId: isAdmin && currentUser ? currentUser.uid : null,
-        createdAt: Timestamp.now(),
-        updatedAt: Timestamp.now(),
-        // Horarios de disponibilidad
-        availabilitySchedule: newOffer.availabilityDays.length > 0 ? {
-          days: newOffer.availabilityDays,
-          startTime: newOffer.availabilityStartTime,
-          endTime: newOffer.availabilityEndTime
-        } : undefined
-      };
-
-      // Guardar en Firestore
-      const offersRef = collection(db, 'offers');
-      const docRef = await addDoc(offersRef, offerData);
-      
-      const offer = {
-        id: docRef.id,
-        ...offerData
-      };
-
-      console.log('Nueva oferta guardada:', offer);
-      
-      setNewOffer({
-        name: '',
-        category: 'restaurants',
-        subCategory: '',
-        discount: '',
-        description: '',
-        address: '',
-        rating: 4.5,
-        price: '',
-        oldPrice: '',
-        image: null,
-        availabilityDays: [],
-        availabilityStartTime: '09:00',
-        availabilityEndTime: '18:00'
-      });
-      setShowAddModal(false);
-      
-      alert('Offre ajoutée avec succès !');
     } catch (error) {
       console.error('Error adding offer:', error);
-      alert('Erreur lors de l\'ajout de l\'offre');
+      alert('Error al agregar la oferta');
     }
   };
 
@@ -4398,27 +4318,9 @@ function App() {
     const deal = flashDeals.find(d => d.id === dealId);
     if (!deal) return;
 
-    // Convertir FlashDeal a Offer para consistencia
-    const offerData: Offer = {
-      id: deal.id,
-      name: deal.name,
-      image: deal.image,
-      category: deal.category,
-      subCategory: deal.subCategory,
-      discount: deal.discount,
-      description: deal.description,
-      location: deal.location,
-      rating: deal.rating,
-      isNew: true,
-      price: deal.price,
-      oldPrice: deal.oldPrice,
-      usagePrice: deal.price ? parseFloat(deal.price.toString().replace('CHF ', '').replace(',', '.')) * OFFER_USAGE_PERCENTAGE : 0
-    };
-
     // Si la oferta tiene precio, abrir modal de pago primero
     if (deal.price && currentUser) {
-      const priceStr = deal.price.toString().replace('CHF ', '').replace(',', '.');
-      const offerPrice = parseFloat(priceStr);
+      const offerPrice = parseFloat(deal.price.replace('CHF ', '').replace(',', '.'));
       const usagePrice = offerPrice * OFFER_USAGE_PERCENTAGE;
       
       // Abrir modal de pago
@@ -4435,7 +4337,7 @@ function App() {
         offerId: dealId,
         offerName: deal.name,
         usagePrice: usagePrice,
-        offerData: offerData, // Usar offerData convertido a Offer
+        offerData: deal,
         shouldActivate: true // Marcar que debe activarse después del pago
       };
       
@@ -4444,7 +4346,7 @@ function App() {
 
     // Si no tiene precio, activar normalmente
     // Simular el proceso de bloqueo con lightning
-    addNotification('info', '🔒 Blocage de l\'offre... Attendez 10 minutes pour l\'activation.');
+    addNotification('info', t('bloquearOferta'));
     
     // Después de 2 segundos, mostrar el modal de oferta bloqueada
     setTimeout(() => {
@@ -4832,51 +4734,25 @@ function App() {
     // Registrar que el usuario vio esta oferta
     await updateOffersViewed(deal.id, deal.category);
 
-    // Convertir FlashDeal a Offer si es necesario
-    const offerData: Offer = {
-      id: deal.id,
-      name: deal.name,
-      image: deal.image,
-      category: deal.category,
-      subCategory: deal.subCategory,
-      discount: deal.discount,
-      description: deal.description,
-      location: deal.location,
-      rating: deal.rating,
-      isNew: true, // Las ofertas flash siempre son nuevas
-      price: deal.price,
-      oldPrice: deal.oldPrice,
-      usagePrice: deal.price ? parseFloat(deal.price.toString().replace('CHF ', '').replace(',', '.')) * OFFER_USAGE_PERCENTAGE : 0
-    };
-
-    // Si la oferta tiene precio, abrir modal de pago primero
+    // Las ofertas flash se procesan directamente
+    
+    // Procesar pago por uso de oferta
     if (currentUser && deal.price) {
-      // Parsear el precio correctamente (puede venir como "CHF 20" o "20")
-      const priceStr = deal.price.toString().replace('CHF ', '').replace(',', '.');
-      const offerPrice = parseFloat(priceStr);
-      const usagePrice = offerPrice * OFFER_USAGE_PERCENTAGE;
+      const offerPrice = parseFloat(deal.price);
+      const usageCost = offerPrice * OFFER_USAGE_PERCENTAGE;
       
-      // Abrir modal de pago con Stripe/Twint
-      setPaymentModalConfig({
-        type: 'payment',
-        amount: usagePrice,
-        description: `Utilisation de l'offre flash: ${deal.name}`,
-        orderId: `flash_${deal.id}_${Date.now()}`,
-      });
-      setShowPaymentModal(true);
-      
-      // Guardar información de la oferta para después del pago
-      (window as any).pendingOfferPayment = {
-        offerId: deal.id,
-        offerName: deal.name,
-        usagePrice: usagePrice,
-        offerData: offerData, // Usar offerData convertido a Offer
-        shouldActivate: true // Activar directamente después del pago (flash deals)
-      };
-    } else {
-      // Si no tiene precio, mostrar detalles directamente
-      setSelectedOffer(offerData);
-      setDetailOpen(true);
+      try {
+        // Actualizar el perfil del usuario con el costo
+        await updateDoc(doc(db, 'users', currentUser.uid), {
+          totalSpent: arrayUnion(usageCost),
+          lastOfferUsed: Timestamp.now()
+        });
+        
+        addNotification('success', `Oferta flash utilizada! Costo: CHF ${usageCost.toFixed(2)}`);
+      } catch (error) {
+        console.error('Error updating user profile:', error);
+        addNotification('warning', 'Error al procesar el uso de la oferta');
+      }
     }
   };
 
@@ -4977,7 +4853,7 @@ function App() {
             />
 
             <Typography variant="body2" color="text.secondary" align="center" sx={{ mt: 2 }}>
-              {t('pasDeCompte')} 
+              Don't have an account? 
               <Button 
                 color="primary" 
                 onClick={() => {
@@ -4986,7 +4862,7 @@ function App() {
                 }}
                 sx={{ ml: 1 }}
               >
-                {t('sinscrire')}
+                Sign up
               </Button>
             </Typography>
             
@@ -4999,7 +4875,7 @@ function App() {
                 }}
                 sx={{ fontSize: '0.875rem' }}
               >
-                {t('motDePasseOublie')}
+                Forgot your password?
               </Button>
             </Typography>
           </Box>
@@ -5050,7 +4926,7 @@ function App() {
             {isLoading ? (
               <>
                 <CircularProgress size={20} sx={{ color: '#4285f4', mr: 1 }} />
-                Connexion...
+                Conectando...
               </>
             ) : (
               'Continuar con Google'
@@ -5203,10 +5079,10 @@ function App() {
             {isLoading ? (
               <>
                 <CircularProgress size={20} sx={{ color: '#4285f4', mr: 1 }} />
-                Connexion...
+                Conectando...
               </>
             ) : (
-              'S\'inscrire avec Google'
+              'Sign up with Google'
             )}
           </Button>
         </Box>
@@ -5450,7 +5326,7 @@ function App() {
                 alignItems: 'center',
                 flexShrink: 0
               }}>
-                <FlashIcon sx={{ mr: 0.5, fontSize: { xs: 18, sm: 24 }, color: '#FFD700' }} />
+                <LocationIcon sx={{ mr: 0.5, fontSize: { xs: 18, sm: 24 } }} />
                 <Typography variant="h6" sx={{ 
                   fontSize: { xs: '0.9rem', sm: '1.25rem' },
                   whiteSpace: 'nowrap'
@@ -5480,12 +5356,16 @@ function App() {
                   onClick={() => setShowAdminLoginModal(true)}
                   size="small"
                   sx={{ 
-                    minWidth: 40,
-                    minHeight: 40,
-                    bgcolor: isAdmin ? 'rgba(255,255,255,0.2)' : 'transparent'
+                    minWidth: { xs: 44, sm: 40 },
+                    minHeight: { xs: 44, sm: 40 },
+                    bgcolor: isAdmin ? 'rgba(255,255,255,0.2)' : 'transparent',
+                    display: { xs: 'flex', sm: 'flex' },
+                    visibility: { xs: 'visible', sm: 'visible' },
+                    zIndex: 1000
                   }}
+                  title={isAdmin ? 'Admin' : 'Accès Admin'}
                 >
-                  <Person sx={{ fontSize: 18 }} />
+                  <Person sx={{ fontSize: { xs: 20, sm: 18 } }} />
                 </IconButton>
                 
                 <IconButton 
@@ -5586,12 +5466,6 @@ function App() {
                   addNotification={addNotification}
                   userLocation={userLocation}
                   calculateDistance={calculateDistance}
-                  setPaymentModalConfig={setPaymentModalConfig}
-                  setShowPaymentModal={setShowPaymentModal}
-                  showActivationModal={showActivationModal}
-                  setShowActivationModal={setShowActivationModal}
-                  selectedOffer={selectedOffer}
-                  setSelectedOffer={setSelectedOffer}
                 />
               </Box>
             )}
@@ -5903,10 +5777,13 @@ function App() {
                         px: { xs: 3, sm: 2 },
                         fontSize: { xs: '0.875rem', sm: '1rem' },
                         minHeight: { xs: 48, sm: 40 },
-                        width: '100%'
+                        width: '100%',
+                        mb: { xs: 2, sm: 0 },
+                        position: { xs: 'relative', sm: 'static' },
+                        zIndex: 1
                       }}
                     >
-                      Acceso Partner
+                      {t('accesoPartner')}
                     </Button>
                   </>
                 )}
@@ -5918,6 +5795,38 @@ function App() {
                     <Typography variant="h6" gutterBottom sx={{ fontSize: { xs: '1.1rem', sm: '1.25rem' } }}>Administration</Typography>
                     
                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 2, sm: 2 } }}>
+                      <Button
+                        variant="contained"
+                        startIcon={<Add sx={{ fontSize: { xs: 18, sm: 20 } }} />}
+                        onClick={() => setShowAddModal(true)}
+                        sx={{ 
+                          bgcolor: '#FFD700', 
+                          '&:hover': { bgcolor: '#45a049' },
+                          py: { xs: 2, sm: 1.5 },
+                          px: { xs: 3, sm: 2 },
+                          fontSize: { xs: '0.875rem', sm: '1rem' },
+                          minHeight: { xs: 48, sm: 40 }
+                        }}
+                      >
+                        Ajouter Nouvelle Offre
+                      </Button>
+                      
+                      <Button
+                        variant="contained"
+                        startIcon={<FlashOn sx={{ fontSize: { xs: 18, sm: 20 } }} />}
+                        onClick={() => setShowAddFlashModal(true)}
+                        sx={{ 
+                          bgcolor: '#FFD700', 
+                          '&:hover': { bgcolor: '#fbc02d' },
+                          py: { xs: 2, sm: 1.5 },
+                          px: { xs: 3, sm: 2 },
+                          fontSize: { xs: '0.875rem', sm: '1rem' },
+                          minHeight: { xs: 48, sm: 40 }
+                        }}
+                      >
+                        Créer Offre Flash
+                      </Button>
+                      
                       <Button
                         variant="contained"
                         startIcon={<Store sx={{ fontSize: { xs: 18, sm: 20 } }} />}
@@ -6099,7 +6008,7 @@ function App() {
                 <Box sx={{ display: 'flex', gap: 2 }}>
                   <TextField
                     select
-                    label="Catégorie"
+                    label={t('categoria')}
                     value={newOffer.category}
                     onChange={(e) => setNewOffer({...newOffer, category: e.target.value})}
                     fullWidth
@@ -6120,7 +6029,7 @@ function App() {
                   </TextField>
 
                   <TextField
-                    label="Sous-catégorie"
+                    label={t('subcategoria')}
                     value={newOffer.subCategory}
                     onChange={(e) => setNewOffer({...newOffer, subCategory: e.target.value})}
                     fullWidth
@@ -6130,11 +6039,11 @@ function App() {
 
                 <Box sx={{ display: 'flex', gap: 2 }}>
                   <TextField
-                    label="Réduction/Offre"
+                    label={t('reduccionOferta')}
                     value={newOffer.discount}
                     onChange={(e) => setNewOffer({...newOffer, discount: e.target.value})}
                     fullWidth
-                    placeholder="Ej: -20% en pizzas"
+                    placeholder={t('discountPlaceholder')}
                   />
 
                   <TextField
@@ -6142,7 +6051,7 @@ function App() {
                     value={newOffer.price}
                     onChange={(e) => setNewOffer({...newOffer, price: e.target.value})}
                     fullWidth
-                    placeholder="Ej: CHF 25"
+                    placeholder={t('pricePlaceholder')}
                   />
                 </Box>
 
@@ -6169,10 +6078,10 @@ function App() {
                 <Box>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                     <AccessTime sx={{ color: '#FFD700' }} />
-                    <Typography variant="h6">Horarios de Disponibilidad (Opcional)</Typography>
+                    <Typography variant="h6">{t('availabilitySchedule')}</Typography>
                   </Box>
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                    Si no seleccionas nada, la oferta estará disponible siempre
+                    {t('availabilityScheduleDesc')}
                   </Typography>
                   
                   {/* Botones rápidos */}
@@ -6182,21 +6091,21 @@ function App() {
                       variant="outlined"
                       onClick={() => setNewOffer(prev => ({ ...prev, availabilityDays: weekDays.map(d => d.value) }))}
                     >
-                      Todos los días
+                      {t('allDays')}
                     </Button>
                     <Button
                       size="small"
                       variant="outlined"
                       onClick={() => setNewOffer(prev => ({ ...prev, availabilityDays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] }))}
                     >
-                      Días laborables
+                      {t('weekdays')}
                     </Button>
                     <Button
                       size="small"
                       variant="outlined"
                       onClick={() => setNewOffer(prev => ({ ...prev, availabilityDays: ['saturday', 'sunday'] }))}
                     >
-                      Fines de semana
+                      {t('weekends')}
                     </Button>
                     <Button
                       size="small"
@@ -6204,12 +6113,12 @@ function App() {
                       color="error"
                       onClick={() => setNewOffer(prev => ({ ...prev, availabilityDays: [] }))}
                     >
-                      Limpiar
+                      {t('clear')}
                     </Button>
                   </Box>
 
                   <Box sx={{ mb: 2 }}>
-                    <Typography variant="subtitle2" sx={{ mb: 1 }}>Días seleccionados:</Typography>
+                    <Typography variant="subtitle2" sx={{ mb: 1 }}>{t('selectedDays')}</Typography>
                     <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
                       {weekDays.map((day) => (
                         <FormControlLabel
@@ -6241,7 +6150,7 @@ function App() {
                   {newOffer.availabilityDays.length > 0 && (
                     <Box sx={{ display: 'flex', gap: 2 }}>
                       <TextField
-                        label="Hora de Inicio"
+                        label={t('startTime')}
                         type="time"
                         value={newOffer.availabilityStartTime}
                         onChange={(e) => setNewOffer(prev => ({ ...prev, availabilityStartTime: e.target.value }))}
@@ -6250,7 +6159,7 @@ function App() {
                         inputProps={{ step: 300 }}
                       />
                       <TextField
-                        label="Hora de Fin"
+                        label={t('endTime')}
                         type="time"
                         value={newOffer.availabilityEndTime}
                         onChange={(e) => setNewOffer(prev => ({ ...prev, availabilityEndTime: e.target.value }))}
@@ -6337,7 +6246,7 @@ function App() {
                 <Box sx={{ display: 'flex', gap: 2 }}>
                   <TextField
                     select
-                    label="Catégorie"
+                    label={t('categoria')}
                     value={newFlashDeal.category}
                     onChange={(e) => setNewFlashDeal({...newFlashDeal, category: e.target.value})}
                     sx={{ flex: 1 }}
@@ -6350,7 +6259,7 @@ function App() {
                   </TextField>
                   
                   <TextField
-                    label="Sous-catégorie"
+                    label={t('subcategoria')}
                     value={newFlashDeal.subCategory}
                     onChange={(e) => setNewFlashDeal({...newFlashDeal, subCategory: e.target.value})}
                     sx={{ flex: 1 }}
@@ -6423,7 +6332,7 @@ function App() {
                 <Box>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                     <AccessTime sx={{ color: '#FFD700' }} />
-                    <Typography variant="h6">Horarios de Disponibilidad (Opcional)</Typography>
+                    <Typography variant="h6">{t('availabilitySchedule')}</Typography>
                   </Box>
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                     Si no seleccionas nada, el flash deal estará disponible siempre
@@ -6436,21 +6345,21 @@ function App() {
                       variant="outlined"
                       onClick={() => setNewFlashDeal(prev => ({ ...prev, availabilityDays: weekDays.map(d => d.value) }))}
                     >
-                      Todos los días
+                      {t('allDays')}
                     </Button>
                     <Button
                       size="small"
                       variant="outlined"
                       onClick={() => setNewFlashDeal(prev => ({ ...prev, availabilityDays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] }))}
                     >
-                      Días laborables
+                      {t('weekdays')}
                     </Button>
                     <Button
                       size="small"
                       variant="outlined"
                       onClick={() => setNewFlashDeal(prev => ({ ...prev, availabilityDays: ['saturday', 'sunday'] }))}
                     >
-                      Fines de semana
+                      {t('weekends')}
                     </Button>
                     <Button
                       size="small"
@@ -6458,12 +6367,12 @@ function App() {
                       color="error"
                       onClick={() => setNewFlashDeal(prev => ({ ...prev, availabilityDays: [] }))}
                     >
-                      Limpiar
+                      {t('clear')}
                     </Button>
                   </Box>
 
                   <Box sx={{ mb: 2 }}>
-                    <Typography variant="subtitle2" sx={{ mb: 1 }}>Días seleccionados:</Typography>
+                    <Typography variant="subtitle2" sx={{ mb: 1 }}>{t('selectedDays')}</Typography>
                     <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
                       {weekDays.map((day) => (
                         <FormControlLabel
@@ -6495,7 +6404,7 @@ function App() {
                   {newFlashDeal.availabilityDays.length > 0 && (
                     <Box sx={{ display: 'flex', gap: 2 }}>
                       <TextField
-                        label="Hora de Inicio"
+                        label={t('startTime')}
                         type="time"
                         value={newFlashDeal.availabilityStartTime}
                         onChange={(e) => setNewFlashDeal(prev => ({ ...prev, availabilityStartTime: e.target.value }))}
@@ -6504,7 +6413,7 @@ function App() {
                         inputProps={{ step: 300 }}
                       />
                       <TextField
-                        label="Hora de Fin"
+                        label={t('endTime')}
                         type="time"
                         value={newFlashDeal.availabilityEndTime}
                         onChange={(e) => setNewFlashDeal(prev => ({ ...prev, availabilityEndTime: e.target.value }))}
@@ -6870,8 +6779,8 @@ function App() {
                               };
                             });
                             
-                            // Nota: swipedOffers se actualiza automáticamente desde userProfile.activatedOffers
-                            // No es necesario actualizarlo aquí ya que está en el scope de OffersList
+                            // Marcar como activada en swipedOffers
+                            setSwipedOffers(prev => new Set([...prev, pending.offerId]));
                             
                             addNotification('success', `Offre activée • Économie: ${savedAmount.toFixed(2)} CHF`);
                           } catch (error) {
@@ -7272,7 +7181,6 @@ function App() {
         )}
 
         {/* Tabs de navegación */}
-        <Box>
         <Tabs
           value={selectedTab} 
           onChange={(_, newValue) => setSelectedTab(newValue)}
@@ -7366,11 +7274,10 @@ function App() {
             iconPosition="top"
           />
         </Tabs>
-        </Box>
-            </Box>
-          </>
-        )}
-      </ThemeProvider>
+      </Box>
+        </>
+      )}
+    </ThemeProvider>
   );
 }
 

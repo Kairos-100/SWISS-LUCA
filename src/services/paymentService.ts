@@ -60,29 +60,10 @@ export interface SubscriptionResponse {
 // CONFIGURACIÓN
 // ========================================
 
-// Vite uses import.meta.env, but we also support process.env for compatibility
-const getEnvVar = (key: string, fallback: string = ''): string => {
-  // Try Vite environment variables first (import.meta.env)
-  try {
-    if (typeof (import.meta as any)?.env !== 'undefined') {
-      const viteKey = key.replace('REACT_APP_', 'VITE_');
-      const value = (import.meta as any).env[viteKey] || (import.meta as any).env[key];
-      if (value) return value;
-    }
-  } catch (e) {
-    // Ignore if import.meta is not available
-  }
-  // Fallback to process.env (for compatibility)
-  if (typeof process !== 'undefined' && process.env) {
-    return process.env[key] || fallback;
-  }
-  return fallback;
-};
-
 const config = {
-  stripePublishableKey: getEnvVar('REACT_APP_STRIPE_PUBLISHABLE_KEY') || getEnvVar('VITE_STRIPE_PUBLISHABLE_KEY') || '',
-  apiUrl: getEnvVar('REACT_APP_API_URL') || 'http://localhost:3001',
-  isTestMode: getEnvVar('REACT_APP_PAYMENT_TEST_MODE') === 'true',
+  stripePublishableKey: import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '',
+  apiUrl: import.meta.env.VITE_API_URL || 'http://localhost:3001',
+  isTestMode: import.meta.env.VITE_PAYMENT_TEST_MODE === 'true',
 };
 
 // ========================================
@@ -104,7 +85,7 @@ class PaymentService {
     try {
       if (!config.stripePublishableKey) {
         console.error('❌ Stripe publishable key no configurada');
-        console.error('Por favor, configura REACT_APP_STRIPE_PUBLISHABLE_KEY en tu archivo .env');
+        console.error('Por favor, configura VITE_STRIPE_PUBLISHABLE_KEY en tu archivo .env');
         return false;
       }
 
@@ -130,7 +111,7 @@ class PaymentService {
   async createPayment(request: PaymentRequest): Promise<PaymentResponse> {
     try {
       // En modo de prueba, simular
-      if (config.isTestMode && process.env.NODE_ENV === 'development') {
+      if (config.isTestMode && import.meta.env.DEV) {
         console.log('🧪 Modo de prueba: Simulando pago');
         return this.simulatePayment(request);
       }
@@ -191,7 +172,7 @@ class PaymentService {
   async createSubscription(request: SubscriptionRequest): Promise<SubscriptionResponse> {
     try {
       // En modo de prueba, simular
-      if (config.isTestMode && process.env.NODE_ENV === 'development') {
+      if (config.isTestMode && import.meta.env.DEV) {
         console.log('🧪 Modo de prueba: Simulando suscripción');
         return this.simulateSubscription(request);
       }
@@ -305,30 +286,14 @@ class PaymentService {
 
   /**
    * Verificar estado de un pago
-   * Nota: Para suscripciones, el paymentId es el subscriptionId
    */
   async checkPaymentStatus(paymentId: string): Promise<PaymentStatus> {
     try {
       // En modo de prueba, simular
-      if (config.isTestMode && (typeof process !== 'undefined' && process.env.NODE_ENV === 'development')) {
+      if (config.isTestMode && import.meta.env.DEV) {
         return this.simulatePaymentStatus(paymentId);
       }
 
-      // Si es un subscriptionId (empieza con 'sub_'), usar Firebase Functions
-      if (paymentId.startsWith('sub_')) {
-        // Para suscripciones, el estado se verifica a través de Firestore
-        // o podemos usar Stripe directamente desde el backend
-        // Por ahora, asumimos éxito si no hay error
-        return {
-          paymentId,
-          status: 'succeeded',
-          amount: 0,
-          currency: 'chf',
-          timestamp: new Date(),
-        };
-      }
-
-      // Para Payment Intents, usar el endpoint del backend
       const response = await fetch(`${config.apiUrl}/api/payment-status/${paymentId}`, {
         method: 'GET',
       });
@@ -340,25 +305,23 @@ class PaymentService {
       const data = await response.json();
       
       return {
-        paymentId: data.paymentIntentId || data.paymentId || paymentId,
+        paymentId: data.paymentId,
         status: data.status,
         amount: data.amount / 100, // Convertir de centavos
         currency: data.currency,
-        timestamp: new Date(data.timestamp || Date.now()),
+        timestamp: new Date(data.timestamp),
         transactionId: data.transactionId,
-        errorMessage: data.lastPaymentError || data.errorMessage,
+        errorMessage: data.errorMessage,
       };
     } catch (error) {
       console.error('❌ Error al verificar estado de pago:', error);
-      // En caso de error, asumir que el pago está procesándose
-      // Esto permite que el flujo continúe si hay problemas de red
       return {
         paymentId,
-        status: 'processing',
+        status: 'failed',
         amount: 0,
         currency: 'chf',
         timestamp: new Date(),
-        errorMessage: 'No se pudo verificar el estado del pago',
+        errorMessage: 'Error al verificar el estado del pago',
       };
     }
   }

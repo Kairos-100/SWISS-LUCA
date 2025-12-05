@@ -32,7 +32,7 @@ const LanguageSelector: React.FC = () => {
   const handleLanguageChange = (languageCode: string) => {
     i18n.changeLanguage(languageCode);
     handleClose();
-    // Forzar recarga completa de la página para actualizar toda la interfaz
+    // Force full page reload to update entire interface
     setTimeout(() => {
       window.location.reload();
     }, 100);

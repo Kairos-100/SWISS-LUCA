@@ -14,7 +14,7 @@ export const PartnerDashboardPage: React.FC = () => {
       await signOut(auth);
       navigate('/partner/login', { replace: true });
     } catch (error) {
-      console.error('Error al cerrar sesión:', error);
+      console.error('Error logging out:', error);
     }
   };
 
