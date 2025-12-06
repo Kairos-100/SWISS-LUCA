@@ -5374,7 +5374,7 @@ function App() {
                   }}
                   title={isPartner ? 'Partenaire' : 'Accès Partenaire'}
                 >
-                  <Store sx={{ fontSize: { xs: 20, sm: 18 }, color: '#FFD700 !important', display: 'block !important' }} />
+                  <Store sx={{ fontSize: { xs: 20, sm: 18 }, color: '#FFD700', display: 'block' }} />
                 </IconButton>
                 
                 <IconButton 
