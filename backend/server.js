@@ -30,17 +30,14 @@ app.post('/api/create-payment-intent', async (req, res) => {
       return res.status(400).json({ error: 'Faltan datos requeridos' });
     }
 
-    // Crear Payment Intent con TWINT, Apple Pay y tarjeta
+    // Crear Payment Intent con Card, TWINT y Apple Pay
     const paymentIntent = await stripe.paymentIntents.create({
       amount: amount, // Ya viene en centavos desde el frontend
       currency: currency.toLowerCase(),
       description: description,
       metadata: metadata || {},
-      payment_method_types: ['card', 'twint', 'apple_pay'],
-      automatic_payment_methods: {
-        enabled: true,
-        allow_redirects: 'never',
-      },
+      // Métodos de pago explícitos: Card, TWINT, Apple Pay, Google Pay, Link y Klarna
+      payment_method_types: ['card', 'twint', 'apple_pay', 'google_pay', 'link', 'klarna'],
       // Configuración específica para Suiza
       shipping_address_collection: {
         allowed_countries: ['CH'],
@@ -121,8 +118,10 @@ app.use((err, req, res, next) => {
 });
 
 // Iniciar servidor
-app.listen(PORT, () => {
-  console.log(`🚀 Servidor backend ejecutándose en puerto ${PORT}`);
+// Firebase App Hosting/Cloud Run requiere escuchar en 0.0.0.0
+const HOST = process.env.HOST || '0.0.0.0';
+app.listen(PORT, HOST, () => {
+  console.log(`🚀 Servidor backend ejecutándose en ${HOST}:${PORT}`);
   console.log(`💳 Stripe configurado para TWINT`);
   console.log(`🌍 CORS habilitado para: ${process.env.FRONTEND_URL || 'http://localhost:3000'}`);
 });
