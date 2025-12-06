@@ -5375,14 +5375,20 @@ function App() {
                   sx={{ 
                     minWidth: { xs: 44, sm: 40 },
                     minHeight: { xs: 44, sm: 40 },
-                    bgcolor: isPartner ? 'rgba(255,255,255,0.2)' : 'transparent',
-                    display: { xs: 'flex', sm: 'flex' },
-                    visibility: { xs: 'visible', sm: 'visible' },
-                    zIndex: 1000
+                    bgcolor: isPartner ? 'rgba(255,215,0,0.4)' : 'rgba(255,215,0,0.3)',
+                    display: 'flex !important',
+                    visibility: 'visible !important',
+                    opacity: '1 !important',
+                    zIndex: 1000,
+                    border: '1px solid rgba(255,215,0,0.5)',
+                    '&:hover': {
+                      bgcolor: 'rgba(255,215,0,0.5)',
+                      border: '1px solid rgba(255,215,0,0.8)'
+                    }
                   }}
                   title={isPartner ? 'Partenaire' : 'Accès Partenaire'}
                 >
-                  <Store sx={{ fontSize: { xs: 20, sm: 18 } }} />
+                  <Store sx={{ fontSize: { xs: 20, sm: 18 }, color: '#FFD700 !important' }} />
                 </IconButton>
                 
                 <IconButton 
