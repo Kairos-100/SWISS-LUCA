@@ -5502,6 +5502,7 @@ function App() {
                 className="tab-content"
                 sx={{ 
                   p: { xs: 3, sm: 4 },
+                  pb: { xs: 15, sm: 15 },
                   height: { xs: 'calc(100vh - 120px)', sm: 'calc(100vh - 150px)' },
                   overflow: 'auto',
                   width: '100%',
@@ -5900,6 +5901,8 @@ function App() {
                     </Box>
                   </>
                 )}
+                {/* Espacio adicional al final para que el contenido no quede oculto */}
+                <Box sx={{ height: { xs: 100, sm: 100 } }} />
               </Box>
             )}
           </Box>
