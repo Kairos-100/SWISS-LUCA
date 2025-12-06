@@ -5353,23 +5353,6 @@ function App() {
                 
                 <IconButton 
                   color="inherit" 
-                  onClick={() => setShowAdminLoginModal(true)}
-                  size="small"
-                  sx={{ 
-                    minWidth: { xs: 44, sm: 40 },
-                    minHeight: { xs: 44, sm: 40 },
-                    bgcolor: isAdmin ? 'rgba(255,255,255,0.2)' : 'transparent',
-                    display: { xs: 'flex', sm: 'flex' },
-                    visibility: { xs: 'visible', sm: 'visible' },
-                    zIndex: 1000
-                  }}
-                  title={isAdmin ? 'Admin' : 'Accès Admin'}
-                >
-                  <Person sx={{ fontSize: { xs: 20, sm: 18 } }} />
-                </IconButton>
-                
-                <IconButton 
-                  color="inherit" 
                   onClick={() => window.location.href = '/partner/login'}
                   size="small"
                   sx={{ 
@@ -5389,6 +5372,23 @@ function App() {
                   title={isPartner ? 'Partenaire' : 'Accès Partenaire'}
                 >
                   <Store sx={{ fontSize: { xs: 20, sm: 18 }, color: '#FFD700 !important' }} />
+                </IconButton>
+                
+                <IconButton 
+                  color="inherit" 
+                  onClick={() => setShowAdminLoginModal(true)}
+                  size="small"
+                  sx={{ 
+                    minWidth: { xs: 44, sm: 40 },
+                    minHeight: { xs: 44, sm: 40 },
+                    bgcolor: isAdmin ? 'rgba(255,255,255,0.2)' : 'transparent',
+                    display: { xs: 'flex', sm: 'flex' },
+                    visibility: { xs: 'visible', sm: 'visible' },
+                    zIndex: 1000
+                  }}
+                  title={isAdmin ? 'Admin' : 'Accès Admin'}
+                >
+                  <Person sx={{ fontSize: { xs: 20, sm: 18 } }} />
                 </IconButton>
                 
                 <IconButton 
