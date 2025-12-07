@@ -76,7 +76,7 @@ jobs:
             --cpu-throttling \
             --execution-environment gen2 \
             --startup-cpu-boost \
-            --set-env-vars PORT=8080,HOST=0.0.0.0
+            --set-env-vars PORT=8080,HOST=0.0.0.0,NODE_ENV=production
 
       - name: Get service URL
         run: |
@@ -88,4 +88,4 @@ jobs:
         run: |
           echo "Testing deployment..."
           sleep 30  # Wait for service to be ready
-          curl -f "$SERVICE_URL" || echo "Service might still be starting up..
+          curl -f "$SERVICE_URL/health" || echo "Service might still be starting up..."

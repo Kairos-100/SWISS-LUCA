@@ -235,7 +235,15 @@ server.on('error', (error) => {
   console.error(`❌ Server error:`, error);
   console.error(`❌ Error code: ${error.code}`);
   console.error(`❌ Error message: ${error.message}`);
+  console.error(`❌ Stack:`, error.stack);
   process.exit(1);
+});
+
+// Verify server is listening - CRITICAL for Cloud Run
+server.on('listening', () => {
+  const address = server.address();
+  console.log(`✅ Server is now listening on ${address.address}:${address.port}`);
+  console.log(`✅ Server ready to accept connections`);
 });
 
 // Handle graceful shutdown
@@ -270,5 +278,11 @@ process.on('unhandledRejection', (reason, promise) => {
   console.error('❌ Unhandled rejection:', reason);
   // Don't exit - just log
 });
+
+// CRITICAL: Verify server exists before export
+if (!server) {
+  console.error('❌ CRITICAL: Server was not initialized!');
+  process.exit(1);
+}
 
 module.exports = app;
