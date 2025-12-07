@@ -27,8 +27,9 @@ ENV PORT=8080
 ENV HOST=0.0.0.0
 
 # Health check to ensure server is ready (increased timeout for Cloud Run)
-HEALTHCHECK --interval=10s --timeout=5s --start-period=60s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:${PORT:-8080}/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})" || exit 1
+# Note: Cloud Run has its own health checks, but this helps during build
+HEALTHCHECK --interval=30s --timeout=10s --start-period=90s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:8080/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)}).on('error', () => process.exit(1))"
 
 # Start the server using index.js (which requires server.js)
 # Use exec form to ensure proper signal handling
