@@ -1,11 +1,8 @@
 # Use the official Node.js runtime as base image
 FROM node:20-slim
 
-# Set working directory (Cloud Run uses /workspace, but we'll use /app and ensure compatibility)
-WORKDIR /app
-
-# Also create /workspace and symlink for Cloud Run compatibility
-RUN mkdir -p /workspace
+# Set working directory to /workspace (Cloud Run standard)
+WORKDIR /workspace
 
 # Copy package files first (for better caching)
 COPY package*.json ./
@@ -19,12 +16,9 @@ RUN npm cache clean --force
 COPY server.js ./
 COPY index.js ./
 
-# Also copy to /workspace for Cloud Run compatibility
-RUN cp server.js /workspace/ && cp index.js /workspace/ && cp package*.json /workspace/ 2>/dev/null || true
-
 # Verify files are in place
-RUN ls -la /app/ && test -f /app/server.js || (echo "ERROR: server.js not found!" && exit 1)
-RUN ls -la /workspace/ 2>/dev/null || echo "Workspace directory created"
+RUN ls -la /workspace/ && test -f /workspace/server.js || (echo "ERROR: server.js not found!" && exit 1)
+RUN test -f /workspace/index.js || (echo "ERROR: index.js not found!" && exit 1)
 
 # Expose port 8080 (Firebase App Hosting/Cloud Run standard)
 EXPOSE 8080
@@ -38,6 +32,6 @@ ENV HOST=0.0.0.0
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
   CMD node -e "require('http').get('http://localhost:8080/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
 
-# Start the server using npm start (more reliable)
-CMD ["npm", "start"]
+# Start the server - use node directly with index.js
+CMD ["node", "index.js"]
 
