@@ -8,25 +8,25 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install production dependencies only
-RUN npm ci --only=production && npm cache clean --force
+# Use npm install as fallback if npm ci fails (more robust for Cloud Run)
+RUN npm ci --only=production || npm install --only=production --no-audit --no-fund
+RUN npm cache clean --force
 
 # Copy application code
 COPY server.js ./
 
-# Create a non-root user to run the app
-RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
-USER appuser
-
-# Expose port 8080 (Firebase App Hosting standard)
+# Expose port 8080 (Firebase App Hosting/Cloud Run standard)
 EXPOSE 8080
 
 # Set environment variables
 ENV NODE_ENV=production
 ENV PORT=8080
+ENV HOST=0.0.0.0
 
-# Health check (Cloud Run will use the /health endpoint)
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:8080/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)}).on('error', () => process.exit(1))"
+# Health check to ensure server is ready
+HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:8080/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
 
 # Start the server
 CMD ["node", "server.js"]
+

@@ -25,31 +25,53 @@ try {
 const app = express();
 // Firebase App Hosting/Cloud Run usa PORT=8080 por defecto
 const PORT = process.env.PORT || 8080;
+// Firebase App Hosting/Cloud Run requiere escuchar en 0.0.0.0
+const HOST = process.env.HOST || '0.0.0.0';
 
 // Middleware
-app.use(helmet());
-app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-  credentials: true
+app.use(helmet({
+  // Configurar helmet para Cloud Run
+  contentSecurityPolicy: false,
+  crossOriginEmbedderPolicy: false
 }));
-app.use(express.json());
 
-// Ruta raíz para health check
+// CORS: Permitir todas las solicitudes en Cloud Run (se puede restringir después)
+const corsOptions = {
+  origin: process.env.FRONTEND_URL || '*',
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+};
+app.use(cors(corsOptions));
+app.use(express.json({ limit: '10mb' }));
+
+// Ruta raíz para health check (responde inmediatamente)
 app.get('/', (req, res) => {
-  res.json({ 
+  res.status(200).json({ 
     status: 'OK', 
     service: 'FLASH Backend API',
     timestamp: new Date().toISOString(),
-    stripe: stripe ? 'configured' : 'not configured'
+    stripe: stripe ? 'configured' : 'not configured',
+    port: PORT,
+    host: HOST
   });
 });
 
-// Health check endpoint
+// Health check endpoint (para Cloud Run)
 app.get('/health', (req, res) => {
-  res.json({ 
+  res.status(200).json({ 
     status: 'OK', 
     timestamp: new Date().toISOString(),
-    stripe: stripe ? 'configured' : 'not configured'
+    stripe: stripe ? 'configured' : 'not configured',
+    uptime: process.uptime()
+  });
+});
+
+// Startup probe endpoint (responde inmediatamente sin verificar servicios externos)
+app.get('/ready', (req, res) => {
+  res.status(200).json({ 
+    status: 'ready',
+    timestamp: new Date().toISOString()
   });
 });
 
@@ -172,39 +194,68 @@ app.use((err, req, res, next) => {
 });
 
 // Iniciar servidor
-// Firebase App Hosting/Cloud Run requiere escuchar en 0.0.0.0
-const HOST = process.env.HOST || '0.0.0.0';
+// Asegurar que el servidor escuche en el puerto correcto
+console.log(`🔧 Iniciando servidor en ${HOST}:${PORT}...`);
+console.log(`📦 Node version: ${process.version}`);
+console.log(`🔧 NODE_ENV: ${process.env.NODE_ENV || 'development'}`);
+console.log(`🌍 CORS habilitado para: ${process.env.FRONTEND_URL || 'http://localhost:3000'}`);
+console.log(`💳 Stripe: ${stripe ? 'configurado' : 'no configurado'}`);
 
 try {
   const server = app.listen(PORT, HOST, () => {
-    console.log(`🚀 Servidor backend ejecutándose en ${HOST}:${PORT}`);
-    console.log(`💳 Stripe: ${stripe ? 'configurado' : 'no configurado'}`);
-    console.log(`🌍 CORS habilitado para: ${process.env.FRONTEND_URL || 'http://localhost:3000'}`);
-    console.log(`📦 Node version: ${process.version}`);
-    console.log(`🔧 NODE_ENV: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`✅ Servidor backend ejecutándose correctamente en ${HOST}:${PORT}`);
+    console.log(`✅ Health check disponible en http://${HOST}:${PORT}/health`);
+    console.log(`✅ API disponible en http://${HOST}:${PORT}/api`);
+    
+    // Verificar que el servidor está realmente escuchando
+    const address = server.address();
+    if (address) {
+      console.log(`✅ Servidor escuchando en ${address.address}:${address.port}`);
+    }
   });
 
   // Manejar errores del servidor
   server.on('error', (error) => {
+    console.error(`❌ Error del servidor:`, error);
     if (error.code === 'EADDRINUSE') {
       console.error(`❌ Error: El puerto ${PORT} ya está en uso`);
-    } else {
-      console.error(`❌ Error del servidor:`, error);
+    } else if (error.code === 'EACCES') {
+      console.error(`❌ Error: No se tienen permisos para usar el puerto ${PORT}`);
     }
     process.exit(1);
   });
 
-  // Manejar cierre graceful
+  // Manejar cierre graceful para Cloud Run
   process.on('SIGTERM', () => {
-    console.log('⚠️ SIGTERM recibido, cerrando servidor...');
+    console.log('⚠️ SIGTERM recibido, cerrando servidor gracefully...');
     server.close(() => {
-      console.log('✅ Servidor cerrado');
+      console.log('✅ Servidor cerrado correctamente');
       process.exit(0);
     });
+    
+    // Timeout de seguridad
+    setTimeout(() => {
+      console.error('⚠️ Forzando cierre del servidor');
+      process.exit(1);
+    }, 10000);
+  });
+
+  // Manejar errores no capturados
+  process.on('uncaughtException', (error) => {
+    console.error('❌ Error no capturado:', error);
+    server.close(() => {
+      process.exit(1);
+    });
+  });
+
+  process.on('unhandledRejection', (reason, promise) => {
+    console.error('❌ Promesa rechazada no manejada:', reason);
+    // No salir del proceso, solo registrar el error
   });
 
 } catch (error) {
   console.error('❌ Error crítico al iniciar el servidor:', error);
+  console.error('Stack trace:', error.stack);
   process.exit(1);
 }
 

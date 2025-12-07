@@ -1,7 +1,6 @@
 # Firebase App Hosting Configuration
 # This file configures the backend deployment for Firebase App Hosting
 
-# Backend configuration for backoffice-backendvla
 backends:
   - id: backoffice-backendvla
     # Source directory where the backend code is located
@@ -16,3 +15,5 @@ backends:
         value: "8080"
       - variable: NODE_ENV
         value: production
+      - variable: HOST
+        value: "0.0.0.0"
