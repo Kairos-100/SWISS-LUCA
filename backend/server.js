@@ -217,48 +217,52 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Algo salió mal!' });
 });
 
-// Iniciar servidor
-// Asegurar que el servidor escuche en el puerto correcto
+// Iniciar servidor - CRITICAL: Must start immediately for Cloud Run
 console.log(`🔧 Iniciando servidor en ${HOST}:${PORT}...`);
 console.log(`📦 Node version: ${process.version}`);
 console.log(`🔧 NODE_ENV: ${process.env.NODE_ENV || 'development'}`);
 console.log(`🌍 CORS habilitado para: ${process.env.FRONTEND_URL || 'http://localhost:3000'}`);
 console.log(`💳 Stripe: ${stripe ? 'configurado' : 'no configurado'}`);
 console.log(`🔌 PORT environment variable: ${process.env.PORT || 'not set (using default 8080)'}`);
+console.log(`🔌 Using PORT: ${PORT}, HOST: ${HOST}`);
 
-// Start server immediately - this is critical for Cloud Run
-const server = app.listen(PORT, HOST, () => {
-  console.log(`✅ Servidor backend ejecutándose correctamente en ${HOST}:${PORT}`);
-  console.log(`✅ Health check disponible en http://${HOST}:${PORT}/health`);
-  console.log(`✅ API disponible en http://${HOST}:${PORT}/api`);
-  
-  // Verificar que el servidor está realmente escuchando
-  const address = server.address();
-  if (address) {
-    console.log(`✅ Servidor escuchando en ${address.address}:${address.port}`);
-    console.log(`✅ Server is ready and listening on port ${address.port}`);
-  } else {
-    console.error('❌ ERROR: Server address is null - server may not be listening!');
-  }
-});
-
-// Handle server errors BEFORE the try-catch to ensure we catch all errors
-server.on('error', (error) => {
-  console.error(`❌ Error del servidor:`, error);
-  console.error(`❌ Error code: ${error.code}`);
-  console.error(`❌ Error message: ${error.message}`);
-  if (error.code === 'EADDRINUSE') {
-    console.error(`❌ Error: El puerto ${PORT} ya está en uso`);
-  } else if (error.code === 'EACCES') {
-    console.error(`❌ Error: No se tienen permisos para usar el puerto ${PORT}`);
-  }
-  process.exit(1);
-});
-
+// Start server - wrap in try-catch to catch any startup errors
+let server;
 try {
+  server = app.listen(PORT, HOST, () => {
+    const address = server.address();
+    console.log(`✅ Servidor backend ejecutándose correctamente en ${HOST}:${PORT}`);
+    console.log(`✅ Health check disponible en http://${HOST}:${PORT}/health`);
+    console.log(`✅ API disponible en http://${HOST}:${PORT}/api`);
+    
+    if (address) {
+      console.log(`✅ Servidor escuchando en ${address.address}:${address.port}`);
+      console.log(`✅ Server is ready and listening on port ${address.port}`);
+    } else {
+      console.error('❌ ERROR: Server address is null - server may not be listening!');
+      process.exit(1);
+    }
+  });
+
+  // Handle server errors immediately
+  server.on('error', (error) => {
+    console.error(`❌ Error del servidor:`, error);
+    console.error(`❌ Error code: ${error.code}`);
+    console.error(`❌ Error message: ${error.message}`);
+    if (error.code === 'EADDRINUSE') {
+      console.error(`❌ Error: El puerto ${PORT} ya está en uso`);
+    } else if (error.code === 'EACCES') {
+      console.error(`❌ Error: No se tienen permisos para usar el puerto ${PORT}`);
+    }
+    process.exit(1);
+  });
 
   // Verify server is actually listening after a short delay
   setTimeout(() => {
+    if (!server) {
+      console.error('❌ CRITICAL: Server object is null!');
+      process.exit(1);
+    }
     const address = server.address();
     if (address) {
       console.log(`✅ VERIFIED: Server is listening on ${address.address}:${address.port}`);
@@ -266,11 +270,18 @@ try {
       console.error('❌ CRITICAL: Server is not listening! Address is null.');
       process.exit(1);
     }
-  }, 1000);
+  }, 2000);
 
-  // Manejar cierre graceful para Cloud Run
-  process.on('SIGTERM', () => {
-    console.log('⚠️ SIGTERM recibido, cerrando servidor gracefully...');
+} catch (error) {
+  console.error('❌ Error crítico al iniciar el servidor:', error);
+  console.error('Stack trace:', error.stack);
+  process.exit(1);
+}
+
+// Manejar cierre graceful para Cloud Run
+process.on('SIGTERM', () => {
+  console.log('⚠️ SIGTERM recibido, cerrando servidor gracefully...');
+  if (server) {
     server.close(() => {
       console.log('✅ Servidor cerrado correctamente');
       process.exit(0);
@@ -281,25 +292,26 @@ try {
       console.error('⚠️ Forzando cierre del servidor');
       process.exit(1);
     }, 10000);
-  });
+  } else {
+    process.exit(0);
+  }
+});
 
-  // Manejar errores no capturados
-  process.on('uncaughtException', (error) => {
-    console.error('❌ Error no capturado:', error);
+// Manejar errores no capturados
+process.on('uncaughtException', (error) => {
+  console.error('❌ Error no capturado:', error);
+  if (server) {
     server.close(() => {
       process.exit(1);
     });
-  });
+  } else {
+    process.exit(1);
+  }
+});
 
-  process.on('unhandledRejection', (reason, promise) => {
-    console.error('❌ Promesa rechazada no manejada:', reason);
-    // No salir del proceso, solo registrar el error
-  });
-
-} catch (error) {
-  console.error('❌ Error crítico al iniciar el servidor:', error);
-  console.error('Stack trace:', error.stack);
-  process.exit(1);
-}
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('❌ Promesa rechazada no manejada:', reason);
+  // No salir del proceso, solo registrar el error
+});
 
 module.exports = app;
