@@ -1,11 +1,30 @@
+// Cargar variables de entorno primero (sin error si no existe)
+try {
+  require('dotenv').config();
+} catch (error) {
+  console.warn('⚠️ No se pudo cargar dotenv, usando variables de entorno del sistema');
+}
+
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-require('dotenv').config();
+
+// Inicializar Stripe solo si la clave está disponible
+let stripe = null;
+try {
+  if (process.env.STRIPE_SECRET_KEY) {
+    stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+    console.log('✅ Stripe inicializado correctamente');
+  } else {
+    console.warn('⚠️ STRIPE_SECRET_KEY no está configurada. Las funciones de pago no estarán disponibles.');
+  }
+} catch (error) {
+  console.error('❌ Error al inicializar Stripe:', error.message);
+}
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+// Firebase App Hosting/Cloud Run usa PORT=8080 por defecto
+const PORT = process.env.PORT || 8080;
 
 // Middleware
 app.use(helmet());
@@ -15,14 +34,35 @@ app.use(cors({
 }));
 app.use(express.json());
 
-// Health check
+// Ruta raíz para health check
+app.get('/', (req, res) => {
+  res.json({ 
+    status: 'OK', 
+    service: 'FLASH Backend API',
+    timestamp: new Date().toISOString(),
+    stripe: stripe ? 'configured' : 'not configured'
+  });
+});
+
+// Health check endpoint
 app.get('/health', (req, res) => {
-  res.json({ status: 'OK', timestamp: new Date().toISOString() });
+  res.json({ 
+    status: 'OK', 
+    timestamp: new Date().toISOString(),
+    stripe: stripe ? 'configured' : 'not configured'
+  });
 });
 
 // Crear Payment Intent con TWINT
 app.post('/api/create-payment-intent', async (req, res) => {
   try {
+    if (!stripe) {
+      return res.status(503).json({ 
+        error: 'Servicio de pagos no disponible',
+        details: 'STRIPE_SECRET_KEY no está configurada'
+      });
+    }
+
     const { amount, currency, description, metadata } = req.body;
 
     // Validar datos
@@ -61,6 +101,13 @@ app.post('/api/create-payment-intent', async (req, res) => {
 // Verificar estado del pago
 app.get('/api/payment-status/:paymentIntentId', async (req, res) => {
   try {
+    if (!stripe) {
+      return res.status(503).json({ 
+        error: 'Servicio de pagos no disponible',
+        details: 'STRIPE_SECRET_KEY no está configurada'
+      });
+    }
+
     const { paymentIntentId } = req.params;
 
     const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
@@ -83,6 +130,13 @@ app.get('/api/payment-status/:paymentIntentId', async (req, res) => {
 
 // Webhook para confirmar pagos (opcional)
 app.post('/api/webhook', express.raw({ type: 'application/json' }), (req, res) => {
+  if (!stripe) {
+    return res.status(503).json({ 
+      error: 'Servicio de pagos no disponible',
+      details: 'STRIPE_SECRET_KEY no está configurada'
+    });
+  }
+
   const sig = req.headers['stripe-signature'];
   let event;
 
@@ -120,10 +174,38 @@ app.use((err, req, res, next) => {
 // Iniciar servidor
 // Firebase App Hosting/Cloud Run requiere escuchar en 0.0.0.0
 const HOST = process.env.HOST || '0.0.0.0';
-app.listen(PORT, HOST, () => {
-  console.log(`🚀 Servidor backend ejecutándose en ${HOST}:${PORT}`);
-  console.log(`💳 Stripe configurado para TWINT`);
-  console.log(`🌍 CORS habilitado para: ${process.env.FRONTEND_URL || 'http://localhost:3000'}`);
-});
+
+try {
+  const server = app.listen(PORT, HOST, () => {
+    console.log(`🚀 Servidor backend ejecutándose en ${HOST}:${PORT}`);
+    console.log(`💳 Stripe: ${stripe ? 'configurado' : 'no configurado'}`);
+    console.log(`🌍 CORS habilitado para: ${process.env.FRONTEND_URL || 'http://localhost:3000'}`);
+    console.log(`📦 Node version: ${process.version}`);
+    console.log(`🔧 NODE_ENV: ${process.env.NODE_ENV || 'development'}`);
+  });
+
+  // Manejar errores del servidor
+  server.on('error', (error) => {
+    if (error.code === 'EADDRINUSE') {
+      console.error(`❌ Error: El puerto ${PORT} ya está en uso`);
+    } else {
+      console.error(`❌ Error del servidor:`, error);
+    }
+    process.exit(1);
+  });
+
+  // Manejar cierre graceful
+  process.on('SIGTERM', () => {
+    console.log('⚠️ SIGTERM recibido, cerrando servidor...');
+    server.close(() => {
+      console.log('✅ Servidor cerrado');
+      process.exit(0);
+    });
+  });
+
+} catch (error) {
+  console.error('❌ Error crítico al iniciar el servidor:', error);
+  process.exit(1);
+}
 
 module.exports = app;
