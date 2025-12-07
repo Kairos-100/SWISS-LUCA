@@ -1,0 +1,18 @@
+# Firebase App Hosting Configuration
+# This file configures the backend deployment for Firebase App Hosting
+
+# Backend configuration for backoffice-backendvla
+backends:
+  - id: backoffice-backendvla
+    # Source directory where the backend code is located
+    sourceDirectory: backend
+    # Dockerfile path relative to the source directory
+    dockerfile: Dockerfile
+    # Runtime environment
+    runtime: nodejs20
+    # Environment variables
+    env:
+      - variable: PORT
+        value: "8080"
+      - variable: NODE_ENV
+        value: production

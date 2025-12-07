@@ -41,6 +41,9 @@ firebase-debug.log
 firestore-debug.log
 ui-debug.log
 
+# Firebase App Hosting config should be committed
+!apphosting.yaml
+
 # Android
 android/app/build/
 android/build/
