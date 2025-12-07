@@ -1,6 +1,14 @@
+// Logging inmediato para Cloud Run
+console.log('🚀 Iniciando aplicación backend...');
+console.log('📅 Timestamp:', new Date().toISOString());
+console.log('📦 Node version:', process.version);
+console.log('🔧 Working directory:', process.cwd());
+console.log('📁 Files in directory:', require('fs').readdirSync(process.cwd()).join(', '));
+
 // Cargar variables de entorno primero (sin error si no existe)
 try {
   require('dotenv').config();
+  console.log('✅ dotenv cargado correctamente');
 } catch (error) {
   console.warn('⚠️ No se pudo cargar dotenv, usando variables de entorno del sistema');
 }
