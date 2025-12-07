@@ -224,30 +224,49 @@ console.log(`📦 Node version: ${process.version}`);
 console.log(`🔧 NODE_ENV: ${process.env.NODE_ENV || 'development'}`);
 console.log(`🌍 CORS habilitado para: ${process.env.FRONTEND_URL || 'http://localhost:3000'}`);
 console.log(`💳 Stripe: ${stripe ? 'configurado' : 'no configurado'}`);
+console.log(`🔌 PORT environment variable: ${process.env.PORT || 'not set (using default 8080)'}`);
+
+// Start server immediately - this is critical for Cloud Run
+const server = app.listen(PORT, HOST, () => {
+  console.log(`✅ Servidor backend ejecutándose correctamente en ${HOST}:${PORT}`);
+  console.log(`✅ Health check disponible en http://${HOST}:${PORT}/health`);
+  console.log(`✅ API disponible en http://${HOST}:${PORT}/api`);
+  
+  // Verificar que el servidor está realmente escuchando
+  const address = server.address();
+  if (address) {
+    console.log(`✅ Servidor escuchando en ${address.address}:${address.port}`);
+    console.log(`✅ Server is ready and listening on port ${address.port}`);
+  } else {
+    console.error('❌ ERROR: Server address is null - server may not be listening!');
+  }
+});
+
+// Handle server errors BEFORE the try-catch to ensure we catch all errors
+server.on('error', (error) => {
+  console.error(`❌ Error del servidor:`, error);
+  console.error(`❌ Error code: ${error.code}`);
+  console.error(`❌ Error message: ${error.message}`);
+  if (error.code === 'EADDRINUSE') {
+    console.error(`❌ Error: El puerto ${PORT} ya está en uso`);
+  } else if (error.code === 'EACCES') {
+    console.error(`❌ Error: No se tienen permisos para usar el puerto ${PORT}`);
+  }
+  process.exit(1);
+});
 
 try {
-  const server = app.listen(PORT, HOST, () => {
-    console.log(`✅ Servidor backend ejecutándose correctamente en ${HOST}:${PORT}`);
-    console.log(`✅ Health check disponible en http://${HOST}:${PORT}/health`);
-    console.log(`✅ API disponible en http://${HOST}:${PORT}/api`);
-    
-    // Verificar que el servidor está realmente escuchando
+
+  // Verify server is actually listening after a short delay
+  setTimeout(() => {
     const address = server.address();
     if (address) {
-      console.log(`✅ Servidor escuchando en ${address.address}:${address.port}`);
+      console.log(`✅ VERIFIED: Server is listening on ${address.address}:${address.port}`);
+    } else {
+      console.error('❌ CRITICAL: Server is not listening! Address is null.');
+      process.exit(1);
     }
-  });
-
-  // Manejar errores del servidor
-  server.on('error', (error) => {
-    console.error(`❌ Error del servidor:`, error);
-    if (error.code === 'EADDRINUSE') {
-      console.error(`❌ Error: El puerto ${PORT} ya está en uso`);
-    } else if (error.code === 'EACCES') {
-      console.error(`❌ Error: No se tienen permisos para usar el puerto ${PORT}`);
-    }
-    process.exit(1);
-  });
+  }, 1000);
 
   // Manejar cierre graceful para Cloud Run
   process.on('SIGTERM', () => {
