@@ -48,9 +48,17 @@ try {
 
 const app = express();
 // Firebase App Hosting/Cloud Run usa PORT=8080 por defecto
-const PORT = process.env.PORT || 8080;
+// CRITICAL FIX: Cloud Run provides PORT as string, must convert to number
+const PORT = parseInt(process.env.PORT || '8080', 10);
 // Firebase App Hosting/Cloud Run requiere escuchar en 0.0.0.0
 const HOST = process.env.HOST || '0.0.0.0';
+
+// Validate PORT is a valid number
+if (isNaN(PORT) || PORT < 1 || PORT > 65535) {
+  console.error(`❌ ERROR: Invalid PORT value: ${process.env.PORT}`);
+  console.error(`❌ PORT must be a number between 1 and 65535`);
+  process.exit(1);
+}
 
 // Middleware
 app.use(helmet({
