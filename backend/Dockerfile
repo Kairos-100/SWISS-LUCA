@@ -36,8 +36,8 @@ ENV HOST=0.0.0.0
 HEALTHCHECK --interval=30s --timeout=10s --start-period=90s --retries=3 \
   CMD node -e "require('http').get('http://localhost:8080/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)}).on('error', () => process.exit(1))"
 
-# Start the server using index.js (which requires server.js)
+# Start the server directly using server.js
+# server.js has all the startup logic and will start listening on port 8080
 # Use exec form to ensure proper signal handling
-# Use absolute path to be explicit
-CMD ["node", "/workspace/index.js"]
+CMD ["node", "/workspace/server.js"]
 
