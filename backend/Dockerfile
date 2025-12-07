@@ -1,46 +1,18 @@
 # Use the official Node.js runtime as base image
 FROM node:20-slim
 
-# Create both /app and /workspace directories for compatibility
-WORKDIR /app
-RUN mkdir -p /workspace
+# Set working directory to /workspace (Firebase App Hosting mounts code here)
+WORKDIR /workspace
 
-# Copy package files first (for better caching)
+# Copy package files for dependency installation
 COPY package*.json ./
-COPY package*.json /workspace/
 
-# Install production dependencies in both locations
+# Install production dependencies
 RUN npm ci --only=production || npm install --only=production --no-audit --no-fund
 RUN npm cache clean --force
 
-# Copy node_modules to workspace for compatibility
-RUN cp -r node_modules /workspace/ 2>/dev/null || true
-
-# Copy application code to both locations
-COPY server.js ./
-COPY server.js /workspace/
-
-# Create index.js entry point for Cloud Run (it looks for /workspace/index.js)
-RUN echo "require('./server.js');" > /workspace/index.js
-RUN echo "require('./server.js');" > index.js
-
-# Create a startup script that works from any directory
-RUN echo '#!/bin/sh\n\
-echo "🔍 Checking for server files..."\n\
-if [ -f /workspace/server.js ]; then\n\
-  echo "✅ Found server.js in /workspace, starting..."\n\
-  cd /workspace && node server.js\n\
-elif [ -f /app/server.js ]; then\n\
-  echo "✅ Found server.js in /app, starting..."\n\
-  cd /app && node server.js\n\
-else\n\
-  echo "❌ ERROR: server.js not found in /workspace or /app"\n\
-  echo "Workspace contents:"\n\
-  ls -la /workspace/ 2>/dev/null || echo "Workspace empty"\n\
-  echo "App contents:"\n\
-  ls -la /app/ 2>/dev/null || echo "App empty"\n\
-  exit 1\n\
-fi' > /start.sh && chmod +x /start.sh
+# Note: server.js and index.js will be mounted by Firebase App Hosting
+# We don't copy them here because Firebase App Hosting mounts the source directory
 
 # Expose port 8080 (Firebase App Hosting/Cloud Run standard)
 EXPOSE 8080
@@ -54,6 +26,7 @@ ENV HOST=0.0.0.0
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
   CMD node -e "require('http').get('http://localhost:8080/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
 
-# Start the server using the startup script
-CMD ["/start.sh"]
+# Start the server - Firebase App Hosting will mount index.js in /workspace
+# If index.js doesn't exist, fall back to server.js
+CMD sh -c "if [ -f /workspace/index.js ]; then node /workspace/index.js; elif [ -f /workspace/server.js ]; then node /workspace/server.js; else echo 'ERROR: No entry point found' && ls -la /workspace/ && exit 1; fi"
 
