@@ -14,6 +14,7 @@ RUN npm cache clean --force
 
 # Copy application code
 COPY server.js ./
+COPY index.js ./
 
 # Verify files are in place
 RUN ls -la /app/ && test -f /app/server.js || (echo "ERROR: server.js not found!" && exit 1)
