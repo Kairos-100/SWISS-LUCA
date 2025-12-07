@@ -11,12 +11,17 @@ COPY package*.json ./
 RUN npm ci --only=production || npm install --only=production --no-audit --no-fund
 RUN npm cache clean --force
 
-# Copy application files
-COPY server.js ./
-COPY index.js ./
+# Copy application files explicitly
+COPY server.js /workspace/server.js
+COPY index.js /workspace/index.js
 
-# Verify files exist
-RUN test -f /workspace/server.js && test -f /workspace/index.js && echo "✅ Files verified" || (echo "❌ Missing files" && exit 1)
+# Verify files exist and list directory contents
+RUN ls -la /workspace/ && \
+    echo "Checking for server.js..." && \
+    test -f /workspace/server.js && echo "✅ server.js found" || (echo "❌ server.js NOT FOUND" && exit 1) && \
+    echo "Checking for index.js..." && \
+    test -f /workspace/index.js && echo "✅ index.js found" || (echo "❌ index.js NOT FOUND" && exit 1) && \
+    echo "✅ All files verified"
 
 # Expose port 8080 (Cloud Run standard)
 EXPOSE 8080
@@ -33,5 +38,6 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=90s --retries=3 \
 
 # Start the server using index.js (which requires server.js)
 # Use exec form to ensure proper signal handling
-CMD ["node", "index.js"]
+# Use absolute path to be explicit
+CMD ["node", "/workspace/index.js"]
 
