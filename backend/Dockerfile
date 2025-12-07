@@ -1,8 +1,11 @@
 # Use the official Node.js runtime as base image
 FROM node:20-slim
 
-# Set working directory
+# Set working directory (Cloud Run uses /workspace, but we'll use /app and ensure compatibility)
 WORKDIR /app
+
+# Also create /workspace and symlink for Cloud Run compatibility
+RUN mkdir -p /workspace
 
 # Copy package files first (for better caching)
 COPY package*.json ./
@@ -16,8 +19,12 @@ RUN npm cache clean --force
 COPY server.js ./
 COPY index.js ./
 
+# Also copy to /workspace for Cloud Run compatibility
+RUN cp server.js /workspace/ && cp index.js /workspace/ && cp package*.json /workspace/ 2>/dev/null || true
+
 # Verify files are in place
 RUN ls -la /app/ && test -f /app/server.js || (echo "ERROR: server.js not found!" && exit 1)
+RUN ls -la /workspace/ 2>/dev/null || echo "Workspace directory created"
 
 # Expose port 8080 (Firebase App Hosting/Cloud Run standard)
 EXPOSE 8080
