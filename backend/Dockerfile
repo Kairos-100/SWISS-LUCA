@@ -1,22 +1,32 @@
 # Use the official Node.js runtime as base image
 FROM node:20-slim
 
-# Set working directory
-WORKDIR /app
+# Create /workspace directory (Firebase App Hosting uses this)
+WORKDIR /workspace
 
-# Copy package files for dependency installation
+# Also create /app for our files
+RUN mkdir -p /app
+
+# Copy package files to both locations
 COPY package*.json ./
+COPY package*.json /app/
 
-# Install production dependencies
+# Install production dependencies in /workspace
 RUN npm ci --only=production || npm install --only=production --no-audit --no-fund
 RUN npm cache clean --force
 
-# Copy application files
+# Copy node_modules to /app
+RUN cp -r node_modules /app/ 2>/dev/null || true
+
+# Copy application files to both locations
 COPY server.js ./
 COPY index.js ./
+COPY server.js /app/
+COPY index.js /app/
 
-# Verify files exist
-RUN test -f /app/server.js && test -f /app/index.js && echo "✅ Files copied successfully" || (echo "❌ Missing files" && ls -la && exit 1)
+# Verify files exist in both locations
+RUN test -f /workspace/server.js && test -f /workspace/index.js && echo "✅ Files in /workspace" || (echo "❌ Missing files in /workspace" && exit 1)
+RUN test -f /app/server.js && test -f /app/index.js && echo "✅ Files in /app" || echo "⚠️ Files not in /app"
 
 # Expose port 8080 (Firebase App Hosting/Cloud Run standard)
 EXPOSE 8080
