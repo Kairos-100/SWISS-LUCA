@@ -24,8 +24,8 @@ jobs:
           echo "Current directory: $(pwd)"
           echo "Directory contents:"
           ls -la
-          echo "Backoffice directory contents:"
-          ls -la backoffice/
+          echo "Backend directory contents:"
+          ls -la backend/
 
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
@@ -45,7 +45,7 @@ jobs:
 
       - name: Build and Push Docker image
         run: |
-          cd backoffice
+          cd backend
           echo "Building Docker image..."
           DOCKER_TAG="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE }}:${{ github.sha }}"
           echo "Docker tag: $DOCKER_TAG"
@@ -71,7 +71,10 @@ jobs:
             --memory 512Mi \
             --cpu 1 \
             --max-instances 10 \
-            --min-instances 0
+            --min-instances 0 \
+            --timeout 300 \
+            --cpu-throttling \
+            --execution-environment gen2
 
       - name: Get service URL
         run: |
