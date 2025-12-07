@@ -20,15 +20,24 @@ RUN cp -r node_modules /workspace/ 2>/dev/null || true
 COPY server.js ./
 COPY server.js /workspace/
 
+# Create index.js entry point for Cloud Run (it looks for /workspace/index.js)
+RUN echo "require('./server.js');" > /workspace/index.js
+RUN echo "require('./server.js');" > index.js
+
 # Create a startup script that works from any directory
 RUN echo '#!/bin/sh\n\
+echo "🔍 Checking for server files..."\n\
 if [ -f /workspace/server.js ]; then\n\
+  echo "✅ Found server.js in /workspace, starting..."\n\
   cd /workspace && node server.js\n\
 elif [ -f /app/server.js ]; then\n\
+  echo "✅ Found server.js in /app, starting..."\n\
   cd /app && node server.js\n\
 else\n\
-  echo "ERROR: server.js not found in /workspace or /app"\n\
+  echo "❌ ERROR: server.js not found in /workspace or /app"\n\
+  echo "Workspace contents:"\n\
   ls -la /workspace/ 2>/dev/null || echo "Workspace empty"\n\
+  echo "App contents:"\n\
   ls -la /app/ 2>/dev/null || echo "App empty"\n\
   exit 1\n\
 fi' > /start.sh && chmod +x /start.sh
