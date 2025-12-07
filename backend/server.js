@@ -3,7 +3,23 @@ console.log('🚀 Iniciando aplicación backend...');
 console.log('📅 Timestamp:', new Date().toISOString());
 console.log('📦 Node version:', process.version);
 console.log('🔧 Working directory:', process.cwd());
-console.log('📁 Files in directory:', require('fs').readdirSync(process.cwd()).join(', '));
+
+// Listar archivos para debugging
+try {
+  const fs = require('fs');
+  const files = fs.readdirSync(process.cwd());
+  console.log('📁 Files in directory:', files.join(', '));
+  
+  // Verificar que server.js existe
+  const serverPath = require('path').join(process.cwd(), 'server.js');
+  if (fs.existsSync(serverPath)) {
+    console.log('✅ server.js encontrado en:', serverPath);
+  } else {
+    console.error('❌ server.js NO encontrado en:', serverPath);
+  }
+} catch (error) {
+  console.warn('⚠️ Error al listar archivos:', error.message);
+}
 
 // Cargar variables de entorno primero (sin error si no existe)
 try {
