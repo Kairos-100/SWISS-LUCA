@@ -74,7 +74,9 @@ jobs:
             --min-instances 0 \
             --timeout 300 \
             --cpu-throttling \
-            --execution-environment gen2
+            --execution-environment gen2 \
+            --startup-cpu-boost \
+            --set-env-vars PORT=8080,HOST=0.0.0.0
 
       - name: Get service URL
         run: |

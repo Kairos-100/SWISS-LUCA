@@ -47,37 +47,37 @@ try {
 }
 
 const app = express();
-// Firebase App Hosting/Cloud Run usa PORT=8080 por defecto
-// CRITICAL FIX: Cloud Run provides PORT as string, must convert to number
+
+// CRITICAL: Cloud Run provides PORT as string, must convert to number
 const PORT = parseInt(process.env.PORT || '8080', 10);
-// Firebase App Hosting/Cloud Run requiere escuchar en 0.0.0.0
 const HOST = process.env.HOST || '0.0.0.0';
 
-// Validate PORT is a valid number
+// Validate PORT
 if (isNaN(PORT) || PORT < 1 || PORT > 65535) {
   console.error(`❌ ERROR: Invalid PORT value: ${process.env.PORT}`);
   console.error(`❌ PORT must be a number between 1 and 65535`);
   process.exit(1);
 }
 
+console.log(`🔌 PORT: ${PORT} (type: ${typeof PORT})`);
+console.log(`🔌 HOST: ${HOST}`);
+
 // Middleware
 app.use(helmet({
-  // Configurar helmet para Cloud Run
   contentSecurityPolicy: false,
   crossOriginEmbedderPolicy: false
 }));
 
-// CORS: Permitir todas las solicitudes en Cloud Run (se puede restringir después)
-const corsOptions = {
+app.use(cors({
   origin: process.env.FRONTEND_URL || '*',
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
-};
-app.use(cors(corsOptions));
+}));
+
 app.use(express.json({ limit: '10mb' }));
 
-// Ruta raíz para health check (responde inmediatamente)
+// Health check endpoints - MUST respond immediately
 app.get('/', (req, res) => {
   res.status(200).json({ 
     status: 'OK', 
@@ -89,7 +89,6 @@ app.get('/', (req, res) => {
   });
 });
 
-// Health check endpoint (para Cloud Run)
 app.get('/health', (req, res) => {
   res.status(200).json({ 
     status: 'OK', 
@@ -99,7 +98,6 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Startup probe endpoint (responde inmediatamente sin verificar servicios externos)
 app.get('/ready', (req, res) => {
   res.status(200).json({ 
     status: 'ready',
@@ -107,7 +105,7 @@ app.get('/ready', (req, res) => {
   });
 });
 
-// Crear Payment Intent con TWINT
+// API Routes
 app.post('/api/create-payment-intent', async (req, res) => {
   try {
     if (!stripe) {
@@ -119,20 +117,16 @@ app.post('/api/create-payment-intent', async (req, res) => {
 
     const { amount, currency, description, metadata } = req.body;
 
-    // Validar datos
     if (!amount || !currency || !description) {
       return res.status(400).json({ error: 'Faltan datos requeridos' });
     }
 
-    // Crear Payment Intent con Card, TWINT y Apple Pay
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: amount, // Ya viene en centavos desde el frontend
+      amount: amount,
       currency: currency.toLowerCase(),
       description: description,
       metadata: metadata || {},
-      // Métodos de pago explícitos: Card, TWINT, Apple Pay, Google Pay, Link y Klarna
       payment_method_types: ['card', 'twint', 'apple_pay', 'google_pay', 'link', 'klarna'],
-      // Configuración específica para Suiza
       shipping_address_collection: {
         allowed_countries: ['CH'],
       },
@@ -152,7 +146,6 @@ app.post('/api/create-payment-intent', async (req, res) => {
   }
 });
 
-// Verificar estado del pago
 app.get('/api/payment-status/:paymentIntentId', async (req, res) => {
   try {
     if (!stripe) {
@@ -163,7 +156,6 @@ app.get('/api/payment-status/:paymentIntentId', async (req, res) => {
     }
 
     const { paymentIntentId } = req.params;
-
     const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
 
     res.json({
@@ -182,7 +174,6 @@ app.get('/api/payment-status/:paymentIntentId', async (req, res) => {
   }
 });
 
-// Webhook para confirmar pagos (opcional)
 app.post('/api/webhook', express.raw({ type: 'application/json' }), (req, res) => {
   if (!stripe) {
     return res.status(503).json({ 
@@ -201,16 +192,12 @@ app.post('/api/webhook', express.raw({ type: 'application/json' }), (req, res) =
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
-  // Manejar eventos
   switch (event.type) {
     case 'payment_intent.succeeded':
-      const paymentIntent = event.data.object;
-      console.log('Payment succeeded:', paymentIntent.id);
-      // Aquí puedes actualizar tu base de datos
+      console.log('Payment succeeded:', event.data.object.id);
       break;
     case 'payment_intent.payment_failed':
-      const failedPayment = event.data.object;
-      console.log('Payment failed:', failedPayment.id);
+      console.log('Payment failed:', event.data.object.id);
       break;
     default:
       console.log(`Unhandled event type ${event.type}`);
@@ -219,107 +206,69 @@ app.post('/api/webhook', express.raw({ type: 'application/json' }), (req, res) =
   res.json({ received: true });
 });
 
-// Manejar errores
+// Error handler
 app.use((err, req, res, next) => {
-  console.error(err.stack);
+  console.error('Error handler:', err.stack);
   res.status(500).json({ error: 'Algo salió mal!' });
 });
 
-// Iniciar servidor - CRITICAL: Must start immediately for Cloud Run
-console.log(`🔧 Iniciando servidor en ${HOST}:${PORT}...`);
-console.log(`📦 Node version: ${process.version}`);
-console.log(`🔧 NODE_ENV: ${process.env.NODE_ENV || 'development'}`);
-console.log(`🌍 CORS habilitado para: ${process.env.FRONTEND_URL || 'http://localhost:3000'}`);
-console.log(`💳 Stripe: ${stripe ? 'configurado' : 'no configurado'}`);
-console.log(`🔌 PORT environment variable: ${process.env.PORT || 'not set (using default 8080)'}`);
-console.log(`🔌 Using PORT: ${PORT}, HOST: ${HOST}`);
+// Start server - SIMPLIFIED and ROBUST
+console.log(`🔧 Starting server on ${HOST}:${PORT}...`);
 
-// Start server - wrap in try-catch to catch any startup errors
-let server;
-try {
-  server = app.listen(PORT, HOST, () => {
-    const address = server.address();
-    console.log(`✅ Servidor backend ejecutándose correctamente en ${HOST}:${PORT}`);
-    console.log(`✅ Health check disponible en http://${HOST}:${PORT}/health`);
-    console.log(`✅ API disponible en http://${HOST}:${PORT}/api`);
-    
-    if (address) {
-      console.log(`✅ Servidor escuchando en ${address.address}:${address.port}`);
-      console.log(`✅ Server is ready and listening on port ${address.port}`);
-    } else {
-      console.error('❌ ERROR: Server address is null - server may not be listening!');
-      process.exit(1);
-    }
-  });
-
-  // Handle server errors immediately
-  server.on('error', (error) => {
-    console.error(`❌ Error del servidor:`, error);
-    console.error(`❌ Error code: ${error.code}`);
-    console.error(`❌ Error message: ${error.message}`);
-    if (error.code === 'EADDRINUSE') {
-      console.error(`❌ Error: El puerto ${PORT} ya está en uso`);
-    } else if (error.code === 'EACCES') {
-      console.error(`❌ Error: No se tienen permisos para usar el puerto ${PORT}`);
-    }
-    process.exit(1);
-  });
-
-  // Verify server is actually listening after a short delay
-  setTimeout(() => {
-    if (!server) {
-      console.error('❌ CRITICAL: Server object is null!');
-      process.exit(1);
-    }
-    const address = server.address();
-    if (address) {
-      console.log(`✅ VERIFIED: Server is listening on ${address.address}:${address.port}`);
-    } else {
-      console.error('❌ CRITICAL: Server is not listening! Address is null.');
-      process.exit(1);
-    }
-  }, 2000);
-
-} catch (error) {
-  console.error('❌ Error crítico al iniciar el servidor:', error);
-  console.error('Stack trace:', error.stack);
-  process.exit(1);
-}
-
-// Manejar cierre graceful para Cloud Run
-process.on('SIGTERM', () => {
-  console.log('⚠️ SIGTERM recibido, cerrando servidor gracefully...');
-  if (server) {
-    server.close(() => {
-      console.log('✅ Servidor cerrado correctamente');
-      process.exit(0);
-    });
-    
-    // Timeout de seguridad
-    setTimeout(() => {
-      console.error('⚠️ Forzando cierre del servidor');
-      process.exit(1);
-    }, 10000);
+// Start server immediately - no try-catch that might hide errors
+const server = app.listen(PORT, HOST, () => {
+  const address = server.address();
+  console.log(`✅ Server started successfully on ${HOST}:${PORT}`);
+  console.log(`✅ Health check: http://${HOST}:${PORT}/health`);
+  console.log(`✅ API: http://${HOST}:${PORT}/api`);
+  
+  if (address) {
+    console.log(`✅ Listening on ${address.address}:${address.port}`);
   } else {
-    process.exit(0);
+    console.error('❌ ERROR: Server address is null!');
+    process.exit(1);
   }
 });
 
-// Manejar errores no capturados
-process.on('uncaughtException', (error) => {
-  console.error('❌ Error no capturado:', error);
-  if (server) {
-    server.close(() => {
-      process.exit(1);
-    });
-  } else {
+// Handle server errors
+server.on('error', (error) => {
+  console.error(`❌ Server error:`, error);
+  console.error(`❌ Error code: ${error.code}`);
+  console.error(`❌ Error message: ${error.message}`);
+  process.exit(1);
+});
+
+// Handle graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('⚠️ SIGTERM received, shutting down...');
+  server.close(() => {
+    console.log('✅ Server closed');
+    process.exit(0);
+  });
+  
+  setTimeout(() => {
+    console.error('⚠️ Force shutdown');
     process.exit(1);
-  }
+  }, 10000);
+});
+
+process.on('SIGINT', () => {
+  console.log('⚠️ SIGINT received, shutting down...');
+  server.close(() => {
+    process.exit(0);
+  });
+});
+
+// Handle uncaught errors - but don't exit immediately
+process.on('uncaughtException', (error) => {
+  console.error('❌ Uncaught exception:', error);
+  console.error('Stack:', error.stack);
+  // Don't exit - let the server try to continue
 });
 
 process.on('unhandledRejection', (reason, promise) => {
-  console.error('❌ Promesa rechazada no manejada:', reason);
-  // No salir del proceso, solo registrar el error
+  console.error('❌ Unhandled rejection:', reason);
+  // Don't exit - just log
 });
 
 module.exports = app;
