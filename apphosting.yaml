@@ -9,14 +9,11 @@ backends:
     dockerfile: Dockerfile
     # Runtime environment
     runtime: nodejs20
-    # Explicitly specify the run command to use server.js
-    scripts:
-      runCommand: node server.js
     # Environment variables
     env:
       - variable: PORT
         value: "8080"
       - variable: NODE_ENV
-        value: production
+        value: "production"
       - variable: HOST
         value: "0.0.0.0"

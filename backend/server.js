@@ -21,14 +21,7 @@ if (isNaN(PORT) || PORT < 1 || PORT > 65535) {
   process.exit(1);
 }
 
-// Load environment variables (optional, Cloud Run provides them)
-try {
-  require('dotenv').config();
-} catch (e) {
-  console.log('ℹ️ dotenv not available (normal in Cloud Run)');
-}
-
-// Load dependencies - fail fast if missing
+// Load dependencies FIRST - fail fast if missing
 let express, cors, helmet;
 try {
   express = require('express');
@@ -40,21 +33,8 @@ try {
   process.exit(1);
 }
 
-// Initialize Stripe (optional - won't crash if not configured)
-let stripe = null;
-try {
-  if (process.env.STRIPE_SECRET_KEY) {
-    stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-    console.log('✅ Stripe initialized');
-  }
-} catch (e) {
-  console.warn('⚠️ Stripe not configured');
-}
-
-// Create Express app
+// Create Express app IMMEDIATELY
 const app = express();
-
-console.log(`🔌 Server will listen on ${HOST}:${PORT}`);
 
 // Health check endpoints FIRST (CRITICAL - must respond immediately, before middleware)
 app.get('/', (req, res) => {
@@ -77,6 +57,26 @@ app.get('/health', (req, res) => {
 app.get('/ready', (req, res) => {
   res.status(200).json({ status: 'ready' });
 });
+
+// Load environment variables (optional, Cloud Run provides them)
+try {
+  require('dotenv').config();
+} catch (e) {
+  console.log('ℹ️ dotenv not available (normal in Cloud Run)');
+}
+
+// Initialize Stripe (optional - won't crash if not configured) - AFTER health checks
+let stripe = null;
+try {
+  if (process.env.STRIPE_SECRET_KEY) {
+    stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+    console.log('✅ Stripe initialized');
+  }
+} catch (e) {
+  console.warn('⚠️ Stripe not configured');
+}
+
+console.log(`🔌 Server will listen on ${HOST}:${PORT}`);
 
 // Middleware (after health checks for faster startup)
 app.use(helmet({ contentSecurityPolicy: false, crossOriginEmbedderPolicy: false }));

@@ -6,7 +6,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install production dependencies
-RUN npm ci --only=production || npm install --only=production
+RUN npm ci --only=production --no-audit --no-fund || npm install --only=production --no-audit --no-fund
 
 # Copy all necessary files
 COPY server.js ./
@@ -18,12 +18,11 @@ RUN test -f ./package.json || (echo "ERROR: package.json not found" && exit 1)
 # Expose port
 EXPOSE 8080
 
-# Environment variables
+# Environment variables - PORT will be set by Cloud Run/App Hosting
 ENV NODE_ENV=production
 ENV PORT=8080
+ENV HOST=0.0.0.0
 
-# Start server - use absolute path to be explicit
-# Note: Cloud Run uses its own health check system based on HTTP requests
-# No need for Docker HEALTHCHECK instruction
-WORKDIR /app
-CMD ["node", "/app/server.js"]
+# Start server - use node directly
+# Note: Cloud Run/App Hosting uses its own health check system based on HTTP requests
+CMD ["node", "server.js"]
