@@ -1,17 +1,11 @@
 # Firebase App Hosting Configuration
-# This file configures the backend deployment for Firebase App Hosting
-
 backends:
   - id: backoffice-backendvla
-    # Source directory where the backend code is located
     sourceDirectory: backend
-    # Runtime environment
     runtime: nodejs20
-    # Build and run commands to use the backend server
     scripts:
-      buildCommand: npm ci --only=production --no-audit --no-fund
+      buildCommand: npm install --production
       runCommand: node server.js
-    # Environment variables
     env:
       - variable: PORT
         value: "8080"
