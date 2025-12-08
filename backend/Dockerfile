@@ -10,7 +10,6 @@ RUN npm ci --only=production || npm install --only=production
 
 # Copy all necessary files
 COPY server.js ./
-COPY index.js ./
 
 # Verify files exist
 RUN test -f ./server.js || (echo "ERROR: server.js not found" && exit 1)

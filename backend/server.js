@@ -56,12 +56,7 @@ const app = express();
 
 console.log(`🔌 Server will listen on ${HOST}:${PORT}`);
 
-// Middleware
-app.use(helmet({ contentSecurityPolicy: false, crossOriginEmbedderPolicy: false }));
-app.use(cors({ origin: '*', credentials: true }));
-app.use(express.json({ limit: '10mb' }));
-
-// Health check endpoints (CRITICAL - must respond immediately)
+// Health check endpoints FIRST (CRITICAL - must respond immediately, before middleware)
 app.get('/', (req, res) => {
   res.status(200).json({ 
     status: 'OK', 
@@ -82,6 +77,11 @@ app.get('/health', (req, res) => {
 app.get('/ready', (req, res) => {
   res.status(200).json({ status: 'ready' });
 });
+
+// Middleware (after health checks for faster startup)
+app.use(helmet({ contentSecurityPolicy: false, crossOriginEmbedderPolicy: false }));
+app.use(cors({ origin: '*', credentials: true }));
+app.use(express.json({ limit: '10mb' }));
 
 // API Routes
 app.post('/api/create-payment-intent', async (req, res) => {
