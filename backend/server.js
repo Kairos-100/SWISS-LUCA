@@ -1,91 +1,63 @@
-// Logging inmediato para Cloud Run
-console.log('🚀 Iniciando aplicación backend...');
+// ============================================
+// FLASH Backend Server - Cloud Run Optimized
+// ============================================
+
+console.log('🚀 Starting FLASH Backend Server...');
 console.log('📅 Timestamp:', new Date().toISOString());
 console.log('📦 Node version:', process.version);
 console.log('🔧 Working directory:', process.cwd());
+console.log('🌍 Environment:', process.env.NODE_ENV || 'development');
 
-// Listar archivos para debugging
-try {
-  const fs = require('fs');
-  const files = fs.readdirSync(process.cwd());
-  console.log('📁 Files in directory:', files.join(', '));
-  
-  // Verificar que server.js existe
-  const serverPath = require('path').join(process.cwd(), 'server.js');
-  if (fs.existsSync(serverPath)) {
-    console.log('✅ server.js encontrado en:', serverPath);
-  } else {
-    console.error('❌ server.js NO encontrado en:', serverPath);
-  }
-} catch (error) {
-  console.warn('⚠️ Error al listar archivos:', error.message);
-}
-
-// Cargar variables de entorno primero (sin error si no existe)
+// Load environment variables (optional, Cloud Run provides them)
 try {
   require('dotenv').config();
-  console.log('✅ dotenv cargado correctamente');
-} catch (error) {
-  console.warn('⚠️ No se pudo cargar dotenv, usando variables de entorno del sistema');
+} catch (e) {
+  // dotenv not critical, Cloud Run provides env vars
 }
 
+// Load dependencies
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 
-// Inicializar Stripe solo si la clave está disponible
+// Initialize Stripe (optional - won't crash if not configured)
 let stripe = null;
 try {
   if (process.env.STRIPE_SECRET_KEY) {
     stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-    console.log('✅ Stripe inicializado correctamente');
-  } else {
-    console.warn('⚠️ STRIPE_SECRET_KEY no está configurada. Las funciones de pago no estarán disponibles.');
+    console.log('✅ Stripe initialized');
   }
-} catch (error) {
-  console.error('❌ Error al inicializar Stripe:', error.message);
+} catch (e) {
+  console.warn('⚠️ Stripe not configured');
 }
 
+// Create Express app
 const app = express();
 
-// CRITICAL: Cloud Run provides PORT as string, must convert to number
+// CRITICAL: Convert PORT to number (Cloud Run provides as string)
 const PORT = parseInt(process.env.PORT || '8080', 10);
 const HOST = process.env.HOST || '0.0.0.0';
 
 // Validate PORT
 if (isNaN(PORT) || PORT < 1 || PORT > 65535) {
-  console.error(`❌ ERROR: Invalid PORT value: ${process.env.PORT}`);
-  console.error(`❌ PORT must be a number between 1 and 65535`);
+  console.error('❌ Invalid PORT:', process.env.PORT);
   process.exit(1);
 }
 
-console.log(`🔌 PORT: ${PORT} (type: ${typeof PORT})`);
-console.log(`🔌 HOST: ${HOST}`);
+console.log(`🔌 Server will listen on ${HOST}:${PORT}`);
 
 // Middleware
-app.use(helmet({
-  contentSecurityPolicy: false,
-  crossOriginEmbedderPolicy: false
-}));
-
-app.use(cors({
-  origin: process.env.FRONTEND_URL || '*',
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
-}));
-
+app.use(helmet({ contentSecurityPolicy: false, crossOriginEmbedderPolicy: false }));
+app.use(cors({ origin: '*', credentials: true }));
 app.use(express.json({ limit: '10mb' }));
 
-// Health check endpoints - MUST respond immediately
+// Health check endpoints (CRITICAL - must respond immediately)
 app.get('/', (req, res) => {
   res.status(200).json({ 
     status: 'OK', 
     service: 'FLASH Backend API',
     timestamp: new Date().toISOString(),
-    stripe: stripe ? 'configured' : 'not configured',
-    port: PORT,
-    host: HOST
+    port: PORT
   });
 });
 
@@ -93,196 +65,133 @@ app.get('/health', (req, res) => {
   res.status(200).json({ 
     status: 'OK', 
     timestamp: new Date().toISOString(),
-    stripe: stripe ? 'configured' : 'not configured',
     uptime: process.uptime()
   });
 });
 
 app.get('/ready', (req, res) => {
-  res.status(200).json({ 
-    status: 'ready',
-    timestamp: new Date().toISOString()
-  });
+  res.status(200).json({ status: 'ready' });
 });
 
 // API Routes
 app.post('/api/create-payment-intent', async (req, res) => {
   try {
     if (!stripe) {
-      return res.status(503).json({ 
-        error: 'Servicio de pagos no disponible',
-        details: 'STRIPE_SECRET_KEY no está configurada'
-      });
+      return res.status(503).json({ error: 'Payment service unavailable' });
     }
-
     const { amount, currency, description, metadata } = req.body;
-
     if (!amount || !currency || !description) {
-      return res.status(400).json({ error: 'Faltan datos requeridos' });
+      return res.status(400).json({ error: 'Missing required fields' });
     }
-
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: amount,
+      amount,
       currency: currency.toLowerCase(),
-      description: description,
+      description,
       metadata: metadata || {},
       payment_method_types: ['card', 'twint', 'apple_pay', 'google_pay', 'link', 'klarna'],
-      shipping_address_collection: {
-        allowed_countries: ['CH'],
-      },
+      shipping_address_collection: { allowed_countries: ['CH'] },
     });
-
     res.json({
       success: true,
       paymentIntentId: paymentIntent.id,
       clientSecret: paymentIntent.client_secret,
     });
   } catch (error) {
-    console.error('Error creating payment intent:', error);
-    res.status(500).json({ 
-      error: 'Error al crear el pago',
-      details: error.message 
-    });
+    console.error('Payment intent error:', error);
+    res.status(500).json({ error: error.message });
   }
 });
 
 app.get('/api/payment-status/:paymentIntentId', async (req, res) => {
   try {
     if (!stripe) {
-      return res.status(503).json({ 
-        error: 'Servicio de pagos no disponible',
-        details: 'STRIPE_SECRET_KEY no está configurada'
-      });
+      return res.status(503).json({ error: 'Payment service unavailable' });
     }
-
-    const { paymentIntentId } = req.params;
-    const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
-
+    const paymentIntent = await stripe.paymentIntents.retrieve(req.params.paymentIntentId);
     res.json({
       paymentIntentId: paymentIntent.id,
       status: paymentIntent.status,
       amount: paymentIntent.amount,
       currency: paymentIntent.currency,
-      lastPaymentError: paymentIntent.last_payment_error?.message,
     });
   } catch (error) {
-    console.error('Error checking payment status:', error);
-    res.status(500).json({ 
-      error: 'Error al verificar el estado del pago',
-      details: error.message 
-    });
+    console.error('Payment status error:', error);
+    res.status(500).json({ error: error.message });
   }
 });
 
 app.post('/api/webhook', express.raw({ type: 'application/json' }), (req, res) => {
   if (!stripe) {
-    return res.status(503).json({ 
-      error: 'Servicio de pagos no disponible',
-      details: 'STRIPE_SECRET_KEY no está configurada'
-    });
+    return res.status(503).json({ error: 'Payment service unavailable' });
   }
-
-  const sig = req.headers['stripe-signature'];
-  let event;
-
   try {
-    event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
+    const event = stripe.webhooks.constructEvent(
+      req.body,
+      req.headers['stripe-signature'],
+      process.env.STRIPE_WEBHOOK_SECRET
+    );
+    console.log('Webhook event:', event.type);
+    res.json({ received: true });
   } catch (err) {
-    console.error('Webhook signature verification failed:', err.message);
-    return res.status(400).send(`Webhook Error: ${err.message}`);
+    console.error('Webhook error:', err.message);
+    res.status(400).send(`Webhook Error: ${err.message}`);
   }
-
-  switch (event.type) {
-    case 'payment_intent.succeeded':
-      console.log('Payment succeeded:', event.data.object.id);
-      break;
-    case 'payment_intent.payment_failed':
-      console.log('Payment failed:', event.data.object.id);
-      break;
-    default:
-      console.log(`Unhandled event type ${event.type}`);
-  }
-
-  res.json({ received: true });
 });
 
 // Error handler
 app.use((err, req, res, next) => {
-  console.error('Error handler:', err.stack);
-  res.status(500).json({ error: 'Algo salió mal!' });
+  console.error('Request error:', err);
+  res.status(500).json({ error: 'Internal server error' });
 });
 
-// Start server - SIMPLIFIED and ROBUST
+// ============================================
+// START SERVER - CRITICAL FOR CLOUD RUN
+// ============================================
 console.log(`🔧 Starting server on ${HOST}:${PORT}...`);
 
-// Start server immediately - no try-catch that might hide errors
+// Start server - this MUST succeed
 const server = app.listen(PORT, HOST, () => {
-  const address = server.address();
-  console.log(`✅ Server started successfully on ${HOST}:${PORT}`);
-  console.log(`✅ Health check: http://${HOST}:${PORT}/health`);
-  console.log(`✅ API: http://${HOST}:${PORT}/api`);
-  
-  if (address) {
-    console.log(`✅ Listening on ${address.address}:${address.port}`);
-  } else {
-    console.error('❌ ERROR: Server address is null!');
-    process.exit(1);
-  }
+  const addr = server.address();
+  console.log(`✅ Server listening on ${addr.address}:${addr.port}`);
+  console.log(`✅ Health: http://${HOST}:${PORT}/health`);
 });
 
-// Handle server errors
-server.on('error', (error) => {
-  console.error(`❌ Server error:`, error);
-  console.error(`❌ Error code: ${error.code}`);
-  console.error(`❌ Error message: ${error.message}`);
-  console.error(`❌ Stack:`, error.stack);
+// Error handler for server
+server.on('error', (err) => {
+  console.error('❌ Server error:', err);
+  console.error('Code:', err.code);
+  console.error('Message:', err.message);
   process.exit(1);
 });
 
-// Verify server is listening - CRITICAL for Cloud Run
+// Confirm server is listening
 server.on('listening', () => {
-  const address = server.address();
-  console.log(`✅ Server is now listening on ${address.address}:${address.port}`);
-  console.log(`✅ Server ready to accept connections`);
+  const addr = server.address();
+  console.log(`✅ Server confirmed listening on ${addr.address}:${addr.port}`);
 });
 
-// Handle graceful shutdown
+// Graceful shutdown
 process.on('SIGTERM', () => {
-  console.log('⚠️ SIGTERM received, shutting down...');
-  server.close(() => {
-    console.log('✅ Server closed');
-    process.exit(0);
-  });
-  
-  setTimeout(() => {
-    console.error('⚠️ Force shutdown');
-    process.exit(1);
-  }, 10000);
+  console.log('⚠️ SIGTERM - shutting down...');
+  server.close(() => process.exit(0));
+  setTimeout(() => process.exit(1), 10000);
 });
 
 process.on('SIGINT', () => {
-  console.log('⚠️ SIGINT received, shutting down...');
-  server.close(() => {
-    process.exit(0);
-  });
+  console.log('⚠️ SIGINT - shutting down...');
+  server.close(() => process.exit(0));
 });
 
-// Handle uncaught errors - but don't exit immediately
-process.on('uncaughtException', (error) => {
-  console.error('❌ Uncaught exception:', error);
-  console.error('Stack:', error.stack);
-  // Don't exit - let the server try to continue
+// Keep process alive - don't exit on uncaught errors
+process.on('uncaughtException', (err) => {
+  console.error('❌ Uncaught exception:', err);
+  // Don't exit - keep server running
 });
 
-process.on('unhandledRejection', (reason, promise) => {
+process.on('unhandledRejection', (reason) => {
   console.error('❌ Unhandled rejection:', reason);
-  // Don't exit - just log
+  // Don't exit - keep server running
 });
 
-// CRITICAL: Verify server exists before export
-if (!server) {
-  console.error('❌ CRITICAL: Server was not initialized!');
-  process.exit(1);
-}
-
+// Export app
 module.exports = app;
