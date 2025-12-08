@@ -5,10 +5,12 @@ backends:
   - id: backoffice-backendvla
     # Source directory where the backend code is located
     sourceDirectory: backend
-    # Dockerfile path relative to the source directory
-    dockerfile: Dockerfile
     # Runtime environment
     runtime: nodejs20
+    # Build and run commands to use the backend server
+    scripts:
+      buildCommand: npm ci --only=production --no-audit --no-fund
+      runCommand: node server.js
     # Environment variables
     env:
       - variable: PORT
