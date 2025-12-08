@@ -8,17 +8,37 @@ console.log('📦 Node version:', process.version);
 console.log('🔧 Working directory:', process.cwd());
 console.log('🌍 Environment:', process.env.NODE_ENV || 'development');
 
+// CRITICAL: Get PORT first - Cloud Run sets this
+const PORT = parseInt(process.env.PORT || '8080', 10);
+const HOST = '0.0.0.0';
+
+console.log(`🔌 PORT from env: ${process.env.PORT}`);
+console.log(`🔌 Parsed PORT: ${PORT}`);
+
+// Validate PORT immediately
+if (isNaN(PORT) || PORT < 1 || PORT > 65535) {
+  console.error('❌ FATAL: Invalid PORT:', process.env.PORT);
+  process.exit(1);
+}
+
 // Load environment variables (optional, Cloud Run provides them)
 try {
   require('dotenv').config();
 } catch (e) {
-  // dotenv not critical, Cloud Run provides env vars
+  console.log('ℹ️ dotenv not available (normal in Cloud Run)');
 }
 
-// Load dependencies
-const express = require('express');
-const cors = require('cors');
-const helmet = require('helmet');
+// Load dependencies - fail fast if missing
+let express, cors, helmet;
+try {
+  express = require('express');
+  cors = require('cors');
+  helmet = require('helmet');
+  console.log('✅ Core dependencies loaded');
+} catch (e) {
+  console.error('❌ FATAL: Failed to load dependencies:', e.message);
+  process.exit(1);
+}
 
 // Initialize Stripe (optional - won't crash if not configured)
 let stripe = null;
@@ -33,16 +53,6 @@ try {
 
 // Create Express app
 const app = express();
-
-// CRITICAL: Convert PORT to number (Cloud Run provides as string)
-const PORT = parseInt(process.env.PORT || '8080', 10);
-const HOST = process.env.HOST || '0.0.0.0';
-
-// Validate PORT
-if (isNaN(PORT) || PORT < 1 || PORT > 65535) {
-  console.error('❌ Invalid PORT:', process.env.PORT);
-  process.exit(1);
-}
 
 console.log(`🔌 Server will listen on ${HOST}:${PORT}`);
 
@@ -150,24 +160,35 @@ app.use((err, req, res, next) => {
 console.log(`🔧 Starting server on ${HOST}:${PORT}...`);
 
 // Start server - this MUST succeed
-const server = app.listen(PORT, HOST, () => {
-  const addr = server.address();
-  console.log(`✅ Server listening on ${addr.address}:${addr.port}`);
-  console.log(`✅ Health: http://${HOST}:${PORT}/health`);
-});
+let server;
+try {
+  server = app.listen(PORT, HOST, () => {
+    const addr = server.address();
+    console.log(`✅✅✅ SERVER LISTENING ON ${addr.address}:${addr.port} ✅✅✅`);
+    console.log(`✅ Health check: http://${HOST}:${PORT}/health`);
+    console.log(`✅ Root: http://${HOST}:${PORT}/`);
+  });
+} catch (err) {
+  console.error('❌ FATAL: Failed to start server:', err);
+  process.exit(1);
+}
 
 // Error handler for server
 server.on('error', (err) => {
   console.error('❌ Server error:', err);
   console.error('Code:', err.code);
   console.error('Message:', err.message);
+  if (err.code === 'EADDRINUSE') {
+    console.error(`Port ${PORT} is already in use`);
+  }
   process.exit(1);
 });
 
 // Confirm server is listening
 server.on('listening', () => {
   const addr = server.address();
-  console.log(`✅ Server confirmed listening on ${addr.address}:${addr.port}`);
+  console.log(`✅✅✅ SERVER CONFIRMED LISTENING ON ${addr.address}:${addr.port} ✅✅✅`);
+  console.log(`✅ Ready to accept connections`);
 });
 
 // Graceful shutdown

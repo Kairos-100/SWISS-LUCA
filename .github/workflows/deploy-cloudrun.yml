@@ -73,6 +73,7 @@ jobs:
             --max-instances 10 \
             --min-instances 0 \
             --timeout 300 \
+            --startup-timeout 300 \
             --cpu-throttling \
             --execution-environment gen2 \
             --startup-cpu-boost \
