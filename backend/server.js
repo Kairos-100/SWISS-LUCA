@@ -158,18 +158,24 @@ app.use((err, req, res, next) => {
 // START SERVER - CRITICAL FOR CLOUD RUN
 // ============================================
 console.log(`🔧 Starting server on ${HOST}:${PORT}...`);
+console.log(`🔧 PORT value: ${PORT}, type: ${typeof PORT}`);
+console.log(`🔧 HOST value: ${HOST}, type: ${typeof HOST}`);
 
 // Start server - this MUST succeed
 let server;
 try {
+  console.log(`🔧 About to call app.listen(${PORT}, '${HOST}')...`);
   server = app.listen(PORT, HOST, () => {
     const addr = server.address();
     console.log(`✅✅✅ SERVER LISTENING ON ${addr.address}:${addr.port} ✅✅✅`);
     console.log(`✅ Health check: http://${HOST}:${PORT}/health`);
     console.log(`✅ Root: http://${HOST}:${PORT}/`);
+    console.log(`✅ Server is ready to accept connections!`);
   });
+  console.log(`🔧 app.listen() called, server object created`);
 } catch (err) {
   console.error('❌ FATAL: Failed to start server:', err);
+  console.error('❌ Error stack:', err.stack);
   process.exit(1);
 }
 

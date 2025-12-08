@@ -22,7 +22,8 @@ EXPOSE 8080
 ENV NODE_ENV=production
 ENV PORT=8080
 
-# Start server - use node directly
+# Start server - use absolute path to be explicit
 # Note: Cloud Run uses its own health check system based on HTTP requests
 # No need for Docker HEALTHCHECK instruction
-CMD ["node", "server.js"]
+WORKDIR /app
+CMD ["node", "/app/server.js"]
