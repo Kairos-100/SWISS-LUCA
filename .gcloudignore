@@ -1,0 +1,11 @@
+# Exclude frontend from backend builds
+package.json
+package-lock.json
+vite.config.ts
+tsconfig*.json
+src/
+public/
+dist/
+node_modules/
+*.md
+!.gcloudignore
