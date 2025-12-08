@@ -10,10 +10,8 @@ backends:
     # Runtime environment
     runtime: nodejs20
     # Explicitly specify the run command to use server.js
-    run:
-      command: node
-      args:
-        - server.js
+    scripts:
+      runCommand: node server.js
     # Environment variables
     env:
       - variable: PORT
