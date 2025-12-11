@@ -27,4 +27,5 @@ ENV HOST=0.0.0.0
 
 # Start server - use index.js as entry point (it requires server.js)
 # Note: Cloud Run/App Hosting uses its own health check system based on HTTP requests
-CMD ["node", "index.js"]
+# Use absolute path to ensure it works regardless of working directory
+CMD ["node", "/app/index.js"]
