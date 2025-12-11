@@ -33,8 +33,24 @@ jobs:
           credentials_json: '${{ secrets.GCP_SA_KEY }}'
           project_id: ${{ env.PROJECT_ID }}
 
-      - name: Configure Docker for Google Cloud
-        run: gcloud auth configure-docker
+      - name: Configure Docker for Google Artifact Registry
+        run: |
+          echo '${{ secrets.GCP_SA_KEY }}' | docker login -u _json_key --password-stdin ${{ env.REGION }}-docker.pkg.dev
+
+      - name: Verify Artifact Registry repository exists
+        run: |
+          echo "Checking if Artifact Registry repository exists..."
+          if ! gcloud artifacts repositories describe ${{ env.REPOSITORY }} \
+            --location=${{ env.REGION }} \
+            --format="value(name)" 2>/dev/null; then
+            echo "Repository does not exist, creating it..."
+            gcloud artifacts repositories create ${{ env.REPOSITORY }} \
+              --repository-format=docker \
+              --location=${{ env.REGION }} \
+              --description="Docker repository for ${{ env.SERVICE }}"
+          else
+            echo "Repository exists ✓"
+          fi
 
       - name: Debug - Verify authentication
         run: |
@@ -54,7 +70,7 @@ jobs:
           docker build --tag "${DOCKER_TAG}" .
           
           # Push the image
-          echo "Pushing Docker image..."
+          echo "Pushing Docker image to Artifact Registry..."
           docker push "${DOCKER_TAG}"
           
           echo "Docker image pushed successfully!"
