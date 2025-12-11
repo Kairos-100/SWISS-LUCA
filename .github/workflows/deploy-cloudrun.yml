@@ -91,7 +91,7 @@ jobs:
             --timeout 300 \
             --execution-environment gen2 \
             --cpu-boost \
-            --set-env-vars PORT=8080,HOST=0.0.0.0,NODE_ENV=production
+            --set-env-vars HOST=0.0.0.0,NODE_ENV=production
 
       - name: Get service URL
         run: |
