@@ -3,10 +3,8 @@
 backends:
   - id: backoffice-backendvla
     sourceDirectory: backend
-    runtime: nodejs20
-    scripts:
-      buildCommand: npm install --production --no-audit --no-fund
-      runCommand: npm start
+    # Removed runtime to use Dockerfile instead
+    # Firebase App Hosting will use the Dockerfile in the backend directory
     env:
       - variable: PORT
         value: "8080"

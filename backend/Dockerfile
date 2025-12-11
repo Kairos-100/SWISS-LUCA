@@ -1,6 +1,7 @@
 FROM node:20-slim
 
-WORKDIR /app
+# Firebase App Hosting uses /workspace as the working directory
+WORKDIR /workspace
 
 # Copy package files first
 COPY package*.json ./
@@ -26,6 +27,5 @@ ENV PORT=8080
 ENV HOST=0.0.0.0
 
 # Start server - use index.js as entry point (it requires server.js)
-# Note: Cloud Run/App Hosting uses its own health check system based on HTTP requests
-# Use absolute path to ensure it works regardless of working directory
-CMD ["node", "/app/index.js"]
+# Firebase App Hosting copies files to /workspace, so we use that path
+CMD ["node", "/workspace/index.js"]
