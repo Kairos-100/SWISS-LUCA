@@ -10,9 +10,11 @@ RUN npm ci --only=production --no-audit --no-fund || npm install --only=producti
 
 # Copy all necessary files
 COPY server.js ./
+COPY index.js ./
 
 # Verify files exist
 RUN test -f ./server.js || (echo "ERROR: server.js not found" && exit 1)
+RUN test -f ./index.js || (echo "ERROR: index.js not found" && exit 1)
 RUN test -f ./package.json || (echo "ERROR: package.json not found" && exit 1)
 
 # Expose port
@@ -23,6 +25,6 @@ ENV NODE_ENV=production
 ENV PORT=8080
 ENV HOST=0.0.0.0
 
-# Start server - use node directly
+# Start server - use index.js as entry point (it requires server.js)
 # Note: Cloud Run/App Hosting uses its own health check system based on HTTP requests
-CMD ["node", "server.js"]
+CMD ["node", "index.js"]
