@@ -26,6 +26,6 @@ ENV NODE_ENV=production
 ENV PORT=8080
 ENV HOST=0.0.0.0
 
-# Start server - use index.js as entry point (it requires server.js)
-# Firebase App Hosting copies files to /workspace, so we use that path
-CMD ["node", "/workspace/index.js"]
+# Start server - use npm start which runs "node server.js" according to package.json
+# This matches what apphosting.yaml runCommand does
+CMD ["npm", "start"]
