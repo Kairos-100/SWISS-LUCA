@@ -1,12 +1,11 @@
 # Firebase App Hosting Configuration
-# SOLO BACKEND - NO CONSTRUIR FRONTEND
 backends:
   - id: backoffice-backendvla
     sourceDirectory: backend
     runtime: nodejs20
     scripts:
       buildCommand: npm install --production --no-audit --no-fund
-      runCommand: npm start
+      runCommand: node server.js
     env:
       - variable: PORT
         value: "8080"
