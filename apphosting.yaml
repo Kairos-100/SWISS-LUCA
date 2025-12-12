@@ -1,15 +1,12 @@
-# Firebase App Hosting Configuration
 backends:
   - id: backoffice-backendvla
     sourceDirectory: backend
     runtime: nodejs20
     scripts:
-      buildCommand: npm install --production --no-audit --no-fund
+      buildCommand: npm install
       runCommand: npm start
     env:
       - variable: PORT
         value: "8080"
       - variable: NODE_ENV
         value: "production"
-      - variable: HOST
-        value: "0.0.0.0"
