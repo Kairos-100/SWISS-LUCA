@@ -3,8 +3,8 @@ backends:
     sourceDirectory: backend
     runtime: nodejs20
     scripts:
-      buildCommand: npm install
-      runCommand: npm start
+      buildCommand: npm ci --production || npm install --production
+      runCommand: node server.js
     env:
       - variable: PORT
         value: "8080"
