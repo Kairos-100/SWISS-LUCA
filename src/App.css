@@ -379,6 +379,36 @@ img {
   color: #000 !important;
 }
 
+/* Asegurar visibilidad del texto en campos de entrada Material-UI */
+.MuiOutlinedInput-input {
+  color: #000 !important;
+  -webkit-text-fill-color: #000 !important;
+  caret-color: #000 !important;
+}
+
+.MuiOutlinedInput-input::placeholder {
+  color: #999 !important;
+  opacity: 1 !important;
+}
+
+/* Asegurar que las etiquetas sean visibles */
+.MuiInputLabel-root {
+  z-index: 1 !important;
+}
+
+/* Asegurar que el texto del input sea visible sobre fondo blanco */
+.MuiOutlinedInput-root input {
+  color: #000 !important;
+  -webkit-text-fill-color: #000 !important;
+  text-shadow: none !important;
+}
+
+/* Asegurar visibilidad en campos de contraseña */
+.MuiOutlinedInput-root input[type="password"] {
+  color: #000 !important;
+  -webkit-text-fill-color: #000 !important;
+}
+
 /* ===== ESTILOS PROFESIONALES PARA EL MAPA ===== */
 
 /* Contenedor del mapa con diseño profesional */

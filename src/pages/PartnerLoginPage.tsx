@@ -47,7 +47,7 @@ export const PartnerLoginPage: React.FC = () => {
             }
           }
         } catch (error) {
-          console.error('Error verificando sesión:', error);
+          console.error('Error verifying session:', error);
         }
       }
     });
@@ -117,7 +117,7 @@ export const PartnerLoginPage: React.FC = () => {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          background: '#0F0F0F',
           padding: 2
         }}
       >
@@ -127,30 +127,47 @@ export const PartnerLoginPage: React.FC = () => {
             sx={{
               borderRadius: 4,
               overflow: 'hidden',
-              background: 'rgba(255, 255, 255, 0.95)',
-              backdropFilter: 'blur(10px)'
+              background: 'linear-gradient(145deg, #1A1A1A 0%, #2A2A2A 100%)',
+              backdropFilter: 'blur(10px)',
+              border: '1px solid rgba(255, 255, 255, 0.1)'
             }}
           >
             <Box
               sx={{
-                background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)',
+                background: '#FFD700',
                 padding: 4,
                 textAlign: 'center',
-                color: 'white'
+                color: '#000'
               }}
             >
-              <Store sx={{ fontSize: 60, mb: 2 }} />
-              <Typography variant="h4" component="h1" sx={{ fontWeight: 700, mb: 1 }}>
+              <Store sx={{ fontSize: 60, mb: 2, color: '#000' }} />
+              <Typography variant="h4" component="h1" sx={{ fontWeight: 700, mb: 1, color: '#000' }}>
                 Panel Partenaire
               </Typography>
-              <Typography variant="body1" sx={{ opacity: 0.9 }}>
+              <Typography variant="body1" sx={{ opacity: 0.8, color: '#000' }}>
                 Gérez vos offres et votre profil
               </Typography>
             </Box>
 
             <CardContent sx={{ p: 4 }}>
               {error && (
-                <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError('')}>
+                <Alert 
+                  severity="error" 
+                  sx={{ 
+                    mb: 3,
+                    backgroundColor: 'rgba(244, 67, 54, 0.1)',
+                    color: '#F44336',
+                    borderRadius: 2,
+                    border: '1px solid rgba(244, 67, 54, 0.3)',
+                    '& .MuiAlert-icon': {
+                      color: '#F44336'
+                    },
+                    '& .MuiAlert-action': {
+                      color: '#F44336'
+                    }
+                  }} 
+                  onClose={() => setError('')}
+                >
                   {error}
                 </Alert>
               )}
@@ -166,27 +183,46 @@ export const PartnerLoginPage: React.FC = () => {
                   autoComplete="email"
                   disabled={isLoading}
                   InputProps={{
-                    startAdornment: <Email sx={{ mr: 1, color: '#666' }} />
+                    startAdornment: <Email sx={{ mr: 1, color: '#B0B0B0' }} />
                   }}
                   sx={{
                     '& .MuiOutlinedInput-root': {
                       borderRadius: 2,
-                      backgroundColor: '#fff',
-                      color: '#000',
+                      backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                      color: '#FFFFFF',
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                      '& input': {
+                        color: '#FFFFFF',
+                        WebkitTextFillColor: '#FFFFFF',
+                        caretColor: '#FFD700',
+                      },
+                      '& input::placeholder': {
+                        color: '#B0B0B0',
+                        opacity: 1,
+                      },
                       '& fieldset': {
-                        borderColor: '#ddd',
+                        borderColor: 'rgba(255, 255, 255, 0.1)',
+                        borderWidth: '1px',
                       },
                       '&:hover fieldset': {
                         borderColor: '#FFD700',
+                        borderWidth: '2px',
                       },
-                      '&.Mui-focused fieldset': {
-                        borderColor: '#FFD700',
+                      '&.Mui-focused': {
+                        backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                        '& fieldset': {
+                          borderColor: '#FFD700',
+                          borderWidth: '2px',
+                        },
                       },
                     },
                     '& .MuiInputLabel-root': {
-                      color: '#666',
+                      color: '#B0B0B0',
                       '&.Mui-focused': {
                         color: '#FFD700',
+                      },
+                      '&.MuiInputLabel-shrink': {
+                        color: '#B0B0B0',
                       },
                     },
                   }}
@@ -202,27 +238,46 @@ export const PartnerLoginPage: React.FC = () => {
                   autoComplete="current-password"
                   disabled={isLoading}
                   InputProps={{
-                    startAdornment: <Lock sx={{ mr: 1, color: '#666' }} />
+                    startAdornment: <Lock sx={{ mr: 1, color: '#B0B0B0' }} />
                   }}
                   sx={{
                     '& .MuiOutlinedInput-root': {
                       borderRadius: 2,
-                      backgroundColor: '#fff',
-                      color: '#000',
+                      backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                      color: '#FFFFFF',
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                      '& input': {
+                        color: '#FFFFFF',
+                        WebkitTextFillColor: '#FFFFFF',
+                        caretColor: '#FFD700',
+                      },
+                      '& input::placeholder': {
+                        color: '#B0B0B0',
+                        opacity: 1,
+                      },
                       '& fieldset': {
-                        borderColor: '#ddd',
+                        borderColor: 'rgba(255, 255, 255, 0.1)',
+                        borderWidth: '1px',
                       },
                       '&:hover fieldset': {
                         borderColor: '#FFD700',
+                        borderWidth: '2px',
                       },
-                      '&.Mui-focused fieldset': {
-                        borderColor: '#FFD700',
+                      '&.Mui-focused': {
+                        backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                        '& fieldset': {
+                          borderColor: '#FFD700',
+                          borderWidth: '2px',
+                        },
                       },
                     },
                     '& .MuiInputLabel-root': {
-                      color: '#666',
+                      color: '#B0B0B0',
                       '&.Mui-focused': {
                         color: '#FFD700',
+                      },
+                      '&.MuiInputLabel-shrink': {
+                        color: '#B0B0B0',
                       },
                     },
                   }}
@@ -235,16 +290,17 @@ export const PartnerLoginPage: React.FC = () => {
                   fullWidth
                   size="large"
                   sx={{
-                    bgcolor: '#FFD700',
+                    background: 'linear-gradient(135deg, #FFD700 0%, #FFA000 100%)',
                     color: '#000',
                     fontWeight: 600,
                     py: 1.5,
                     borderRadius: 2,
                     '&:hover': {
-                      bgcolor: '#fbc02d',
+                      background: 'linear-gradient(135deg, #FFA000 0%, #FF8F00 100%)',
+                      boxShadow: '0 8px 25px rgba(255, 215, 0, 0.3)',
                     },
                     '&:disabled': {
-                      bgcolor: 'rgba(255, 215, 0, 0.5)',
+                      background: 'rgba(255, 215, 0, 0.3)',
                       color: 'rgba(0, 0, 0, 0.5)'
                     }
                   }}
@@ -258,7 +314,7 @@ export const PartnerLoginPage: React.FC = () => {
                     onClick={() => navigate('/')}
                     variant="text"
                     size="small"
-                    sx={{ color: '#666' }}
+                    sx={{ color: '#B0B0B0', '&:hover': { color: '#FFFFFF' } }}
                   >
                     ← Retour à l'app
                   </Button>
