@@ -17,16 +17,22 @@ admin.initializeApp();
 const getStripeSecretKey = (): string => {
   // Firebase Secrets están disponibles automáticamente en process.env cuando se despliega
   if (process.env.STRIPE_SECRET_KEY) {
-    return process.env.STRIPE_SECRET_KEY;
+    const key = process.env.STRIPE_SECRET_KEY;
+    console.log('✅ STRIPE_SECRET_KEY encontrada:', key.substring(0, 20) + '...' + key.substring(key.length - 4));
+    return key;
   }
   
   // Fallback: intentar obtener de Firebase Functions Config (deprecated)
   const config = functions.config();
   if (config?.stripe?.secret_key) {
-    return config.stripe.secret_key;
+    const key = config.stripe.secret_key;
+    console.log('✅ STRIPE_SECRET_KEY encontrada en config (deprecated):', key.substring(0, 20) + '...');
+    return key;
   }
   
   console.error('❌ STRIPE_SECRET_KEY no configurada');
+  console.error('Por favor, configura el secret en Firebase:');
+  console.error('firebase functions:secrets:set STRIPE_SECRET_KEY');
   return '';
 };
 
@@ -34,12 +40,99 @@ const getStripeSecretKey = (): string => {
 const getStripeInstance = (): Stripe => {
   const secretKey = getStripeSecretKey();
   if (!secretKey) {
-    throw new Error('Stripe secret key not configured');
+    console.error('❌ STRIPE_SECRET_KEY no encontrada en process.env');
+    console.error('Verifica que el secret esté configurado y las functions redesplegadas');
+    throw new functions.https.HttpsError(
+      'failed-precondition',
+      'stripeKeyNotConfigured'
+    );
   }
   return new Stripe(secretKey, {
     apiVersion: '2025-07-30.basil',
+    maxNetworkRetries: 4,
+    timeout: 60000, // 60 segundos
   });
 };
+
+// ========================================
+// HELPER: Reintento con backoff exponencial
+// ========================================
+
+/**
+ * Reintenta una operación con backoff exponencial
+ * @param fn Función a ejecutar
+ * @param maxRetries Número máximo de reintentos (default: 3)
+ * @param initialDelay Delay inicial en ms (default: 1000)
+ */
+async function retryWithBackoff<T>(
+  fn: () => Promise<T>,
+  maxRetries: number = 3,
+  initialDelay: number = 1000
+): Promise<T> {
+  let lastError: any;
+  
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error: any) {
+      lastError = error;
+      
+      // No reintentar si es un error de configuración o autenticación
+      if (
+        error.code === 'stripeKeyNotConfigured' ||
+        error.code === 'unauthenticated' ||
+        error.code === 'permission-denied' ||
+        error.code === 'invalid-argument'
+      ) {
+        throw error;
+      }
+      
+      // Verificar si es un error de conexión que vale la pena reintentar
+      const isConnectionError = 
+        error.type === 'StripeConnectionError' ||
+        error.type === 'StripeAPIError' ||
+        error.code === 'ECONNRESET' ||
+        error.code === 'ETIMEDOUT' ||
+        error.code === 'ENOTFOUND' ||
+        error.message?.includes('timeout') ||
+        error.message?.includes('connection') ||
+        error.message?.includes('network');
+      
+      if (!isConnectionError || attempt === maxRetries) {
+        throw error;
+      }
+      
+      // Calcular delay con backoff exponencial
+      const delay = initialDelay * Math.pow(2, attempt);
+      console.warn(`⚠️ Intento ${attempt + 1}/${maxRetries + 1} falló. Reintentando en ${delay}ms...`, {
+        error: error.message,
+        type: error.type,
+        code: error.code,
+      });
+      
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+  
+  throw lastError;
+}
+
+/**
+ * Detecta si un error es de conexión con Stripe
+ */
+function isStripeConnectionError(error: any): boolean {
+  return (
+    error.type === 'StripeConnectionError' ||
+    error.type === 'StripeAPIError' ||
+    error.code === 'ECONNRESET' ||
+    error.code === 'ETIMEDOUT' ||
+    error.code === 'ENOTFOUND' ||
+    error.message?.includes('timeout') ||
+    error.message?.includes('connection') ||
+    error.message?.includes('network') ||
+    error.message?.includes('ECONNREFUSED')
+  );
+}
 
 // Configurar Express app para endpoints HTTP
 const app = express.default();
@@ -58,7 +151,21 @@ export const createPaymentIntent = functions
     memory: '256MB' as const,
   })
   .https.onCall(async (data: any, context: functions.https.CallableContext) => {
-    const stripe = getStripeInstance();
+    let stripe: Stripe;
+    try {
+      stripe = getStripeInstance();
+    } catch (error: any) {
+      // Si el error es de configuración de Stripe, lanzarlo con el código correcto
+      if (error.message && error.message.includes('stripeKeyNotConfigured')) {
+        throw new functions.https.HttpsError(
+          'failed-precondition',
+          'stripeKeyNotConfigured'
+        );
+      }
+      // Re-lanzar otros errores
+      throw error;
+    }
+
     try {
       // Verificar autenticación
       if (!context.auth) {
@@ -68,6 +175,7 @@ export const createPaymentIntent = functions
         );
       }
 
+      const userId = context.auth.uid;
       const { amount, currency = 'chf', description, metadata } = data;
 
       // Validar datos
@@ -78,23 +186,50 @@ export const createPaymentIntent = functions
         );
       }
 
-      // Crear Payment Intent
+      // Crear Payment Intent con reintentos
       // El amount ya viene en centavos desde el frontend
-      const paymentIntent = await stripe.paymentIntents.create({
-        amount: Math.round(amount), // Ya viene en centavos, solo redondear
+      console.log('🔧 Creando Payment Intent con Stripe...', {
+        amount: Math.round(amount),
         currency: currency.toLowerCase(),
         description,
-        metadata: {
-          userId: context.auth.uid,
-          ...metadata,
-        },
-        // Habilitar métodos de pago automáticamente (incluye TWINT, Apple Pay, tarjetas)
-        automatic_payment_methods: {
-          enabled: true,
-          allow_redirects: 'never', // Evitar redirecciones para mejor UX
-        },
-        // Configuración específica para Suiza
-        payment_method_types: ['card', 'twint'],
+        userId,
+      });
+      
+      const paymentIntent = await retryWithBackoff(async () => {
+        try {
+          const intent = await stripe.paymentIntents.create({
+            amount: Math.round(amount), // Ya viene en centavos, solo redondear
+            currency: currency.toLowerCase(),
+            description,
+            metadata: {
+              userId: userId,
+              ...metadata,
+            },
+            // Métodos de pago explícitos: Card, TWINT, Apple Pay, Google Pay, Link y Klarna
+            // Estos métodos deben estar habilitados en Stripe Dashboard
+            payment_method_types: ['card', 'twint', 'apple_pay', 'google_pay', 'link', 'klarna'],
+            // Habilitar métodos de pago automáticos para asegurar que todos estén disponibles
+            automatic_payment_methods: {
+              enabled: true,
+              allow_redirects: 'never',
+            },
+          });
+          console.log('✅ Payment Intent creado exitosamente:', intent.id);
+          return intent;
+        } catch (stripeError: any) {
+          console.error('❌ Error en llamada a Stripe API:', {
+            type: stripeError.type,
+            code: stripeError.code,
+            message: stripeError.message,
+            statusCode: stripeError.statusCode,
+          });
+          throw stripeError;
+        }
+      }, 3, 2000); // 3 reintentos, delay inicial de 2 segundos
+
+      console.log('✅ Payment Intent creado exitosamente:', {
+        paymentIntentId: paymentIntent.id,
+        status: paymentIntent.status,
       });
 
       return {
@@ -102,7 +237,29 @@ export const createPaymentIntent = functions
         paymentIntentId: paymentIntent.id,
       };
     } catch (error: any) {
-      console.error('Error creando PaymentIntent:', error);
+      console.error('❌ Error creando PaymentIntent:', {
+        message: error.message,
+        type: error.type,
+        code: error.code,
+        statusCode: error.statusCode,
+      });
+      
+      // Detectar errores de conexión específicos
+      if (isStripeConnectionError(error)) {
+        throw new functions.https.HttpsError(
+          'unavailable',
+          'An error occurred with our connection to Stripe. Request was retried 2 times. Please try again in a moment.'
+        );
+      }
+      
+      // Otros errores de Stripe
+      if (error.type && error.type.startsWith('Stripe')) {
+        throw new functions.https.HttpsError(
+          'internal',
+          error.message || 'Error al crear el pago con Stripe'
+        );
+      }
+      
       throw new functions.https.HttpsError(
         'internal',
         error.message || 'Error al crear el pago'
@@ -122,7 +279,21 @@ export const createSubscription = functions
     memory: '256MB' as const,
   })
   .https.onCall(async (data: any, context: functions.https.CallableContext) => {
-    const stripe = getStripeInstance();
+    let stripe: Stripe;
+    try {
+      stripe = getStripeInstance();
+    } catch (error: any) {
+      // Si el error es de configuración de Stripe, lanzarlo con el código correcto
+      if (error.message && error.message.includes('stripeKeyNotConfigured')) {
+        throw new functions.https.HttpsError(
+          'failed-precondition',
+          'stripeKeyNotConfigured'
+        );
+      }
+      // Re-lanzar otros errores
+      throw error;
+    }
+
     try {
       // Verificar autenticación
       if (!context.auth) {
@@ -132,6 +303,8 @@ export const createSubscription = functions
         );
       }
 
+      const userId = context.auth.uid;
+      const userEmail = context.auth.token?.email as string | undefined;
       const { planId, planType, customerEmail } = data;
 
       // Validar datos
@@ -142,8 +315,6 @@ export const createSubscription = functions
         );
       }
 
-      const userId = context.auth.uid;
-
       // Obtener o crear cliente de Stripe
       let customerId: string;
       const userDoc = await admin.firestore().collection('users').doc(userId).get();
@@ -152,13 +323,15 @@ export const createSubscription = functions
       if (userData?.stripeCustomerId) {
         customerId = userData.stripeCustomerId;
       } else {
-        // Crear nuevo cliente en Stripe
-        const customer = await stripe.customers.create({
-          email: customerEmail || (context.auth.token.email as string),
-          metadata: {
-            userId,
-          },
-        });
+        // Crear nuevo cliente en Stripe (con reintentos)
+        const customer = await retryWithBackoff(async () => {
+          return await stripe.customers.create({
+            email: customerEmail || userEmail || undefined,
+            metadata: {
+              userId,
+            },
+          });
+        }, 3, 2000);
         customerId = customer.id;
 
         // Guardar customerId en Firestore
@@ -171,44 +344,46 @@ export const createSubscription = functions
       // IMPORTANTE: Ambos planes se pagan mensualmente
       const prices: Record<string, { monthly: number; yearly: number }> = {
         standard: {
-          monthly: 9.99,  // Plan mensual: 9.99 CHF/mes
-          yearly: 8.33,   // Plan anual: 8.33 CHF/mes (99.99 / 12 meses)
+          monthly: 5.95,  // Plan mensual: 5.95 CHF/mes
+          yearly: 4.95,   // Plan anual: 4.95 CHF/mes
         },
       };
 
-      const planPrices = prices.standard || { monthly: 9.99, yearly: 8.33 };
+      const planPrices = prices.standard || { monthly: 5.95, yearly: 4.95 };
       const price = planType === 'monthly' 
         ? planPrices.monthly 
         : planPrices.yearly;
 
-      // Crear precio en Stripe primero
+      // Crear precio en Stripe primero con reintentos
       // AMBOS planes se pagan mensualmente (interval: 'month')
-      const priceObj = await stripe.prices.create({
-        currency: 'chf',
-        unit_amount: Math.round(price * 100),
-        recurring: {
-          interval: 'month', // Ambos planes se pagan mensualmente
-        },
-        product_data: {
-          name: `LUCA App - ${planType === 'monthly' ? 'Plan Mensuel' : 'Plan Annuel'}`,
-          description: planType === 'yearly' 
-            ? 'Plan anual con pago mensual (12 meses)' 
-            : 'Plan mensual',
-        },
-      });
+      const priceObj = await retryWithBackoff(async () => {
+        return await stripe.prices.create({
+          currency: 'chf',
+          unit_amount: Math.round(price * 100),
+          recurring: {
+            interval: 'month', // Ambos planes se pagan mensualmente
+          },
+          product_data: {
+            name: `LUCA App - ${planType === 'monthly' ? 'Plan Mensuel' : 'Plan Annuel'}`,
+          },
+        });
+      }, 3, 2000);
 
-      // Crear suscripción en Stripe con métodos de pago habilitados
-      const subscription = await stripe.subscriptions.create({
-        customer: customerId,
-        items: [{ price: priceObj.id }],
-        payment_behavior: 'default_incomplete',
-        expand: ['latest_invoice.payment_intent'],
-        payment_settings: {
-          payment_method_types: ['card', 'twint'],
-        },
-      });
+      // Crear suscripción en Stripe con métodos de pago habilitados (con reintentos)
+      const subscription = await retryWithBackoff(async () => {
+        return await stripe.subscriptions.create({
+          customer: customerId,
+          items: [{ price: priceObj.id }],
+          payment_behavior: 'default_incomplete',
+          expand: ['latest_invoice.payment_intent'],
+          payment_settings: {
+            // Habilitar métodos de pago automáticamente para suscripciones
+            // Los métodos específicos (card, twint, apple_pay) se configuran en el PaymentIntent
+          },
+        });
+      }, 3, 2000);
 
-      // Obtener client secret del PaymentIntent
+      // Obtener client secret del PaymentIntent (con reintentos)
       // El invoice ya está expandido, pero necesitamos obtener el payment_intent
       const invoiceId = typeof subscription.latest_invoice === 'string'
         ? subscription.latest_invoice
@@ -218,21 +393,58 @@ export const createSubscription = functions
         throw new Error('No se pudo obtener el invoice');
       }
 
-      const invoice = await stripe.invoices.retrieve(invoiceId, {
-        expand: ['payment_intent'],
-      });
+      const invoice = await retryWithBackoff(async () => {
+        return await stripe.invoices.retrieve(invoiceId, {
+          expand: ['payment_intent'],
+        });
+      }, 3, 2000);
 
       const paymentIntent = (invoice as any).payment_intent;
       if (!paymentIntent || typeof paymentIntent === 'string') {
         throw new Error('No se pudo obtener el payment intent');
       }
 
+      // Obtener el ID del PaymentIntent
+      const paymentIntentId = typeof paymentIntent === 'string' 
+        ? paymentIntent 
+        : paymentIntent.id;
+
+      // Actualizar el PaymentIntent para incluir todos los métodos de pago (con reintentos)
+      // Nota: automatic_payment_methods solo se puede configurar al crear, no al actualizar
+      const updatedPaymentIntent = await retryWithBackoff(async () => {
+        return await stripe.paymentIntents.update(paymentIntentId, {
+          payment_method_types: ['card', 'twint', 'apple_pay', 'google_pay', 'link', 'klarna'],
+        });
+      }, 3, 2000);
+
       return {
         subscriptionId: subscription.id,
-        clientSecret: paymentIntent.client_secret,
+        clientSecret: updatedPaymentIntent.client_secret,
       };
     } catch (error: any) {
-      console.error('Error creando suscripción:', error);
+      console.error('❌ Error creando suscripción:', {
+        message: error.message,
+        type: error.type,
+        code: error.code,
+        statusCode: error.statusCode,
+      });
+      
+      // Detectar errores de conexión específicos
+      if (isStripeConnectionError(error)) {
+        throw new functions.https.HttpsError(
+          'unavailable',
+          'An error occurred with our connection to Stripe. Request was retried 2 times. Please try again in a moment.'
+        );
+      }
+      
+      // Otros errores de Stripe
+      if (error.type && error.type.startsWith('Stripe')) {
+        throw new functions.https.HttpsError(
+          'internal',
+          error.message || 'Error al crear la suscripción con Stripe'
+        );
+      }
+      
       throw new functions.https.HttpsError(
         'internal',
         error.message || 'Error al crear la suscripción'
@@ -287,6 +499,61 @@ export const cancelSubscription = functions
       throw new functions.https.HttpsError(
         'internal',
         error.message || 'Error al cancelar la suscripción'
+      );
+    }
+  });
+
+// ========================================
+// VERIFICAR ESTADO DE PAGO
+// ========================================
+
+export const checkPaymentStatus = functions
+  .region('europe-west1')
+  .runWith({
+    secrets: ['STRIPE_SECRET_KEY'],
+    timeoutSeconds: 300,
+    memory: '256MB' as const,
+  })
+  .https.onCall(async (data: any, context: functions.https.CallableContext) => {
+    const stripe = getStripeInstance();
+    try {
+      // Verificar autenticación
+      if (!context.auth) {
+        throw new functions.https.HttpsError(
+          'unauthenticated',
+          'Usuario no autenticado'
+        );
+      }
+
+      const { paymentIntentId } = data;
+
+      if (!paymentIntentId) {
+        throw new functions.https.HttpsError(
+          'invalid-argument',
+          'ID de Payment Intent no proporcionado'
+        );
+      }
+
+      // Obtener Payment Intent desde Stripe
+      const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+
+      return {
+        paymentIntentId: paymentIntent.id,
+        status: paymentIntent.status,
+        amount: paymentIntent.amount,
+        currency: paymentIntent.currency,
+        lastPaymentError: paymentIntent.last_payment_error?.message || null,
+        transactionId: paymentIntent.latest_charge ? 
+          (typeof paymentIntent.latest_charge === 'string' 
+            ? paymentIntent.latest_charge 
+            : paymentIntent.latest_charge.id) 
+          : null,
+      };
+    } catch (error: any) {
+      console.error('Error verificando estado de pago:', error);
+      throw new functions.https.HttpsError(
+        'internal',
+        error.message || 'Error al verificar el estado del pago'
       );
     }
   });
@@ -608,8 +875,12 @@ app.post('/create-payment-intent', async (req: express.Request, res: express.Res
     const paymentIntent = await stripe.paymentIntents.create({
       amount: Math.round(amount),
       currency: currency.toLowerCase(),
+      // Métodos de pago explícitos: Card, TWINT, Apple Pay, Google Pay, Link y Klarna
+      payment_method_types: ['card', 'twint', 'apple_pay', 'google_pay', 'link', 'klarna'],
+      // Habilitar métodos de pago automáticos para asegurar que todos estén disponibles
       automatic_payment_methods: {
         enabled: true,
+        allow_redirects: 'never',
       },
       metadata,
     });
@@ -632,3 +903,104 @@ export const api = functions
     memory: '256MB' as const,
   })
   .https.onRequest(app);
+
+// ========================================
+// CREAR ADMINISTRADOR
+// ========================================
+
+export const createAdmin = functions
+  .region('europe-west1')
+  .runWith({
+    timeoutSeconds: 60,
+    memory: '256MB' as const,
+  })
+  .https.onCall(async (data: any, context: functions.https.CallableContext) => {
+    try {
+      // Verificar autenticación
+      if (!context.auth) {
+        throw new functions.https.HttpsError(
+          'unauthenticated',
+          'Usuario no autenticado'
+        );
+      }
+
+      const { email } = data;
+
+      if (!email || typeof email !== 'string') {
+        throw new functions.https.HttpsError(
+          'invalid-argument',
+          'Email es requerido'
+        );
+      }
+
+      // Validar formato de email
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        throw new functions.https.HttpsError(
+          'invalid-argument',
+          'Formato de email inválido'
+        );
+      }
+
+      const db = admin.firestore();
+      
+      // Buscar usuario por email en la colección 'users'
+      const usersRef = db.collection('users');
+      const snapshot = await usersRef.where('email', '==', email).get();
+      
+      if (snapshot.empty) {
+        throw new functions.https.HttpsError(
+          'not-found',
+          `Usuario con email ${email} no encontrado. El usuario debe estar registrado en la app primero.`
+        );
+      }
+      
+      const userDoc = snapshot.docs[0];
+      if (!userDoc) {
+        throw new functions.https.HttpsError(
+          'not-found',
+          `Usuario con email ${email} no encontrado.`
+        );
+      }
+      const userId = userDoc.id;
+      const userData = userDoc.data();
+      
+      // Verificar si ya es admin
+      if (userData.isAdmin === true) {
+        return {
+          success: true,
+          message: `El usuario ${email} ya es administrador`,
+          userId,
+          alreadyAdmin: true,
+        };
+      }
+      
+      // Actualizar usuario para hacerlo admin
+      await usersRef.doc(userId).update({
+        isAdmin: true,
+        isPartner: false,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+      
+      console.log(`✅ Usuario ${email} convertido a administrador. UID: ${userId}`);
+      
+      return {
+        success: true,
+        message: `Usuario ${email} ahora es administrador`,
+        userId,
+        alreadyAdmin: false,
+      };
+    } catch (error: any) {
+      console.error('❌ Error creando administrador:', error);
+      
+      // Si ya es un HttpsError, re-lanzarlo
+      if (error instanceof functions.https.HttpsError) {
+        throw error;
+      }
+      
+      throw new functions.https.HttpsError(
+        'internal',
+        error.message || 'Error al crear el administrador'
+      );
+    }
+  });
