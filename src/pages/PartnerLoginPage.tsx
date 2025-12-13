@@ -36,6 +36,7 @@ export const PartnerLoginPage: React.FC = () => {
           
           if (userDoc.exists()) {
             const userData = userDoc.data();
+            // Allow access if user is partner OR admin
             if (userData.isPartner === true) {
               const partnerRef = doc(db, 'partners', user.uid);
               const partnerDoc = await getDoc(partnerRef);
@@ -44,6 +45,9 @@ export const PartnerLoginPage: React.FC = () => {
                 // Ya está logueado, redirigir al dashboard
                 navigate('/partner/dashboard', { replace: true });
               }
+            } else if (userData.isAdmin === true) {
+              // Admins can access partner dashboard directly
+              navigate('/partner/dashboard', { replace: true });
             }
           }
         } catch (error) {
@@ -74,17 +78,23 @@ export const PartnerLoginPage: React.FC = () => {
 
       if (userDoc.exists()) {
         const userData = userDoc.data();
-        if (userData.isPartner === true) {
-          // Obtener información del partner
-          const partnerRef = doc(db, 'partners', user.uid);
-          const partnerDoc = await getDoc(partnerRef);
+        // Allow access if user is partner OR admin
+        if (userData.isPartner === true || userData.isAdmin === true) {
+          // If user is a partner, verify partner document exists
+          if (userData.isPartner === true) {
+            const partnerRef = doc(db, 'partners', user.uid);
+            const partnerDoc = await getDoc(partnerRef);
 
-          if (partnerDoc.exists()) {
-            // Redirigir al dashboard
+            if (partnerDoc.exists()) {
+              // Redirigir al dashboard
+              navigate('/partner/dashboard', { replace: true });
+            } else {
+              setError('Profil partenaire introuvable. Contactez l\'administrateur.');
+              await auth.signOut();
+            }
+          } else if (userData.isAdmin === true) {
+            // Admins can access partner dashboard directly
             navigate('/partner/dashboard', { replace: true });
-          } else {
-            setError('Profil partenaire introuvable. Contactez l\'administrateur.');
-            await auth.signOut();
           }
         } else {
           setError('Vous n\'avez pas les permissions de partenaire');
@@ -173,115 +183,107 @@ export const PartnerLoginPage: React.FC = () => {
               )}
 
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                <TextField
-                  fullWidth
-                  label="Email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  autoComplete="email"
-                  disabled={isLoading}
-                  InputProps={{
-                    startAdornment: <Email sx={{ mr: 1, color: '#B0B0B0' }} />
-                  }}
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      borderRadius: 2,
-                      backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                      color: '#FFFFFF',
-                      border: '1px solid rgba(255, 255, 255, 0.1)',
-                      '& input': {
+                <Box>
+                  <Typography variant="body2" sx={{ mb: 1, fontWeight: 500, color: '#B0B0B0', fontSize: '0.875rem' }}>
+                    Email
+                  </Typography>
+                  <TextField
+                    fullWidth
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    onKeyPress={handleKeyPress}
+                    autoComplete="email"
+                    disabled={isLoading}
+                    placeholder="email@example.com"
+                    InputProps={{
+                      startAdornment: <Email sx={{ mr: 1, color: '#B0B0B0' }} />
+                    }}
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        borderRadius: 2,
+                        backgroundColor: 'rgba(255, 255, 255, 0.05)',
                         color: '#FFFFFF',
-                        WebkitTextFillColor: '#FFFFFF',
-                        caretColor: '#FFD700',
-                      },
-                      '& input::placeholder': {
-                        color: '#B0B0B0',
-                        opacity: 1,
-                      },
-                      '& fieldset': {
-                        borderColor: 'rgba(255, 255, 255, 0.1)',
-                        borderWidth: '1px',
-                      },
-                      '&:hover fieldset': {
-                        borderColor: '#FFD700',
-                        borderWidth: '2px',
-                      },
-                      '&.Mui-focused': {
-                        backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        '& input': {
+                          color: '#FFFFFF',
+                          WebkitTextFillColor: '#FFFFFF',
+                          caretColor: '#FFD700',
+                        },
+                        '& input::placeholder': {
+                          color: '#B0B0B0',
+                          opacity: 1,
+                        },
                         '& fieldset': {
+                          borderColor: 'rgba(255, 255, 255, 0.1)',
+                          borderWidth: '1px',
+                        },
+                        '&:hover fieldset': {
                           borderColor: '#FFD700',
                           borderWidth: '2px',
                         },
+                        '&.Mui-focused': {
+                          backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                          '& fieldset': {
+                            borderColor: '#FFD700',
+                            borderWidth: '2px',
+                          },
+                        },
                       },
-                    },
-                    '& .MuiInputLabel-root': {
-                      color: '#B0B0B0',
-                      '&.Mui-focused': {
-                        color: '#FFD700',
-                      },
-                      '&.MuiInputLabel-shrink': {
-                        color: '#B0B0B0',
-                      },
-                    },
-                  }}
-                />
+                    }}
+                  />
+                </Box>
 
-                <TextField
-                  fullWidth
-                  label="Mot de passe"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  autoComplete="current-password"
-                  disabled={isLoading}
-                  InputProps={{
-                    startAdornment: <Lock sx={{ mr: 1, color: '#B0B0B0' }} />
-                  }}
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      borderRadius: 2,
-                      backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                      color: '#FFFFFF',
-                      border: '1px solid rgba(255, 255, 255, 0.1)',
-                      '& input': {
+                <Box>
+                  <Typography variant="body2" sx={{ mb: 1, fontWeight: 500, color: '#B0B0B0', fontSize: '0.875rem' }}>
+                    Mot de passe
+                  </Typography>
+                  <TextField
+                    fullWidth
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    onKeyPress={handleKeyPress}
+                    autoComplete="current-password"
+                    disabled={isLoading}
+                    placeholder="••••••••"
+                    InputProps={{
+                      startAdornment: <Lock sx={{ mr: 1, color: '#B0B0B0' }} />
+                    }}
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        borderRadius: 2,
+                        backgroundColor: 'rgba(255, 255, 255, 0.05)',
                         color: '#FFFFFF',
-                        WebkitTextFillColor: '#FFFFFF',
-                        caretColor: '#FFD700',
-                      },
-                      '& input::placeholder': {
-                        color: '#B0B0B0',
-                        opacity: 1,
-                      },
-                      '& fieldset': {
-                        borderColor: 'rgba(255, 255, 255, 0.1)',
-                        borderWidth: '1px',
-                      },
-                      '&:hover fieldset': {
-                        borderColor: '#FFD700',
-                        borderWidth: '2px',
-                      },
-                      '&.Mui-focused': {
-                        backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        '& input': {
+                          color: '#FFFFFF',
+                          WebkitTextFillColor: '#FFFFFF',
+                          caretColor: '#FFD700',
+                        },
+                        '& input::placeholder': {
+                          color: '#B0B0B0',
+                          opacity: 1,
+                        },
                         '& fieldset': {
+                          borderColor: 'rgba(255, 255, 255, 0.1)',
+                          borderWidth: '1px',
+                        },
+                        '&:hover fieldset': {
                           borderColor: '#FFD700',
                           borderWidth: '2px',
                         },
+                        '&.Mui-focused': {
+                          backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                          '& fieldset': {
+                            borderColor: '#FFD700',
+                            borderWidth: '2px',
+                          },
+                        },
                       },
-                    },
-                    '& .MuiInputLabel-root': {
-                      color: '#B0B0B0',
-                      '&.Mui-focused': {
-                        color: '#FFD700',
-                      },
-                      '&.MuiInputLabel-shrink': {
-                        color: '#B0B0B0',
-                      },
-                    },
-                  }}
-                />
+                    }}
+                  />
+                </Box>
 
                 <Button
                   onClick={handleLogin}

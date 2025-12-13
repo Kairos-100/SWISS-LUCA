@@ -51,19 +51,28 @@ export const PartnerLoginModal: React.FC<PartnerLoginModalProps> = ({
 
       if (userDoc.exists()) {
         const userData = userDoc.data();
-        if (userData.isPartner === true) {
-          // Obtener información del partner
-          const partnerRef = doc(db, 'partners', user.uid);
-          const partnerDoc = await getDoc(partnerRef);
+        // Allow access if user is partner OR admin
+        if (userData.isPartner === true || userData.isAdmin === true) {
+          // If user is a partner, verify partner document exists
+          if (userData.isPartner === true) {
+            const partnerRef = doc(db, 'partners', user.uid);
+            const partnerDoc = await getDoc(partnerRef);
 
-          if (partnerDoc.exists()) {
+            if (partnerDoc.exists()) {
+              onLoginSuccess(user.uid);
+              onClose();
+              setEmail('');
+              setPassword('');
+            } else {
+              setError('Profil partenaire introuvable. Contactez l\'administrateur.');
+              await auth.signOut();
+            }
+          } else if (userData.isAdmin === true) {
+            // Admins can access partner dashboard directly
             onLoginSuccess(user.uid);
             onClose();
             setEmail('');
             setPassword('');
-          } else {
-            setError('Profil partenaire introuvable. Contactez l\'administrateur.');
-            await auth.signOut();
           }
         } else {
           setError('Vous n\'avez pas les permissions de partenaire');
@@ -116,46 +125,52 @@ export const PartnerLoginModal: React.FC<PartnerLoginModalProps> = ({
               {error}
             </Alert>
           )}
-          <TextField
-            fullWidth
-            label="Email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            onKeyPress={handleKeyPress}
-            margin="normal"
-            autoComplete="email"
-            disabled={isLoading}
-            sx={{
-              '& .MuiInputLabel-root': { color: '#B0B0B0' },
-              '& .MuiOutlinedInput-root': {
-                color: '#FFFFFF',
-                '& fieldset': { borderColor: '#555' },
-                '&:hover fieldset': { borderColor: '#FFD700' },
-                '&.Mui-focused fieldset': { borderColor: '#FFD700' }
-              }
-            }}
-          />
-          <TextField
-            fullWidth
-            label="Mot de passe"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            onKeyPress={handleKeyPress}
-            margin="normal"
-            autoComplete="current-password"
-            disabled={isLoading}
-            sx={{
-              '& .MuiInputLabel-root': { color: '#B0B0B0' },
-              '& .MuiOutlinedInput-root': {
-                color: '#FFFFFF',
-                '& fieldset': { borderColor: '#555' },
-                '&:hover fieldset': { borderColor: '#FFD700' },
-                '&.Mui-focused fieldset': { borderColor: '#FFD700' }
-              }
-            }}
-          />
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="body2" sx={{ mb: 1, fontWeight: 500, color: '#B0B0B0', fontSize: '0.875rem' }}>
+              Email
+            </Typography>
+            <TextField
+              fullWidth
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              onKeyPress={handleKeyPress}
+              autoComplete="email"
+              disabled={isLoading}
+              placeholder="email@example.com"
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  color: '#FFFFFF',
+                  '& fieldset': { borderColor: '#555' },
+                  '&:hover fieldset': { borderColor: '#FFD700' },
+                  '&.Mui-focused fieldset': { borderColor: '#FFD700' }
+                }
+              }}
+            />
+          </Box>
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="body2" sx={{ mb: 1, fontWeight: 500, color: '#B0B0B0', fontSize: '0.875rem' }}>
+              Mot de passe
+            </Typography>
+            <TextField
+              fullWidth
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              onKeyPress={handleKeyPress}
+              autoComplete="current-password"
+              disabled={isLoading}
+              placeholder="••••••••"
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  color: '#FFFFFF',
+                  '& fieldset': { borderColor: '#555' },
+                  '&:hover fieldset': { borderColor: '#FFD700' },
+                  '&.Mui-focused fieldset': { borderColor: '#FFD700' }
+                }
+              }}
+            />
+          </Box>
         </Box>
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2 }}>
